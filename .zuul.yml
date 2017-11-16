@@ -1,0 +1,7 @@
+ui: tape
+browsers:
+  - name: chrome
+    version: 39..dev
+browserify:
+  - transform:
+      name: babelify

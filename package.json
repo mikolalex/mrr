@@ -1,10 +1,14 @@
 {
   "name": "mrr",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Make React reactive",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "readme": "node ./node_modules/.bin/node-readme",
+    "test": "./node_modules/.bin/babel-tape-runner ./spec/**/*.spec.js | ./node_modules/.bin/tap-spec",
+    "zuul": "./node_modules/.bin/zuul --local --open -- spec/**/*.spec.js",
+    "build": "npm run test && npm run readme && ./node_modules/.bin/babel -d ./dist ./src",
+    "publish": "git push && git push --tags && npm publish"
   },
   "repository": {
     "type": "git",
@@ -17,13 +21,24 @@
     "firera"
   ],
   "author": "Mykola Oleksiienko",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/mikolalex/mrr/issues"
   },
   "homepage": "https://github.com/mikolalex/mrr#readme",
   "dependencies": {
     "react": "^16.1.1",
-    "react-dom": "^16.1.1"
+    "react-dom": "^16.1.1",
+    "babel-cli": "^6.3.17",
+    "babel-eslint": "*",
+    "babel-preset-es2015": "*",
+    "babel-tape-runner": "*",
+    "babelify": "7.2.0",
+    "eslint": "*",
+    "eslint-config-airbnb": "*",
+    "node-readme": "^0.1.8",
+    "tap-spec": "^4.0.2",
+    "tape": "^4.0.0",
+    "zuul": "^3.8.0"
   }
 }
