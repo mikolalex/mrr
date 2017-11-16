@@ -1,0 +1,29 @@
+{
+  "name": "mrr",
+  "version": "1.0.0",
+  "description": "Make React reactive",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mikolalex/mrr.git"
+  },
+  "keywords": [
+    "react",
+    "frp",
+    "reactive",
+    "firera"
+  ],
+  "author": "Mykola Oleksiienko",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mikolalex/mrr/issues"
+  },
+  "homepage": "https://github.com/mikolalex/mrr#readme",
+  "dependencies": {
+    "react": "^16.1.1",
+    "react-dom": "^16.1.1"
+  }
+}
