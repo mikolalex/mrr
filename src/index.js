@@ -9,22 +9,23 @@ const cell_types = ['funnel', 'closure', 'nested', 'async'];
 export default class Mrr extends React.Component {
     constructor(props, context) {
         super(props, context);
-		this.__mrrInternal = {
+		this.__mrr = {
 			closureFuncs: {},
+			children: {},
+			childrenCounter: 0,
+			anonCellsCounter: 0,
+			linksNeeded: {},
+			realComputed: Object.assign({}, this.computed),
+			constructing: true,
+			thunks: {},
+			skip: new function MrrSkip(){},
 		};
-		this.__mrrConstructing = true;
-		this.__mrrChildren = {};
-		this.__mrrLinksNeeded = {};
-		this.__real_computed = Object.assign({}, this.computed);
-		this.__mrrAnonCells = 0;
-		this.__mrrThunks = {};
 		this.parseMrr();
-		this.childrenCounter = 0;
 		if(this.props.mrrConnect){
 			this.props.mrrConnect.subscribe(this);
 		}
 		this.setState({$start: true});
-		this.__mrrConstructing = false;
+		this.__mrr.constructing = false;
     }
 	get __mrrMacros(){
 		return { 
@@ -52,7 +53,8 @@ export default class Mrr extends React.Component {
 			join: ([...fields]) => ['funnel', (cell, val) => val, ...fields],
 			'&&': ([a, b]) => {
 				return [(a, b) => (a && b), a, b];
-			}
+			},
+			trigger: ([field, val]) => [a => a === val ? true : this.__mrr.skip, field],
 		}
 	}
 	parseRow(row, key, depMap){
@@ -66,7 +68,7 @@ export default class Mrr extends React.Component {
 						throw new Error('Macros ' + cell + ' not found!');
 					}
 					var new_row = this.__mrrMacros[cell](row.slice(1));
-					this.__real_computed[key] = new_row;
+					this.__mrr.realComputed[key] = new_row;
 					this.parseRow(new_row, key, depMap);
 					return;
 				} 
@@ -75,22 +77,22 @@ export default class Mrr extends React.Component {
 			if(cell instanceof Function) continue;
 			if(cell instanceof Array) {
 				// anon cell
-				const anonName = '@@anon' + (++this.__mrrAnonCells);
-				this.__real_computed[anonName] = cell;
-				this.__real_computed[key][k] = anonName;
+				const anonName = '@@anon' + (++this.__mrr.anonCellsCounter);
+				this.__mrr.realComputed[anonName] = cell;
+				this.__mrr.realComputed[key][k] = anonName;
 				this.parseRow(cell, anonName, depMap);
 				cell = anonName;
 			}
 			if(cell.indexOf('/') !== -1){
 				const [from, parent_cell] = cell.split('/');
-				if(!this.__mrrLinksNeeded[from]){
-					this.__mrrLinksNeeded[from] = {};
+				if(!this.__mrr.linksNeeded[from]){
+					this.__mrr.linksNeeded[from] = {};
 				}
-				if(!this.__mrrLinksNeeded[from][parent_cell]){
-					this.__mrrLinksNeeded[from][parent_cell] = [];
+				if(!this.__mrr.linksNeeded[from][parent_cell]){
+					this.__mrr.linksNeeded[from][parent_cell] = [];
 				}
-				if(this.__mrrLinksNeeded[from][parent_cell].indexOf(cell) === -1){
-					this.__mrrLinksNeeded[from][parent_cell].push(cell);
+				if(this.__mrr.linksNeeded[from][parent_cell].indexOf(cell) === -1){
+					this.__mrr.linksNeeded[from][parent_cell].push(cell);
 				}
 			}
 			if(cell === '^'){
@@ -110,7 +112,7 @@ export default class Mrr extends React.Component {
 	}
 	parseMrr(){
 		const depMap = {};
-		const mrr = this.__real_computed;
+		const mrr = this.__mrr.realComputed;
 		const initial_compute = [];
 		this.mrrState = Object.assign({}, this.state);
 		const updateOnInit = {};
@@ -128,7 +130,7 @@ export default class Mrr extends React.Component {
 				if(typeof fexpr === 'string'){
 					// another cell
 					fexpr = [a => a, fexpr];
-					this.__real_computed[key] = fexpr;
+					this.__mrr.realComputed[key] = fexpr;
 				} else {
 					// dunno
 					console.warn('Strange F-expr:', fexpr);
@@ -162,20 +164,20 @@ export default class Mrr extends React.Component {
 	mrrConnect(as){
 		const self = this;
 		if(!as){
-			as = '__rand_child_name_' + (++this.childrenCounter);
+			as = '__rand_child_name_' + (++this.__mrr.childrenCounter);
 		}
 		return {
 			subscribe: (child) => {
-				this.__mrrChildren[as] = child;
+				this.__mrr.children[as] = child;
 				child.__mrrParent = self;
 				child.__mrrLinkedAs = as;
 			}
 		}
 	}
 	toState(key, val){
-		if(val === undefined && this.__mrrThunks[key]){
+		if(val === undefined && this.__mrr.thunks[key]){
 			//console.log('=== skip');
-			return this.__mrrThunks[key];
+			return this.__mrr.thunks[key];
 		} else {
 			//console.log('=== generate');
 			const func = (a) => {
@@ -208,13 +210,13 @@ export default class Mrr extends React.Component {
 				}
 			}
 			if(val === undefined){
-				this.__mrrThunks[key] = func;
+				this.__mrr.thunks[key] = func;
 			}
 			return func;
 		}
 	}
 	__getCellArgs(cell){
-		const res = this.__real_computed[cell].slice(this.__real_computed[cell][0] instanceof Function ? 1 : 2).map((arg_cell => {
+		const res = this.__mrr.realComputed[cell].slice(this.__mrr.realComputed[cell][0] instanceof Function ? 1 : 2).map((arg_cell => {
 			if(arg_cell === '^'){
 				//console.log('looking for prev val of', cell, this.mrrState, this.state);
 				return this.mrrState[cell];
@@ -223,7 +225,7 @@ export default class Mrr extends React.Component {
 					arg_cell = arg_cell.slice(1);
 				}
 				return (this.mrrState[arg_cell] === undefined && this.state) 
-					? (	this.__rirrfpConstructing 
+					? (	this.__mrr.constructing 
 							? this.initialState[arg_cell] 
 							: this.state[arg_cell]
 						)  
@@ -234,12 +236,20 @@ export default class Mrr extends React.Component {
 	}
 	__mrrUpdateCell(cell, parent_cell, update){
 		var val, func, args, types;
-		const fexpr = this.__real_computed[cell];
+		const updateFunc = val => {
+			if(val === this.__mrr.skip) return;
+			this.__mrrSetState(cell, val);
+			const update = {};
+			update[cell] = val;
+			this.checkMrrCellUpdate(cell, update);
+			React.Component.prototype.setState.call(this, update);
+		}
+		const fexpr = this.__mrr.realComputed[cell];
 		if(typeof fexpr[0] === 'string'){
 			types = fexpr[0].split('.');
 		}
 		if(fexpr[0] instanceof Function){
-			func = this.__real_computed[cell][0];
+			func = this.__mrr.realComputed[cell][0];
 			args = this.__getCellArgs(cell);
 			
 			val = func.apply(null, args);
@@ -260,22 +270,16 @@ export default class Mrr extends React.Component {
 				})
 			} 
 			if(types.indexOf('async') !== -1){
-				args.unshift((val) => {
-					this.__mrrSetState(cell, val);
-					const update = {};
-					update[cell] = val;
-					this.checkMrrCellUpdate(cell, update);
-					React.Component.prototype.setState.call(this, update);
-				})
+				args.unshift(updateFunc)
 			} 
 			if(types.indexOf('closure') !== -1){
-				if(!this.__mrrInternal.closureFuncs[cell]){
-					const init_val = this.__real_computed.$init ? this.__real_computed.$init[cell] : null;
-					this.__mrrInternal.closureFuncs[cell] = fexpr[1](init_val);
+				if(!this.__mrr.closureFuncs[cell]){
+					const init_val = this.__mrr.realComputed.$init ? this.__mrr.realComputed.$init[cell] : null;
+					this.__mrr.closureFuncs[cell] = fexpr[1](init_val);
 				}
-				func = this.__mrrInternal.closureFuncs[cell];
+				func = this.__mrr.closureFuncs[cell];
 			} else {
-				func = this.__real_computed[cell][1];
+				func = this.__mrr.realComputed[cell][1];
 			}
 			if(!func || !func.apply) debugger;
 			val = func.apply(null, args);
@@ -285,14 +289,9 @@ export default class Mrr extends React.Component {
 			return;
 		}
 		if(isPromise(val)){
-			val.then(val => {
-				this.__mrrSetState(cell, val);
-				const update = {};
-				update[cell] = val;
-				this.checkMrrCellUpdate(cell, update);
-				React.Component.prototype.setState.call(this, update);
-			})
+			val.then(updateFunc)
 		} else {
+			if(val === this.__mrr.skip) return;
 			update[cell] = val;
 			this.__mrrSetState(cell, val);
 			this.checkMrrCellUpdate(cell, update);
@@ -306,18 +305,18 @@ export default class Mrr extends React.Component {
 		}
 	}
 	__mrrSetState(key, val){
-		if(this.__real_computed.$log || 0) console.log('%c ' + key + ' ', 'background: #898cec; color: white; padding: 1px;', val);
-		for(let as in this.__mrrChildren){
-			if(this.__mrrChildren[as].__mrrLinksNeeded['..'] && this.__mrrChildren[as].__mrrLinksNeeded['..'][key]){
-				const his_cells = this.__mrrChildren[as].__mrrLinksNeeded['..'][key];
+		if(this.__mrr.realComputed.$log || 0) console.log('%c ' + key + ' ', 'background: #898cec; color: white; padding: 1px;', val);
+		for(let as in this.__mrr.children){
+			if(this.__mrr.children[as].__mrr.linksNeeded['..'] && this.__mrr.children[as].__mrr.linksNeeded['..'][key]){
+				const his_cells = this.__mrr.children[as].__mrr.linksNeeded['..'][key];
 				for(let cell of his_cells){
-					this.__mrrChildren[as].setState({[cell]: val});
+					this.__mrr.children[as].setState({[cell]: val});
 				}
 			}
 		}
 		let as  = this.__mrrLinkedAs;
-		if(this.__mrrParent && this.__mrrParent.__mrrLinksNeeded[as] && this.__mrrParent.__mrrLinksNeeded[as][key]){
-			const his_cells = this.__mrrParent.__mrrLinksNeeded[as][key];
+		if(this.__mrrParent && this.__mrrParent.__mrr.linksNeeded[as] && this.__mrrParent.__mrr.linksNeeded[as][key]){
+			const his_cells = this.__mrrParent.__mrr.linksNeeded[as][key];
 			for(let cell of his_cells){
 				this.__mrrParent.setState({[cell]: val});
 			}
@@ -332,7 +331,7 @@ export default class Mrr extends React.Component {
 		for(let parent_cell in update){
 			this.checkMrrCellUpdate(parent_cell, update);
 		}
-		if(!this.__mrrConstructing){
+		if(!this.__mrr.constructing){
 			return React.Component.prototype.setState.call(this, update);
 		} else {
 			for(let cell in update){
