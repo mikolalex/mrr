@@ -4,9 +4,9 @@ import React from 'react';
 const isPromise = a => a instanceof Object && a.toString && a.toString().indexOf('Promise') !== -1;
 
 const cell_types = ['funnel', 'closure', 'nested', 'async'];
+const skip = new function MrrSkip(){};
 
-
-export default class Mrr extends React.Component {
+class Mrr extends React.Component {
     constructor(props, context) {
         super(props, context);
 		this.__mrr = {
@@ -18,7 +18,7 @@ export default class Mrr extends React.Component {
 			realComputed: Object.assign({}, this.computed),
 			constructing: true,
 			thunks: {},
-			skip: new function MrrSkip(){},
+			skip,
 		};
 		this.parseMrr();
 		if(this.props.mrrConnect){
@@ -28,7 +28,7 @@ export default class Mrr extends React.Component {
 		this.__mrr.constructing = false;
     }
 	get __mrrMacros(){
-		return { 
+		return Object.assign({}, { 
 			map: ([map]) => {
 				var res = ['funnel', (cell, val) => {
 					return map[cell] instanceof Function ? map[cell](val) : map[cell];
@@ -55,7 +55,19 @@ export default class Mrr extends React.Component {
 				return [(a, b) => (a && b), a, b];
 			},
 			trigger: ([field, val]) => [a => a === val ? true : this.__mrr.skip, field],
-		}
+			skipSame: ([field]) => [(z, x) => z == x ? this.__mrr.skip : z, field, '^'],
+			skipN: ([field, n]) => ['closure', () => {
+				let count = 0;
+				n = n || 1;
+				return (val) => {
+					if(++count > n){
+						return val;
+					} else {
+						return this.__mrr.skip;
+					}
+				}
+			}, field],
+		}, this.__mrrCustomMacros || {});
 	}
 	parseRow(row, key, depMap){
 		if(key === "$log") return;
@@ -341,3 +353,7 @@ export default class Mrr extends React.Component {
 	}
 		
 }
+
+Mrr.skip = skip;
+
+export default Mrr;

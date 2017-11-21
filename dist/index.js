@@ -32,6 +32,7 @@ var isPromise = function isPromise(a) {
 };
 
 var cell_types = ['funnel', 'closure', 'nested', 'async'];
+var skip = new function MrrSkip() {}();
 
 var Mrr = function (_React$Component) {
 	_inherits(Mrr, _React$Component);
@@ -50,7 +51,7 @@ var Mrr = function (_React$Component) {
 			realComputed: Object.assign({}, _this.computed),
 			constructing: true,
 			thunks: {},
-			skip: new function MrrSkip() {}()
+			skip: skip
 		};
 		_this.parseMrr();
 		if (_this.props.mrrConnect) {
@@ -463,7 +464,7 @@ var Mrr = function (_React$Component) {
 		get: function get() {
 			var _this6 = this;
 
-			return {
+			return Object.assign({}, {
 				map: function map(_ref) {
 					var _ref2 = _slicedToArray(_ref, 1),
 					    _map = _ref2[0];
@@ -516,12 +517,39 @@ var Mrr = function (_React$Component) {
 					return [function (a) {
 						return a === val ? true : _this6.__mrr.skip;
 					}, field];
+				},
+				skipSame: function skipSame(_ref11) {
+					var _ref12 = _slicedToArray(_ref11, 1),
+					    field = _ref12[0];
+
+					return [function (z, x) {
+						return z == x ? _this6.__mrr.skip : z;
+					}, field, '^'];
+				},
+				skipN: function skipN(_ref13) {
+					var _ref14 = _slicedToArray(_ref13, 2),
+					    field = _ref14[0],
+					    n = _ref14[1];
+
+					return ['closure', function () {
+						var count = 0;
+						n = n || 1;
+						return function (val) {
+							if (++count > n) {
+								return val;
+							} else {
+								return _this6.__mrr.skip;
+							}
+						};
+					}, field];
 				}
-			};
+			}, this.__mrrCustomMacros || {});
 		}
 	}]);
 
 	return Mrr;
 }(_react2.default.Component);
+
+Mrr.skip = skip;
 
 exports.default = Mrr;
