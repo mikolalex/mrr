@@ -41,22 +41,23 @@ var Mrr = function (_React$Component) {
 
 		var _this = _possibleConstructorReturn(this, (Mrr.__proto__ || Object.getPrototypeOf(Mrr)).call(this, props, context));
 
-		_this.__mrrInternal = {
-			closureFuncs: {}
+		_this.__mrr = {
+			closureFuncs: {},
+			children: {},
+			childrenCounter: 0,
+			anonCellsCounter: 0,
+			linksNeeded: {},
+			realComputed: Object.assign({}, _this.computed),
+			constructing: true,
+			thunks: {},
+			skip: new function MrrSkip() {}()
 		};
-		_this.__mrrConstructing = true;
-		_this.__mrrChildren = {};
-		_this.__mrrLinksNeeded = {};
-		_this.__real_computed = Object.assign({}, _this.computed);
-		_this.__mrrAnonCells = 0;
-		_this.__mrrThunks = {};
 		_this.parseMrr();
-		_this.childrenCounter = 0;
 		if (_this.props.mrrConnect) {
 			_this.props.mrrConnect.subscribe(_this);
 		}
 		_this.setState({ $start: true });
-		_this.__mrrConstructing = false;
+		_this.__mrr.constructing = false;
 		return _this;
 	}
 
@@ -73,7 +74,7 @@ var Mrr = function (_React$Component) {
 							throw new Error('Macros ' + cell + ' not found!');
 						}
 						var new_row = this.__mrrMacros[cell](row.slice(1));
-						this.__real_computed[key] = new_row;
+						this.__mrr.realComputed[key] = new_row;
 						this.parseRow(new_row, key, depMap);
 						return;
 					}
@@ -82,9 +83,9 @@ var Mrr = function (_React$Component) {
 				if (cell instanceof Function) continue;
 				if (cell instanceof Array) {
 					// anon cell
-					var anonName = '@@anon' + ++this.__mrrAnonCells;
-					this.__real_computed[anonName] = cell;
-					this.__real_computed[key][k] = anonName;
+					var anonName = '@@anon' + ++this.__mrr.anonCellsCounter;
+					this.__mrr.realComputed[anonName] = cell;
+					this.__mrr.realComputed[key][k] = anonName;
 					this.parseRow(cell, anonName, depMap);
 					cell = anonName;
 				}
@@ -94,14 +95,14 @@ var Mrr = function (_React$Component) {
 					    from = _cell$split2[0],
 					    parent_cell = _cell$split2[1];
 
-					if (!this.__mrrLinksNeeded[from]) {
-						this.__mrrLinksNeeded[from] = {};
+					if (!this.__mrr.linksNeeded[from]) {
+						this.__mrr.linksNeeded[from] = {};
 					}
-					if (!this.__mrrLinksNeeded[from][parent_cell]) {
-						this.__mrrLinksNeeded[from][parent_cell] = [];
+					if (!this.__mrr.linksNeeded[from][parent_cell]) {
+						this.__mrr.linksNeeded[from][parent_cell] = [];
 					}
-					if (this.__mrrLinksNeeded[from][parent_cell].indexOf(cell) === -1) {
-						this.__mrrLinksNeeded[from][parent_cell].push(cell);
+					if (this.__mrr.linksNeeded[from][parent_cell].indexOf(cell) === -1) {
+						this.__mrr.linksNeeded[from][parent_cell].push(cell);
 					}
 				}
 				if (cell === '^') {
@@ -123,7 +124,7 @@ var Mrr = function (_React$Component) {
 		key: 'parseMrr',
 		value: function parseMrr() {
 			var depMap = {};
-			var mrr = this.__real_computed;
+			var mrr = this.__mrr.realComputed;
 			var initial_compute = [];
 			this.mrrState = Object.assign({}, this.state);
 			var updateOnInit = {};
@@ -143,7 +144,7 @@ var Mrr = function (_React$Component) {
 						fexpr = [function (a) {
 							return a;
 						}, fexpr];
-						this.__real_computed[key] = fexpr;
+						this.__mrr.realComputed[key] = fexpr;
 					} else {
 						// dunno
 						console.warn('Strange F-expr:', fexpr);
@@ -206,11 +207,11 @@ var Mrr = function (_React$Component) {
 
 			var self = this;
 			if (!as) {
-				as = '__rand_child_name_' + ++this.childrenCounter;
+				as = '__rand_child_name_' + ++this.__mrr.childrenCounter;
 			}
 			return {
 				subscribe: function subscribe(child) {
-					_this2.__mrrChildren[as] = child;
+					_this2.__mrr.children[as] = child;
 					child.__mrrParent = self;
 					child.__mrrLinkedAs = as;
 				}
@@ -221,9 +222,9 @@ var Mrr = function (_React$Component) {
 		value: function toState(key, val) {
 			var _this3 = this;
 
-			if (val === undefined && this.__mrrThunks[key]) {
+			if (val === undefined && this.__mrr.thunks[key]) {
 				//console.log('=== skip');
-				return this.__mrrThunks[key];
+				return this.__mrr.thunks[key];
 			} else {
 				//console.log('=== generate');
 				var func = function func(a) {
@@ -256,7 +257,7 @@ var Mrr = function (_React$Component) {
 					}
 				};
 				if (val === undefined) {
-					this.__mrrThunks[key] = func;
+					this.__mrr.thunks[key] = func;
 				}
 				return func;
 			}
@@ -266,7 +267,7 @@ var Mrr = function (_React$Component) {
 		value: function __getCellArgs(cell) {
 			var _this4 = this;
 
-			var res = this.__real_computed[cell].slice(this.__real_computed[cell][0] instanceof Function ? 1 : 2).map(function (arg_cell) {
+			var res = this.__mrr.realComputed[cell].slice(this.__mrr.realComputed[cell][0] instanceof Function ? 1 : 2).map(function (arg_cell) {
 				if (arg_cell === '^') {
 					//console.log('looking for prev val of', cell, this.mrrState, this.state);
 					return _this4.mrrState[cell];
@@ -274,7 +275,7 @@ var Mrr = function (_React$Component) {
 					if (arg_cell[0] === '-') {
 						arg_cell = arg_cell.slice(1);
 					}
-					return _this4.mrrState[arg_cell] === undefined && _this4.state ? _this4.__rirrfpConstructing ? _this4.initialState[arg_cell] : _this4.state[arg_cell] : _this4.mrrState[arg_cell];
+					return _this4.mrrState[arg_cell] === undefined && _this4.state ? _this4.__mrr.constructing ? _this4.initialState[arg_cell] : _this4.state[arg_cell] : _this4.mrrState[arg_cell];
 				}
 			});
 			return res;
@@ -285,12 +286,20 @@ var Mrr = function (_React$Component) {
 			var _this5 = this;
 
 			var val, func, args, types;
-			var fexpr = this.__real_computed[cell];
+			var updateFunc = function updateFunc(val) {
+				if (val === _this5.__mrr.skip) return;
+				_this5.__mrrSetState(cell, val);
+				var update = {};
+				update[cell] = val;
+				_this5.checkMrrCellUpdate(cell, update);
+				_react2.default.Component.prototype.setState.call(_this5, update);
+			};
+			var fexpr = this.__mrr.realComputed[cell];
 			if (typeof fexpr[0] === 'string') {
 				types = fexpr[0].split('.');
 			}
 			if (fexpr[0] instanceof Function) {
-				func = this.__real_computed[cell][0];
+				func = this.__mrr.realComputed[cell][0];
 				args = this.__getCellArgs(cell);
 
 				val = func.apply(null, args);
@@ -311,22 +320,16 @@ var Mrr = function (_React$Component) {
 					});
 				}
 				if (types.indexOf('async') !== -1) {
-					args.unshift(function (val) {
-						_this5.__mrrSetState(cell, val);
-						var update = {};
-						update[cell] = val;
-						_this5.checkMrrCellUpdate(cell, update);
-						_react2.default.Component.prototype.setState.call(_this5, update);
-					});
+					args.unshift(updateFunc);
 				}
 				if (types.indexOf('closure') !== -1) {
-					if (!this.__mrrInternal.closureFuncs[cell]) {
-						var init_val = this.__real_computed.$init ? this.__real_computed.$init[cell] : null;
-						this.__mrrInternal.closureFuncs[cell] = fexpr[1](init_val);
+					if (!this.__mrr.closureFuncs[cell]) {
+						var init_val = this.__mrr.realComputed.$init ? this.__mrr.realComputed.$init[cell] : null;
+						this.__mrr.closureFuncs[cell] = fexpr[1](init_val);
 					}
-					func = this.__mrrInternal.closureFuncs[cell];
+					func = this.__mrr.closureFuncs[cell];
 				} else {
-					func = this.__real_computed[cell][1];
+					func = this.__mrr.realComputed[cell][1];
 				}
 				if (!func || !func.apply) debugger;
 				val = func.apply(null, args);
@@ -336,14 +339,9 @@ var Mrr = function (_React$Component) {
 				return;
 			}
 			if (isPromise(val)) {
-				val.then(function (val) {
-					_this5.__mrrSetState(cell, val);
-					var update = {};
-					update[cell] = val;
-					_this5.checkMrrCellUpdate(cell, update);
-					_react2.default.Component.prototype.setState.call(_this5, update);
-				});
+				val.then(updateFunc);
 			} else {
+				if (val === this.__mrr.skip) return;
 				update[cell] = val;
 				this.__mrrSetState(cell, val);
 				this.checkMrrCellUpdate(cell, update);
@@ -382,10 +380,10 @@ var Mrr = function (_React$Component) {
 	}, {
 		key: '__mrrSetState',
 		value: function __mrrSetState(key, val) {
-			if (this.__real_computed.$log || 0) console.log('%c ' + key + ' ', 'background: #898cec; color: white; padding: 1px;', val);
-			for (var _as in this.__mrrChildren) {
-				if (this.__mrrChildren[_as].__mrrLinksNeeded['..'] && this.__mrrChildren[_as].__mrrLinksNeeded['..'][key]) {
-					var his_cells = this.__mrrChildren[_as].__mrrLinksNeeded['..'][key];
+			if (this.__mrr.realComputed.$log || 0) console.log('%c ' + key + ' ', 'background: #898cec; color: white; padding: 1px;', val);
+			for (var _as in this.__mrr.children) {
+				if (this.__mrr.children[_as].__mrr.linksNeeded['..'] && this.__mrr.children[_as].__mrr.linksNeeded['..'][key]) {
+					var his_cells = this.__mrr.children[_as].__mrr.linksNeeded['..'][key];
 					var _iteratorNormalCompletion3 = true;
 					var _didIteratorError3 = false;
 					var _iteratorError3 = undefined;
@@ -394,7 +392,7 @@ var Mrr = function (_React$Component) {
 						for (var _iterator3 = his_cells[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
 							var cell = _step3.value;
 
-							this.__mrrChildren[_as].setState(_defineProperty({}, cell, val));
+							this.__mrr.children[_as].setState(_defineProperty({}, cell, val));
 						}
 					} catch (err) {
 						_didIteratorError3 = true;
@@ -413,8 +411,8 @@ var Mrr = function (_React$Component) {
 				}
 			}
 			var as = this.__mrrLinkedAs;
-			if (this.__mrrParent && this.__mrrParent.__mrrLinksNeeded[as] && this.__mrrParent.__mrrLinksNeeded[as][key]) {
-				var _his_cells = this.__mrrParent.__mrrLinksNeeded[as][key];
+			if (this.__mrrParent && this.__mrrParent.__mrr.linksNeeded[as] && this.__mrrParent.__mrr.linksNeeded[as][key]) {
+				var _his_cells = this.__mrrParent.__mrr.linksNeeded[as][key];
 				var _iteratorNormalCompletion4 = true;
 				var _didIteratorError4 = false;
 				var _iteratorError4 = undefined;
@@ -452,7 +450,7 @@ var Mrr = function (_React$Component) {
 			for (var parent_cell in update) {
 				this.checkMrrCellUpdate(parent_cell, update);
 			}
-			if (!this.__mrrConstructing) {
+			if (!this.__mrr.constructing) {
 				return _react2.default.Component.prototype.setState.call(this, update);
 			} else {
 				for (var _cell2 in update) {
@@ -463,6 +461,8 @@ var Mrr = function (_React$Component) {
 	}, {
 		key: '__mrrMacros',
 		get: function get() {
+			var _this6 = this;
+
 			return {
 				map: function map(_ref) {
 					var _ref2 = _slicedToArray(_ref, 1),
@@ -507,6 +507,15 @@ var Mrr = function (_React$Component) {
 					return [function (a, b) {
 						return a && b;
 					}, a, b];
+				},
+				trigger: function trigger(_ref9) {
+					var _ref10 = _slicedToArray(_ref9, 2),
+					    field = _ref10[0],
+					    val = _ref10[1];
+
+					return [function (a) {
+						return a === val ? true : _this6.__mrr.skip;
+					}, field];
 				}
 			};
 		}
