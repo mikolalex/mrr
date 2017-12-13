@@ -6,6 +6,17 @@ const isPromise = a => a instanceof Object && a.toString && a.toString().indexOf
 const cell_types = ['funnel', 'closure', 'nested', 'async'];
 const skip = new function MrrSkip(){};
 
+const setStateForLinkedCells = function(slave, master, as){
+	if(slave.__mrr.linksNeeded[as]){
+		for(let master_cell_name in slave.__mrr.linksNeeded[as]){
+			for(let slave_cell_name of slave.__mrr.linksNeeded[as][master_cell_name]){
+				if(slave_cell_name[0] === '~') continue;
+				slave.setState({[slave_cell_name]: master.mrrState[master_cell_name]});
+			}
+		}
+	}
+}
+
 class Mrr extends React.Component {
     constructor(props, context) {
         super(props, context);
@@ -67,6 +78,29 @@ class Mrr extends React.Component {
 					}
 				}
 			}, field],
+			accum: ([cell, time]) => {
+				var res = time 
+				? ['async.closure', () => {
+					const vals = {};
+					let c = 0;
+					return (cb, val) => {
+						vals[++c] = val;
+						setTimeout(function(i){
+							delete vals[i];
+							cb(Object.values(vals));
+						}.bind(null, c), time);
+						cb(Object.values(vals));
+					}
+				}, cell]
+				: ['closure', () => {
+					const vals = [];
+					return (val) => {
+						vals.push(val);
+						return vals;
+					}
+				}, cell];
+				return res;
+			}
 		}, this.__mrrCustomMacros || {});
 	}
 	parseRow(row, key, depMap){
@@ -96,7 +130,10 @@ class Mrr extends React.Component {
 				cell = anonName;
 			}
 			if(cell.indexOf('/') !== -1){
-				const [from, parent_cell] = cell.split('/');
+				let [from, parent_cell] = cell.split('/');
+				if(from[0] === '~'){
+					from = from.slice(1);
+				}
 				if(!this.__mrr.linksNeeded[from]){
 					this.__mrr.linksNeeded[from] = {};
 				}
@@ -112,7 +149,7 @@ class Mrr extends React.Component {
 				continue;
 			}
 			if(cell[0] === '-'){
-				// prev val of cell
+				// passive listening
 				continue;
 			}
 			if(cell === '^') continue;
@@ -183,6 +220,9 @@ class Mrr extends React.Component {
 				this.__mrr.children[as] = child;
 				child.__mrrParent = self;
 				child.__mrrLinkedAs = as;
+				// read values for linked cells from child
+				setStateForLinkedCells(this, child, as);
+				setStateForLinkedCells(child, this, '..');
 			}
 		}
 	}
@@ -204,6 +244,8 @@ class Mrr extends React.Component {
 					if(a && a.target && (a.target instanceof Node)){
 						if(a.target.type === 'checkbox'){
 							value = a.target.checked;
+						} else if(a.target.type === 'submit'){
+							value = true;
 						} else {
 							value = a.target.value;
 						}
@@ -267,7 +309,7 @@ class Mrr extends React.Component {
 			val = func.apply(null, args);
 		} else {
 			if(types.indexOf('funnel') !== -1){
-				args = [parent_cell, this.mrrState[parent_cell]];
+				args = [parent_cell, this.mrrState[parent_cell], this.mrrState[cell]];
 			} else {
 				args = this.__getCellArgs(cell);
 			}

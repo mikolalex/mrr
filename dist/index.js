@@ -18,13 +18,13 @@ function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
 
 function _toArray(arr) { return Array.isArray(arr) ? arr : Array.from(arr); }
 
-function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
-
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
 
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 // if polyfill used
 var isPromise = function isPromise(a) {
@@ -33,6 +33,38 @@ var isPromise = function isPromise(a) {
 
 var cell_types = ['funnel', 'closure', 'nested', 'async'];
 var skip = new function MrrSkip() {}();
+
+var setStateForLinkedCells = function setStateForLinkedCells(slave, master, as) {
+	if (slave.__mrr.linksNeeded[as]) {
+		for (var master_cell_name in slave.__mrr.linksNeeded[as]) {
+			var _iteratorNormalCompletion = true;
+			var _didIteratorError = false;
+			var _iteratorError = undefined;
+
+			try {
+				for (var _iterator = slave.__mrr.linksNeeded[as][master_cell_name][Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+					var slave_cell_name = _step.value;
+
+					if (slave_cell_name[0] === '~') continue;
+					slave.setState(_defineProperty({}, slave_cell_name, master.mrrState[master_cell_name]));
+				}
+			} catch (err) {
+				_didIteratorError = true;
+				_iteratorError = err;
+			} finally {
+				try {
+					if (!_iteratorNormalCompletion && _iterator.return) {
+						_iterator.return();
+					}
+				} finally {
+					if (_didIteratorError) {
+						throw _iteratorError;
+					}
+				}
+			}
+		}
+	}
+};
 
 var Mrr = function (_React$Component) {
 	_inherits(Mrr, _React$Component);
@@ -96,6 +128,9 @@ var Mrr = function (_React$Component) {
 					    from = _cell$split2[0],
 					    parent_cell = _cell$split2[1];
 
+					if (from[0] === '~') {
+						from = from.slice(1);
+					}
 					if (!this.__mrr.linksNeeded[from]) {
 						this.__mrr.linksNeeded[from] = {};
 					}
@@ -111,7 +146,7 @@ var Mrr = function (_React$Component) {
 					continue;
 				}
 				if (cell[0] === '-') {
-					// prev val of cell
+					// passive listening
 					continue;
 				}
 				if (cell === '^') continue;
@@ -156,28 +191,28 @@ var Mrr = function (_React$Component) {
 			}
 			this.initialState = updateOnInit;
 			this.mrrDepMap = depMap;
-			var _iteratorNormalCompletion = true;
-			var _didIteratorError = false;
-			var _iteratorError = undefined;
+			var _iteratorNormalCompletion2 = true;
+			var _didIteratorError2 = false;
+			var _iteratorError2 = undefined;
 
 			try {
-				for (var _iterator = initial_compute[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-					var cell1 = _step.value;
+				for (var _iterator2 = initial_compute[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+					var cell1 = _step2.value;
 
 					this.checkMrrCellUpdate(cell1, updateOnInit);
 				}
 				//console.log('parsed depMap', this.mrrDepMap);
 			} catch (err) {
-				_didIteratorError = true;
-				_iteratorError = err;
+				_didIteratorError2 = true;
+				_iteratorError2 = err;
 			} finally {
 				try {
-					if (!_iteratorNormalCompletion && _iterator.return) {
-						_iterator.return();
+					if (!_iteratorNormalCompletion2 && _iterator2.return) {
+						_iterator2.return();
 					}
 				} finally {
-					if (_didIteratorError) {
-						throw _iteratorError;
+					if (_didIteratorError2) {
+						throw _iteratorError2;
 					}
 				}
 			}
@@ -215,6 +250,9 @@ var Mrr = function (_React$Component) {
 					_this2.__mrr.children[as] = child;
 					child.__mrrParent = self;
 					child.__mrrLinkedAs = as;
+					// read values for linked cells from child
+					setStateForLinkedCells(_this2, child, as);
+					setStateForLinkedCells(child, _this2, '..');
 				}
 			};
 		}
@@ -240,6 +278,8 @@ var Mrr = function (_React$Component) {
 						if (a && a.target && a.target instanceof Node) {
 							if (a.target.type === 'checkbox') {
 								value = a.target.checked;
+							} else if (a.target.type === 'submit') {
+								value = true;
 							} else {
 								value = a.target.value;
 							}
@@ -306,7 +346,7 @@ var Mrr = function (_React$Component) {
 				val = func.apply(null, args);
 			} else {
 				if (types.indexOf('funnel') !== -1) {
-					args = [parent_cell, this.mrrState[parent_cell]];
+					args = [parent_cell, this.mrrState[parent_cell], this.mrrState[cell]];
 				} else {
 					args = this.__getCellArgs(cell);
 				}
@@ -352,27 +392,27 @@ var Mrr = function (_React$Component) {
 		key: 'checkMrrCellUpdate',
 		value: function checkMrrCellUpdate(parent_cell, update) {
 			if (this.mrrDepMap[parent_cell]) {
-				var _iteratorNormalCompletion2 = true;
-				var _didIteratorError2 = false;
-				var _iteratorError2 = undefined;
+				var _iteratorNormalCompletion3 = true;
+				var _didIteratorError3 = false;
+				var _iteratorError3 = undefined;
 
 				try {
-					for (var _iterator2 = this.mrrDepMap[parent_cell][Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-						var cell = _step2.value;
+					for (var _iterator3 = this.mrrDepMap[parent_cell][Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+						var cell = _step3.value;
 
 						this.__mrrUpdateCell(cell, parent_cell, update);
 					}
 				} catch (err) {
-					_didIteratorError2 = true;
-					_iteratorError2 = err;
+					_didIteratorError3 = true;
+					_iteratorError3 = err;
 				} finally {
 					try {
-						if (!_iteratorNormalCompletion2 && _iterator2.return) {
-							_iterator2.return();
+						if (!_iteratorNormalCompletion3 && _iterator3.return) {
+							_iterator3.return();
 						}
 					} finally {
-						if (_didIteratorError2) {
-							throw _iteratorError2;
+						if (_didIteratorError3) {
+							throw _iteratorError3;
 						}
 					}
 				}
@@ -385,27 +425,27 @@ var Mrr = function (_React$Component) {
 			for (var _as in this.__mrr.children) {
 				if (this.__mrr.children[_as].__mrr.linksNeeded['..'] && this.__mrr.children[_as].__mrr.linksNeeded['..'][key]) {
 					var his_cells = this.__mrr.children[_as].__mrr.linksNeeded['..'][key];
-					var _iteratorNormalCompletion3 = true;
-					var _didIteratorError3 = false;
-					var _iteratorError3 = undefined;
+					var _iteratorNormalCompletion4 = true;
+					var _didIteratorError4 = false;
+					var _iteratorError4 = undefined;
 
 					try {
-						for (var _iterator3 = his_cells[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
-							var cell = _step3.value;
+						for (var _iterator4 = his_cells[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+							var cell = _step4.value;
 
 							this.__mrr.children[_as].setState(_defineProperty({}, cell, val));
 						}
 					} catch (err) {
-						_didIteratorError3 = true;
-						_iteratorError3 = err;
+						_didIteratorError4 = true;
+						_iteratorError4 = err;
 					} finally {
 						try {
-							if (!_iteratorNormalCompletion3 && _iterator3.return) {
-								_iterator3.return();
+							if (!_iteratorNormalCompletion4 && _iterator4.return) {
+								_iterator4.return();
 							}
 						} finally {
-							if (_didIteratorError3) {
-								throw _iteratorError3;
+							if (_didIteratorError4) {
+								throw _iteratorError4;
 							}
 						}
 					}
@@ -414,27 +454,27 @@ var Mrr = function (_React$Component) {
 			var as = this.__mrrLinkedAs;
 			if (this.__mrrParent && this.__mrrParent.__mrr.linksNeeded[as] && this.__mrrParent.__mrr.linksNeeded[as][key]) {
 				var _his_cells = this.__mrrParent.__mrr.linksNeeded[as][key];
-				var _iteratorNormalCompletion4 = true;
-				var _didIteratorError4 = false;
-				var _iteratorError4 = undefined;
+				var _iteratorNormalCompletion5 = true;
+				var _didIteratorError5 = false;
+				var _iteratorError5 = undefined;
 
 				try {
-					for (var _iterator4 = _his_cells[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
-						var _cell = _step4.value;
+					for (var _iterator5 = _his_cells[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
+						var _cell = _step5.value;
 
 						this.__mrrParent.setState(_defineProperty({}, _cell, val));
 					}
 				} catch (err) {
-					_didIteratorError4 = true;
-					_iteratorError4 = err;
+					_didIteratorError5 = true;
+					_iteratorError5 = err;
 				} finally {
 					try {
-						if (!_iteratorNormalCompletion4 && _iterator4.return) {
-							_iterator4.return();
+						if (!_iteratorNormalCompletion5 && _iterator5.return) {
+							_iterator5.return();
 						}
 					} finally {
-						if (_didIteratorError4) {
-							throw _iteratorError4;
+						if (_didIteratorError5) {
+							throw _iteratorError5;
 						}
 					}
 				}
@@ -542,6 +582,31 @@ var Mrr = function (_React$Component) {
 							}
 						};
 					}, field];
+				},
+				accum: function accum(_ref15) {
+					var _ref16 = _slicedToArray(_ref15, 2),
+					    cell = _ref16[0],
+					    time = _ref16[1];
+
+					var res = time ? ['async.closure', function () {
+						var vals = {};
+						var c = 0;
+						return function (cb, val) {
+							vals[++c] = val;
+							setTimeout(function (i) {
+								delete vals[i];
+								cb(Object.values(vals));
+							}.bind(null, c), time);
+							cb(Object.values(vals));
+						};
+					}, cell] : ['closure', function () {
+						var vals = [];
+						return function (val) {
+							vals.push(val);
+							return vals;
+						};
+					}, cell];
+					return res;
 				}
 			}, this.__mrrCustomMacros || {});
 		}

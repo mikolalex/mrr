@@ -1,7 +1,7 @@
 {
   "name": "mrr",
-  "version": "1.0.5",
-  "description": "Make React reactive",
+  "version": "1.0.7",
+  "description": "Make React Reactive",
   "main": "dist/index.js",
   "scripts": {
     "readme": "node ./node_modules/.bin/node-readme",
