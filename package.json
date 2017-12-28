@@ -1,6 +1,6 @@
 {
   "name": "mrr",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Make React Reactive",
   "main": "dist/index.js",
   "scripts": {

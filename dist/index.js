@@ -169,7 +169,9 @@ var Mrr = function (_React$Component) {
 					for (var cell in mrr[key]) {
 						this.__mrrSetState(cell, mrr[key][cell]);
 						updateOnInit[cell] = mrr[key][cell];
-						initial_compute.push(cell);
+						if (cell[0] !== '~') {
+							initial_compute.push(cell);
+						}
 					}
 					continue;
 				}
@@ -372,7 +374,9 @@ var Mrr = function (_React$Component) {
 				} else {
 					func = this.__mrr.realComputed[cell][1];
 				}
-				if (!func || !func.apply) debugger;
+				if (!func || !func.apply) {
+					throw new Error('MRR_ERROR_101: closure type should provide function');
+				}
 				val = func.apply(null, args);
 			}
 			if (types && (types.indexOf('nested') !== -1 || types.indexOf('async') !== -1)) {
@@ -421,63 +425,54 @@ var Mrr = function (_React$Component) {
 	}, {
 		key: '__mrrSetState',
 		value: function __mrrSetState(key, val) {
-			if (this.__mrr.realComputed.$log || 0) console.log('%c ' + key + ' ', 'background: #898cec; color: white; padding: 1px;', val);
-			for (var _as in this.__mrr.children) {
-				if (this.__mrr.children[_as].__mrr.linksNeeded['..'] && this.__mrr.children[_as].__mrr.linksNeeded['..'][key]) {
-					var his_cells = this.__mrr.children[_as].__mrr.linksNeeded['..'][key];
-					var _iteratorNormalCompletion4 = true;
-					var _didIteratorError4 = false;
-					var _iteratorError4 = undefined;
+			if (this.__mrr.realComputed.$log || 0) {
+				if (this.__mrr.realComputed.$log === true || this.__mrr.realComputed.$log instanceof Array && this.__mrr.realComputed.$log.indexOf(key) !== -1) {
+					console.log('%c ' + key + ' ', 'background: #898cec; color: white; padding: 1px;', val);
+				}
+			}
 
+			var updateOtherGrid = function updateOtherGrid(grid, as, key, val) {
+				var his_cells = grid.__mrr.linksNeeded[as][key];
+				var _iteratorNormalCompletion4 = true;
+				var _didIteratorError4 = false;
+				var _iteratorError4 = undefined;
+
+				try {
+					for (var _iterator4 = his_cells[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+						var cell = _step4.value;
+
+						grid.setState(_defineProperty({}, cell, val));
+					}
+				} catch (err) {
+					_didIteratorError4 = true;
+					_iteratorError4 = err;
+				} finally {
 					try {
-						for (var _iterator4 = his_cells[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
-							var cell = _step4.value;
-
-							this.__mrr.children[_as].setState(_defineProperty({}, cell, val));
+						if (!_iteratorNormalCompletion4 && _iterator4.return) {
+							_iterator4.return();
 						}
-					} catch (err) {
-						_didIteratorError4 = true;
-						_iteratorError4 = err;
 					} finally {
-						try {
-							if (!_iteratorNormalCompletion4 && _iterator4.return) {
-								_iterator4.return();
-							}
-						} finally {
-							if (_didIteratorError4) {
-								throw _iteratorError4;
-							}
+						if (_didIteratorError4) {
+							throw _iteratorError4;
 						}
 					}
+				}
+			};
+
+			for (var _as in this.__mrr.children) {
+				if (this.__mrr.children[_as].__mrr.linksNeeded['..'] && this.__mrr.children[_as].__mrr.linksNeeded['..'][key]) {
+					updateOtherGrid(this.__mrr.children[_as], '..', key);
+				}
+				if (this.__mrr.children[_as].__mrr.linksNeeded['..'] && this.__mrr.children[_as].__mrr.linksNeeded['^'][key]) {
+					updateOtherGrid(this.__mrr.children[_as], '^', key);
 				}
 			}
 			var as = this.__mrrLinkedAs;
 			if (this.__mrrParent && this.__mrrParent.__mrr.linksNeeded[as] && this.__mrrParent.__mrr.linksNeeded[as][key]) {
-				var _his_cells = this.__mrrParent.__mrr.linksNeeded[as][key];
-				var _iteratorNormalCompletion5 = true;
-				var _didIteratorError5 = false;
-				var _iteratorError5 = undefined;
-
-				try {
-					for (var _iterator5 = _his_cells[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
-						var _cell = _step5.value;
-
-						this.__mrrParent.setState(_defineProperty({}, _cell, val));
-					}
-				} catch (err) {
-					_didIteratorError5 = true;
-					_iteratorError5 = err;
-				} finally {
-					try {
-						if (!_iteratorNormalCompletion5 && _iterator5.return) {
-							_iterator5.return();
-						}
-					} finally {
-						if (_didIteratorError5) {
-							throw _iteratorError5;
-						}
-					}
-				}
+				updateOtherGrid(this.__mrrParent, as, key);
+			}
+			if (this.__mrrParent && this.__mrrParent.__mrr.linksNeeded['*'] && this.__mrrParent.__mrr.linksNeeded['*'][key]) {
+				updateOtherGrid(this.__mrrParent, '*', key);
 			}
 			this.mrrState[key] = val;
 		}
@@ -494,8 +489,8 @@ var Mrr = function (_React$Component) {
 			if (!this.__mrr.constructing) {
 				return _react2.default.Component.prototype.setState.call(this, update);
 			} else {
-				for (var _cell2 in update) {
-					this.initialState[_cell2] = update[_cell2];
+				for (var _cell in update) {
+					this.initialState[_cell] = update[_cell];
 				}
 			}
 		}
