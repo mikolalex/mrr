@@ -65,6 +65,33 @@ var setStateForLinkedCells = function setStateForLinkedCells(slave, master, as) 
 		}
 	}
 };
+var updateOtherGrid = function updateOtherGrid(grid, as, key, val) {
+	var his_cells = grid.__mrr.linksNeeded[as][key];
+	var _iteratorNormalCompletion2 = true;
+	var _didIteratorError2 = false;
+	var _iteratorError2 = undefined;
+
+	try {
+		for (var _iterator2 = his_cells[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+			var cell = _step2.value;
+
+			grid.setState(_defineProperty({}, cell, val));
+		}
+	} catch (err) {
+		_didIteratorError2 = true;
+		_iteratorError2 = err;
+	} finally {
+		try {
+			if (!_iteratorNormalCompletion2 && _iterator2.return) {
+				_iterator2.return();
+			}
+		} finally {
+			if (_didIteratorError2) {
+				throw _iteratorError2;
+			}
+		}
+	}
+};
 
 var Mrr = function (_React$Component) {
 	_inherits(Mrr, _React$Component);
@@ -193,28 +220,28 @@ var Mrr = function (_React$Component) {
 			}
 			this.initialState = updateOnInit;
 			this.mrrDepMap = depMap;
-			var _iteratorNormalCompletion2 = true;
-			var _didIteratorError2 = false;
-			var _iteratorError2 = undefined;
+			var _iteratorNormalCompletion3 = true;
+			var _didIteratorError3 = false;
+			var _iteratorError3 = undefined;
 
 			try {
-				for (var _iterator2 = initial_compute[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-					var cell1 = _step2.value;
+				for (var _iterator3 = initial_compute[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+					var cell1 = _step3.value;
 
 					this.checkMrrCellUpdate(cell1, updateOnInit);
 				}
 				//console.log('parsed depMap', this.mrrDepMap);
 			} catch (err) {
-				_didIteratorError2 = true;
-				_iteratorError2 = err;
+				_didIteratorError3 = true;
+				_iteratorError3 = err;
 			} finally {
 				try {
-					if (!_iteratorNormalCompletion2 && _iterator2.return) {
-						_iterator2.return();
+					if (!_iteratorNormalCompletion3 && _iterator3.return) {
+						_iterator3.return();
 					}
 				} finally {
-					if (_didIteratorError2) {
-						throw _iteratorError2;
+					if (_didIteratorError3) {
+						throw _iteratorError3;
 					}
 				}
 			}
@@ -396,52 +423,15 @@ var Mrr = function (_React$Component) {
 		key: 'checkMrrCellUpdate',
 		value: function checkMrrCellUpdate(parent_cell, update) {
 			if (this.mrrDepMap[parent_cell]) {
-				var _iteratorNormalCompletion3 = true;
-				var _didIteratorError3 = false;
-				var _iteratorError3 = undefined;
-
-				try {
-					for (var _iterator3 = this.mrrDepMap[parent_cell][Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
-						var cell = _step3.value;
-
-						this.__mrrUpdateCell(cell, parent_cell, update);
-					}
-				} catch (err) {
-					_didIteratorError3 = true;
-					_iteratorError3 = err;
-				} finally {
-					try {
-						if (!_iteratorNormalCompletion3 && _iterator3.return) {
-							_iterator3.return();
-						}
-					} finally {
-						if (_didIteratorError3) {
-							throw _iteratorError3;
-						}
-					}
-				}
-			}
-		}
-	}, {
-		key: '__mrrSetState',
-		value: function __mrrSetState(key, val) {
-			if (this.__mrr.realComputed.$log || 0) {
-				if (this.__mrr.realComputed.$log === true || this.__mrr.realComputed.$log instanceof Array && this.__mrr.realComputed.$log.indexOf(key) !== -1) {
-					console.log('%c ' + key + ' ', 'background: #898cec; color: white; padding: 1px;', val);
-				}
-			}
-
-			var updateOtherGrid = function updateOtherGrid(grid, as, key, val) {
-				var his_cells = grid.__mrr.linksNeeded[as][key];
 				var _iteratorNormalCompletion4 = true;
 				var _didIteratorError4 = false;
 				var _iteratorError4 = undefined;
 
 				try {
-					for (var _iterator4 = his_cells[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+					for (var _iterator4 = this.mrrDepMap[parent_cell][Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
 						var cell = _step4.value;
 
-						grid.setState(_defineProperty({}, cell, val));
+						this.__mrrUpdateCell(cell, parent_cell, update);
 					}
 				} catch (err) {
 					_didIteratorError4 = true;
@@ -457,22 +447,30 @@ var Mrr = function (_React$Component) {
 						}
 					}
 				}
-			};
-
+			}
+		}
+	}, {
+		key: '__mrrSetState',
+		value: function __mrrSetState(key, val) {
+			if (this.__mrr.realComputed.$log || 0) {
+				if (this.__mrr.realComputed.$log === true || this.__mrr.realComputed.$log instanceof Array && this.__mrr.realComputed.$log.indexOf(key) !== -1) {
+					console.log('%c ' + key + ' ', 'background: #898cec; color: white; padding: 1px;', val);
+				}
+			}
 			for (var _as in this.__mrr.children) {
 				if (this.__mrr.children[_as].__mrr.linksNeeded['..'] && this.__mrr.children[_as].__mrr.linksNeeded['..'][key]) {
-					updateOtherGrid(this.__mrr.children[_as], '..', key);
+					updateOtherGrid(this.__mrr.children[_as], '..', key, val);
 				}
 				if (this.__mrr.children[_as].__mrr.linksNeeded['..'] && this.__mrr.children[_as].__mrr.linksNeeded['^'][key]) {
-					updateOtherGrid(this.__mrr.children[_as], '^', key);
+					updateOtherGrid(this.__mrr.children[_as], '^', key, val);
 				}
 			}
 			var as = this.__mrrLinkedAs;
 			if (this.__mrrParent && this.__mrrParent.__mrr.linksNeeded[as] && this.__mrrParent.__mrr.linksNeeded[as][key]) {
-				updateOtherGrid(this.__mrrParent, as, key);
+				updateOtherGrid(this.__mrrParent, as, key, val);
 			}
 			if (this.__mrrParent && this.__mrrParent.__mrr.linksNeeded['*'] && this.__mrrParent.__mrr.linksNeeded['*'][key]) {
-				updateOtherGrid(this.__mrrParent, '*', key);
+				updateOtherGrid(this.__mrrParent, '*', key, val);
 			}
 			this.mrrState[key] = val;
 		}

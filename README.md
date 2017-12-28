@@ -29,8 +29,8 @@ export default class Foo extends mrr {
             c: [
 		// funtion for calculating cell value
 		(n, m) => { 
-                    const num = Number(n) + Number(m);
-                    return isNaN(num) ? '' : num;
+		    const num = Number(n) + Number(m);
+		    return isNaN(num) ? '' : num;
 		}, 
                 // list of parent cells, which will be used as arguments
                 'a', 

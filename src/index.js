@@ -16,6 +16,12 @@ const setStateForLinkedCells = function(slave, master, as){
 		}
 	}
 }
+const updateOtherGrid = (grid, as, key, val) => {
+	const his_cells = grid.__mrr.linksNeeded[as][key];
+	for(let cell of his_cells){
+		grid.setState({[cell]: val});
+	}
+}
 
 class Mrr extends React.Component {
     constructor(props, context) {
@@ -368,28 +374,20 @@ class Mrr extends React.Component {
 				console.log('%c ' + key + ' ', 'background: #898cec; color: white; padding: 1px;', val);
 			}
 		}
-		
-		const updateOtherGrid = (grid, as, key, val) => {
-			const his_cells = grid.__mrr.linksNeeded[as][key];
-			for(let cell of his_cells){
-				grid.setState({[cell]: val});
-			}
-		}
-		
 		for(let as in this.__mrr.children){
 			if(this.__mrr.children[as].__mrr.linksNeeded['..'] && this.__mrr.children[as].__mrr.linksNeeded['..'][key]){
-				updateOtherGrid(this.__mrr.children[as], '..', key);
+				updateOtherGrid(this.__mrr.children[as], '..', key, val);
 			}
 			if(this.__mrr.children[as].__mrr.linksNeeded['..'] && this.__mrr.children[as].__mrr.linksNeeded['^'][key]){
-				updateOtherGrid(this.__mrr.children[as], '^', key);
+				updateOtherGrid(this.__mrr.children[as], '^', key, val);
 			}
 		}
 		let as  = this.__mrrLinkedAs;
 		if(this.__mrrParent && this.__mrrParent.__mrr.linksNeeded[as] && this.__mrrParent.__mrr.linksNeeded[as][key]){
-			updateOtherGrid(this.__mrrParent, as, key);
+			updateOtherGrid(this.__mrrParent, as, key, val);
 		}
 		if(this.__mrrParent && this.__mrrParent.__mrr.linksNeeded['*'] && this.__mrrParent.__mrr.linksNeeded['*'][key]){
-			updateOtherGrid(this.__mrrParent, '*', key);
+			updateOtherGrid(this.__mrrParent, '*', key, val);
 		}
 		this.mrrState[key] = val;
 	}
