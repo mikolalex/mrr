@@ -461,7 +461,7 @@ var Mrr = function (_React$Component) {
 				if (this.__mrr.children[_as].__mrr.linksNeeded['..'] && this.__mrr.children[_as].__mrr.linksNeeded['..'][key]) {
 					updateOtherGrid(this.__mrr.children[_as], '..', key, val);
 				}
-				if (this.__mrr.children[_as].__mrr.linksNeeded['..'] && this.__mrr.children[_as].__mrr.linksNeeded['^'][key]) {
+				if (this.__mrr.children[_as].__mrr.linksNeeded['^'] && this.__mrr.children[_as].__mrr.linksNeeded['^'][key]) {
 					updateOtherGrid(this.__mrr.children[_as], '^', key, val);
 				}
 			}

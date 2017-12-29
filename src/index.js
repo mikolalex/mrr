@@ -378,7 +378,7 @@ class Mrr extends React.Component {
 			if(this.__mrr.children[as].__mrr.linksNeeded['..'] && this.__mrr.children[as].__mrr.linksNeeded['..'][key]){
 				updateOtherGrid(this.__mrr.children[as], '..', key, val);
 			}
-			if(this.__mrr.children[as].__mrr.linksNeeded['..'] && this.__mrr.children[as].__mrr.linksNeeded['^'][key]){
+			if(this.__mrr.children[as].__mrr.linksNeeded['^'] && this.__mrr.children[as].__mrr.linksNeeded['^'][key]){
 				updateOtherGrid(this.__mrr.children[as], '^', key, val);
 			}
 		}
