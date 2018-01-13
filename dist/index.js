@@ -3,7 +3,9 @@
 Object.defineProperty(exports, "__esModule", {
 	value: true
 });
-exports.withMrr = undefined;
+exports.initGlobalGrid = exports.withMrr = undefined;
+
+var _get = function get(object, property, receiver) { if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { return get(parent, property, receiver); } } else if ("value" in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } };
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
@@ -34,6 +36,7 @@ var isPromise = function isPromise(a) {
 
 var cell_types = ['funnel', 'closure', 'nested', 'async'];
 var skip = new function MrrSkip() {}();
+var GG = void 0;
 
 var setStateForLinkedCells = function setStateForLinkedCells(slave, master, as) {
 	if (slave.__mrr.linksNeeded[as]) {
@@ -252,15 +255,34 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 				skip: skip
 			};
 			_this2.parseMrr();
+			if (GG && _this2.__mrr.linksNeeded['^^']) {
+				GG.__mrr.subscribers.push(_this2);
+			}
+			_this2.state = _this2.initialState;
+			_this2.props = _this2.props || {};
 			if (_this2.props.mrrConnect) {
 				_this2.props.mrrConnect.subscribe(_this2);
 			}
 			_this2.setState({ $start: true });
+			if (GG) {
+				setStateForLinkedCells(_this2, GG, '^^');
+			}
 			_this2.__mrr.constructing = false;
 			return _this2;
 		}
 
 		_createClass(Mrr, [{
+			key: 'componentWillUnmount',
+			value: function componentWillUnmount() {
+				if (this.__mrrParent) {
+					delete this.__mrrParent.children[this.__mrrLinkedAs];
+				}
+				if (GG && this.__mrr.linksNeeded['^^']) {
+					var i = GG.__mrr.subscribers.indexOf(this);
+					delete GG.__mrr.subscribers[i];
+				}
+			}
+		}, {
 			key: 'parseRow',
 			value: function parseRow(row, key, depMap) {
 				if (key === "$log") return;
@@ -501,7 +523,7 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 					var update = {};
 					update[cell] = val;
 					_this6.checkMrrCellUpdate(cell, update);
-					_react2.default.Component.prototype.setState.call(_this6, update);
+					_get(Mrr.prototype.__proto__ || Object.getPrototypeOf(Mrr.prototype), 'prototype', _this6).setState.call(_this6, update);
 				};
 				var fexpr = this.__mrr.realComputed[cell];
 				if (typeof fexpr[0] === 'string') {
@@ -525,7 +547,7 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 							var update = {};
 							update[subcellname] = val;
 							_this6.checkMrrCellUpdate(subcellname, update);
-							_react2.default.Component.prototype.setState.call(_this6, update);
+							(parentClassOrMrrStructure.prototype.setState || function () {}).call(_this6, update);
 						});
 					}
 					if (types.indexOf('async') !== -1) {
@@ -596,20 +618,52 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 						console.log('%c ' + key + ' ', 'background: #898cec; color: white; padding: 1px;', val);
 					}
 				}
-				for (var _as in this.__mrr.children) {
-					if (this.__mrr.children[_as].__mrr.linksNeeded['..'] && this.__mrr.children[_as].__mrr.linksNeeded['..'][key]) {
-						updateOtherGrid(this.__mrr.children[_as], '..', key, val);
+				if (GG && GG === this) {
+					var _iteratorNormalCompletion5 = true;
+					var _didIteratorError5 = false;
+					var _iteratorError5 = undefined;
+
+					try {
+						for (var _iterator5 = this.__mrr.subscribers[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
+							var sub = _step5.value;
+
+							if (sub && sub.__mrr.linksNeeded['^^'][key]) {
+								updateOtherGrid(sub, '^^', key, val);
+							}
+						}
+					} catch (err) {
+						_didIteratorError5 = true;
+						_iteratorError5 = err;
+					} finally {
+						try {
+							if (!_iteratorNormalCompletion5 && _iterator5.return) {
+								_iterator5.return();
+							}
+						} finally {
+							if (_didIteratorError5) {
+								throw _iteratorError5;
+							}
+						}
 					}
-					if (this.__mrr.children[_as].__mrr.linksNeeded['^'] && this.__mrr.children[_as].__mrr.linksNeeded['^'][key]) {
-						updateOtherGrid(this.__mrr.children[_as], '^', key, val);
+				} else {
+					for (var _as in this.__mrr.children) {
+						if (this.__mrr.children[_as].__mrr.linksNeeded['..'] && this.__mrr.children[_as].__mrr.linksNeeded['..'][key]) {
+							updateOtherGrid(this.__mrr.children[_as], '..', key, val);
+						}
+						if (this.__mrr.children[_as].__mrr.linksNeeded['^'] && this.__mrr.children[_as].__mrr.linksNeeded['^'][key]) {
+							updateOtherGrid(this.__mrr.children[_as], '^', key, val);
+						}
 					}
-				}
-				var as = this.__mrrLinkedAs;
-				if (this.__mrrParent && this.__mrrParent.__mrr.linksNeeded[as] && this.__mrrParent.__mrr.linksNeeded[as][key]) {
-					updateOtherGrid(this.__mrrParent, as, key, val);
-				}
-				if (this.__mrrParent && this.__mrrParent.__mrr.linksNeeded['*'] && this.__mrrParent.__mrr.linksNeeded['*'][key]) {
-					updateOtherGrid(this.__mrrParent, '*', key, val);
+					var as = this.__mrrLinkedAs;
+					if (this.__mrrParent && this.__mrrParent.__mrr.linksNeeded[as] && this.__mrrParent.__mrr.linksNeeded[as][key]) {
+						updateOtherGrid(this.__mrrParent, as, key, val);
+					}
+					if (this.__mrrParent && this.__mrrParent.__mrr.linksNeeded['*'] && this.__mrrParent.__mrr.linksNeeded['*'][key]) {
+						updateOtherGrid(this.__mrrParent, '*', key, val);
+					}
+					if (GG && GG.__mrr.linksNeeded['*'] && GG.__mrr.linksNeeded['*'][key]) {
+						updateOtherGrid(GG, '*', key, val);
+					}
 				}
 				this.mrrState[key] = val;
 			}
@@ -624,7 +678,7 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 					this.checkMrrCellUpdate(parent_cell, update);
 				}
 				if (!this.__mrr.constructing) {
-					return _react2.default.Component.prototype.setState.call(this, update);
+					return (parentClassOrMrrStructure.prototype.setState || function () {}).call(this, update);
 				} else {
 					for (var _cell in update) {
 						this.initialState[_cell] = update[_cell];
@@ -644,5 +698,32 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 
 var def = withMrr(_react2.default.Component);
 def.skip = skip;
+
+var initGlobalGrid = exports.initGlobalGrid = function initGlobalGrid(struct) {
+	var force = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+
+	if (GG && !force) {
+		throw new Error('Mrr Error: Global Grid already inited!');
+	}
+
+	var GlobalGrid = function () {
+		function GlobalGrid() {
+			_classCallCheck(this, GlobalGrid);
+		}
+
+		_createClass(GlobalGrid, [{
+			key: 'computed',
+			get: function get() {
+				return struct;
+			}
+		}]);
+
+		return GlobalGrid;
+	}();
+
+	var GlobalGridClass = withMrr(GlobalGrid);
+	GG = new GlobalGridClass();
+	GG.__mrr.subscribers = [];
+};
 
 exports.default = def;

@@ -5,6 +5,7 @@ const isPromise = a => a instanceof Object && a.toString && a.toString().indexOf
 
 const cell_types = ['funnel', 'closure', 'nested', 'async'];
 const skip = new function MrrSkip(){};
+let GG;
 
 const setStateForLinkedCells = function(slave, master, as){
 	if(slave.__mrr.linksNeeded[as]){
@@ -115,11 +116,28 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 				skip,
 			};
 			this.parseMrr();
+			if(GG && this.__mrr.linksNeeded['^^']){
+				GG.__mrr.subscribers.push(this);
+			}
+			this.state = this.initialState;
+			this.props = this.props || {};
 			if(this.props.mrrConnect){
 				this.props.mrrConnect.subscribe(this);
 			}
 			this.setState({$start: true});
+			if(GG){
+				setStateForLinkedCells(this, GG, '^^');
+			}
 			this.__mrr.constructing = false;
+		}
+		componentWillUnmount(){
+			if(this.__mrrParent){
+				delete this.__mrrParent.children[this.__mrrLinkedAs];
+			}
+			if(GG && this.__mrr.linksNeeded['^^']){
+				const i = GG.__mrr.subscribers.indexOf(this);
+				delete GG.__mrr.subscribers[i];
+			}
 		}
 		get __mrrMacros(){
 			return Object.assign({}, defMacros, this.__mrrCustomMacros || {});
@@ -319,7 +337,7 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 				const update = {};
 				update[cell] = val;
 				this.checkMrrCellUpdate(cell, update);
-				React.Component.prototype.setState.call(this, update);
+				super.prototype.setState.call(this, update);
 			}
 			const fexpr = this.__mrr.realComputed[cell];
 			if(typeof fexpr[0] === 'string'){
@@ -343,7 +361,7 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 						const update = {};
 						update[subcellname] = val;
 						this.checkMrrCellUpdate(subcellname, update);
-						React.Component.prototype.setState.call(this, update);
+						(parentClassOrMrrStructure.prototype.setState || (() => {})).call(this, update);
 					})
 				} 
 				if(types.indexOf('async') !== -1){
@@ -389,20 +407,31 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 					console.log('%c ' + key + ' ', 'background: #898cec; color: white; padding: 1px;', val);
 				}
 			}
-			for(let as in this.__mrr.children){
-				if(this.__mrr.children[as].__mrr.linksNeeded['..'] && this.__mrr.children[as].__mrr.linksNeeded['..'][key]){
-					updateOtherGrid(this.__mrr.children[as], '..', key, val);
+			if(GG && GG === this){
+				for(let sub of this.__mrr.subscribers){
+					if(sub && sub.__mrr.linksNeeded['^^'][key]){
+						updateOtherGrid(sub, '^^', key, val);
+					}
 				}
-				if(this.__mrr.children[as].__mrr.linksNeeded['^'] && this.__mrr.children[as].__mrr.linksNeeded['^'][key]){
-					updateOtherGrid(this.__mrr.children[as], '^', key, val);
+			} else {
+				for(let as in this.__mrr.children){
+					if(this.__mrr.children[as].__mrr.linksNeeded['..'] && this.__mrr.children[as].__mrr.linksNeeded['..'][key]){
+						updateOtherGrid(this.__mrr.children[as], '..', key, val);
+					}
+					if(this.__mrr.children[as].__mrr.linksNeeded['^'] && this.__mrr.children[as].__mrr.linksNeeded['^'][key]){
+						updateOtherGrid(this.__mrr.children[as], '^', key, val);
+					}
 				}
-			}
-			let as  = this.__mrrLinkedAs;
-			if(this.__mrrParent && this.__mrrParent.__mrr.linksNeeded[as] && this.__mrrParent.__mrr.linksNeeded[as][key]){
-				updateOtherGrid(this.__mrrParent, as, key, val);
-			}
-			if(this.__mrrParent && this.__mrrParent.__mrr.linksNeeded['*'] && this.__mrrParent.__mrr.linksNeeded['*'][key]){
-				updateOtherGrid(this.__mrrParent, '*', key, val);
+				let as  = this.__mrrLinkedAs;
+				if(this.__mrrParent && this.__mrrParent.__mrr.linksNeeded[as] && this.__mrrParent.__mrr.linksNeeded[as][key]){
+					updateOtherGrid(this.__mrrParent, as, key, val);
+				}
+				if(this.__mrrParent && this.__mrrParent.__mrr.linksNeeded['*'] && this.__mrrParent.__mrr.linksNeeded['*'][key]){
+					updateOtherGrid(this.__mrrParent, '*', key, val);
+				}
+				if(GG && GG.__mrr.linksNeeded['*'] && GG.__mrr.linksNeeded['*'][key]){
+					updateOtherGrid(GG, '*', key, val);
+				}
 			}
 			this.mrrState[key] = val;
 		}
@@ -415,7 +444,7 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 				this.checkMrrCellUpdate(parent_cell, update);
 			}
 			if(!this.__mrr.constructing){
-				return React.Component.prototype.setState.call(this, update);
+				return (parentClassOrMrrStructure.prototype.setState || (() => {})).call(this, update);
 			} else {
 				for(let cell in update){
 					this.initialState[cell] = update[cell];
@@ -428,5 +457,19 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 
 const def = withMrr(React.Component);
 def.skip = skip;
+
+export const initGlobalGrid = (struct, force = false) => {
+	if(GG && !force){
+		throw new Error('Mrr Error: Global Grid already inited!');
+	}
+	class GlobalGrid {
+		get computed(){
+			return struct;
+		}
+	}
+	const GlobalGridClass = withMrr(GlobalGrid);
+	GG = new GlobalGridClass;
+	GG.__mrr.subscribers = [];
+}
 
 export default def;
