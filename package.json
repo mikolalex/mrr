@@ -1,6 +1,6 @@
 {
   "name": "mrr",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "Make React reactive",
   "main": "dist/index.js",
   "scripts": {
@@ -8,7 +8,7 @@
     "test": "./node_modules/.bin/babel-tape-runner ./spec/**/*.spec.js | ./node_modules/.bin/tap-spec",
     "zuul": "./node_modules/.bin/zuul --local --open -- spec/**/*.spec.js",
     "build": "npm run test && npm run readme && ./node_modules/.bin/babel -d ./dist ./src",
-    "ppublish": "git push && git push --tags && npm publish"
+    "publish": "git push && git push --tags && npm publish"
   },
   "repository": {
     "type": "git",
