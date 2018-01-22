@@ -171,7 +171,7 @@ get computed(){
         $init: {
             todos: [],
         },
-		todos: [(arr, new_item) => { 
+	todos: [(arr, new_item) => { 
             arr.push(new_item);
             return arr;
         }, '^', 'add_todo/new_todo'],
@@ -201,7 +201,6 @@ render(){
         <input type="text" onChange={ this.toState('text') } />
         <input type="submit" onChange={ this.toState('submit') } />
     </form>
-
 }
 ```
 
@@ -209,8 +208,8 @@ You can subscribe to changes in child component, you should add the property mrr
 In this case, we connected AddTodoForm as 'add_todo'. 
 ```jsx
     todos: [(arr, new_item) => { 
-		arr.push(new_item);
-		return arr;
+	arr.push(new_item);
+	return arr;
     }, '^', 'add_todo/new_todo'],
 ```
 We are listening to changes in "new_todo" property in child which was connected as "add_todo".
@@ -237,13 +236,13 @@ get computed(){
             sortByField: 'price',
         },
         all_goods: ['nested', (cb, category) => {
-		    cb('loading', true);
+	    cb('loading', true);
             fetch('/goods?category=' + category)
             .then(resp => resp.toJSON())
             .then(data => {
-				cb('loading', false);
-				cb('data', data);
-		    })
+		cb('loading', false);
+		cb('data', data);
+            })
         }, 'selectedCategory'],
         sortByField: [a => a.toLowerCase(), 'sortBy'],
         goods: [(arr, field) => {
@@ -264,11 +263,11 @@ render(){
         </select>
         { 
             this.state['all_goods.loading'] 
-	        ? 	'Loading...' 
-		    : 	<ul>
-					{ this.state.goods.map(g => <div>{ g.name } { g.price }</div>) }
-			    </ul>
-	        }
+	    ? 	'Loading...' 
+	    : <ul>
+	        { this.state.goods.map(g => <div>{ g.name } { g.price }</div>) }
+	    </ul>
+	}
     </div>
 }
 ```
