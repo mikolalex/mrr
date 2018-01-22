@@ -275,7 +275,52 @@ Here "all_goods" property was actually into two "sub-" properties: "loading" and
 We update the value of these properties by calling cb(%subproperty%, %value%).
 They become accessible to the outer world by the name %property% . %subproperty%, e.g. "all_goods.loading".
 
+### Funnel type
 
+Say we need to display the popup when user clicks "open popup", and close it when he clicks close or "cancel" button.
+```jsx
+
+get computed(){
+    return {
+	$init: {
+	    popup_shown: false,
+	},
+	popup_shown: ['funnel', (cellName, cellValue) => {
+	    if(cellName === 'open_popup'){
+		return true;
+	    } else {
+		return false;
+	    }
+	}, 'open_popup', 'close_popup', 'cancel']
+    }
+}
+render(){
+
+    return <div>
+	{ this.state.popup_shown && <Popup>
+	    <i className="close" onClick={ this.toState('close_popup') } ></i>
+	    <form>
+		<button onClick={ this.toState('ok') }>OK</button>
+		<button onClick={ this.toState('cancel') }>Cancel</button>
+	    </form>
+	</Popup> }
+	<button onClick={ this.toState('open_popup') }>
+	    Show popup
+	</button>
+    </div>
+
+}
+
+```
+When using funnel type, your formula function receives only the name and value of property which changed at that moment.
+This pattern is very common, and mrr has syntactic sugar for this called "map":
+```jsx
+    popup_shown: ['map', {
+	'open_popup': true,
+	'close_popup': false,
+	'cancel': false,
+    }]
+```
 
 
 ## Author
