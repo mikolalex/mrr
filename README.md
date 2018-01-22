@@ -161,6 +161,123 @@ In this case we can use "$start" property.
 Now our 'all_goods' property will be computed when the "selectedCategory" property changes and when the component is created.
 (as the value of "$start" cell is useless for us, we don't mention it in our arguments' list) 
 
+### Intercomponent communication
+
+```jsx
+// Todos Component
+
+get computed(){
+    return {
+        $init: {
+            todos: [],
+        },
+		todos: [(arr, new_item) => { 
+            arr.push(new_item);
+            return arr;
+        }, '^', 'add_todo/new_todo'],
+    }
+}
+
+render(){
+    return <div>
+        <ul>
+            { this.state.todos.map(todo => <li>{ todo.text }</li>) }
+        </ul>
+        <AddTodoForm mrrConnect={ this.mrrConnect('add_todo') } />
+    </div>
+}
+
+// AddTodoForm Component
+
+get computed(){
+    return {
+        // returns new todo object when submit is pressed
+        new_todo: [(text, submit) => ({text}), 'text', 'submit'],
+    }
+}
+
+render(){
+    return <form>
+        <input type="text" onChange={ this.toState('text') } />
+        <input type="submit" onChange={ this.toState('submit') } />
+    </form>
+
+}
+```
+
+You can subscribe to changes in child component, you should add the property mrrConnect with a value of this.mrrConnect(%connect_as%)
+In this case, we connected AddTodoForm as 'add_todo'. 
+```jsx
+    todos: [(arr, new_item) => { 
+		arr.push(new_item);
+		return arr;
+    }, '^', 'add_todo/new_todo'],
+```
+We are listening to changes in "new_todo" property in child which was connected as "add_todo".
+'^' means the previous value of the very property, in this case an array of todos.
+
+### Passive listening
+
+In fact, this example won't work as expected. Our "new_todo" property of AddTodoForm will be computed each times "text" or "submit" are changed, so that new todo will be created after you enter first character. That happens because we are subscribed to "text" and emit new todo objects each time the "text" changes.
+To fix this, we can use passive listening approach.
+```jsx
+    new_todo: [(text, submit) => ({text}), '-text', 'submit'],
+```
+We added a "-" before the name of "text" argument. It means that our property will not be recalculated when the "text" changes. Still it remains accessible in the list of our arguments.
+Passive listening allows flexible control over the state.
+
+### Nested type
+
+Nested type allows us to put the results of calculation into different "cells". In general it reminds async type - it also receives callback as first argument. The difference is the callback function receives the name of sub-property as the first argument, and it's value as second.
+```jsx
+get computed(){
+	return {
+        $init: {
+            goods: [],
+            sortByField: 'price',
+        },
+        all_goods: ['nested', (cb, category) => {
+		    cb('loading', true);
+            fetch('/goods?category=' + category)
+            .then(resp => resp.toJSON())
+            .then(data => {
+				cb('loading', false);
+				cb('data', data);
+		    })
+        }, 'selectedCategory'],
+        sortByField: [a => a.toLowerCase(), 'sortBy'],
+        goods: [(arr, field) => {
+            return _.orderBy(arr || [], [field]);
+        }, 'all_goods.data', 'sortByField'],
+    }
+}
+render(){
+    return <div>
+        <select onChange={ this.toState('selectedCategory') }>
+            <option>Cars</option>
+            <option>Electronics</option>
+            <option>Audio</option>
+        </select>
+        <select onChange={ this.toState('sortBy') }>
+            <option>Name</option>
+            <option>Price</option>
+        </select>
+        { 
+            this.state['all_goods.loading'] 
+	        ? 	'Loading...' 
+		    : 	<ul>
+					{ this.state.goods.map(g => <div>{ g.name } { g.price }</div>) }
+			    </ul>
+	        }
+    </div>
+}
+```
+Here "all_goods" property was actually into two "sub-" properties: "loading" and "data".
+We update the value of these properties by calling cb(%subproperty%, %value%).
+They become accessible to the outer world by the name %property% . %subproperty%, e.g. "all_goods.loading".
+
+
+
 
 ## Author
 
@@ -169,3 +286,4 @@ Now our 'all_goods' property will be computed when the "selectedCategory" proper
 ## License
 
  - **MIT** : http://opensource.org/licenses/MIT
+
