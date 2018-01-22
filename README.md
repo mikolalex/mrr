@@ -151,12 +151,12 @@ Sometimes we need to do something only once, when the component in created.
 E.g., load the list of goods in the example above.
 In this case we can use "$start" property.
 ```jsx
-        all_goods: ['async', (cb, category) => {
-            fetch('/goods?category=' + category)
-            .then(resp => resp.toJSON())
-            .then(data => cb(data))
-        }, 'selectedCategory', '$start],
-}
+    all_goods: ['async', (cb, category) => {
+        fetch('/goods?category=' + category)
+        .then(resp => resp.toJSON())
+        .then(data => cb(data))
+    }, 'selectedCategory', '$start],
+
 ```
 Now our 'all_goods' property will be computed when the "selectedCategory" property changes and when the component is created.
 (as the value of "$start" cell is useless for us, we don't mention it in our arguments' list) 
