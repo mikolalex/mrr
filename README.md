@@ -321,6 +321,114 @@ This pattern is very common, and mrr has syntactic sugar for this called "map":
 	'cancel': false,
     }]
 ```
+"Map" is not another mrr property type, it's a macros. See "Creating macros" section for more info.
+
+### Closure type
+
+"closure" type allows us to save some values between the formula calls, with the help of... closure.
+```jsx
+get computed(){
+    return {
+	$init: {
+	    click_num: 0,
+	},
+	click_num: ['closure', () => {
+	    // this function will be performed only once, when component is created, and should return another function used as formula
+	    let count = 0;
+	    return () => {
+		// this function will become a formula.
+		return ++count;
+	    }
+	}, 'click'],
+    }
+}
+render(){
+    <div>
+	<button onClick={ this.toState('click') }>Click me</button>
+	<div> Total: { this.state.click_num } clicks </div>
+    </div>
+    
+}
+```
+When using closure type, we provide a function, that will return another function, which will be used as actual formula. It has an access to local variables of first function.
+This is a way to store some data between formula calls, without exposing it.
+
+### Combining types
+
+There are 5 property types in mrr: async, nested, funnel, closure, and the default type. The fact is you can combine them as you like!
+```jsx
+// you can combine two or more types by joining them with '.', order is not important
+num: ['closure.funnel', () => {
+    let num = 0;
+    return (cell, val) => {
+	if(cell === 'add'){
+	    num += val;
+	}
+	if(cell === 'subtract'){
+	    num -= val;
+	}
+	return num;
+    }
+}, 'add', 'subtract']
+
+```
+The only exception is you cannot combine "async" and "nested" type, as the second actually includes the first.
+
+### Macros
+
+Macros are functions which transform arbitrary expression to valid mrr expression(one of 5 types).
+E.g., "map" macros transforms given object to funnel type:
+```js
+    popup_shown: ['map', {
+	'open_popup': true,
+	'close_popup': false,
+	'cancel': false,
+    }]
+```
+is internally transformed to something like this:
+```js
+   popup_shown: ['funnel', (cell, val) => {
+	if(...){
+
+	}
+	if(...){
+
+	}
+   }, 'open_popup', 'close_popup', 'cancel'],
+```
+There are a number of built-in macros, like "map", "trigger", "skipN" etc.
+You can also add your custom macros by defining __mrrCustomMacros property of your component.
+Each macros should have unique name and should be a function, which takes some expression and returns valid mrr expression.
+```js
+get __mrrCustomMacros(){
+    return {
+	promise: ([func, ...args]) => {
+	    return ['async', function(){
+		const cb = arguments[0];
+		const args = Array.prototype.slice.call(arguments, 1);
+		func.apply(null, args).then(cb);
+	    }, ...args];
+	}
+    }
+}
+```
+E.g., we can do this code
+```js
+    all_goods: ['async', (cb, category) => {
+        fetch('/goods?category=' + category)
+        .then(resp => resp.toJSON())
+        .then(data => cb(data))
+    }, 'selectedCategory', '$start],
+
+```
+slightly more beautiful
+```
+    all_goods: ['promise', (category) => {
+        return fetch('/goods?category=' + category)
+        .then(resp => resp.toJSON())
+    }, 'selectedCategory', '$start],
+
+```
 
 
 ## Author
