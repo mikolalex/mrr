@@ -333,7 +333,8 @@ get computed(){
 	    click_num: 0,
 	},
 	click_num: ['closure', () => {
-	    // this function will be performed only once, when component is created, and should return another function used as formula
+	    // this function will be performed only once, when component is created, 
+	    // and should return another function used as formula
 	    let count = 0;
 	    return () => {
 		// this function will become a formula.
@@ -351,11 +352,11 @@ render(){
 }
 ```
 When using closure type, we provide a function, that will return another function, which will be used as actual formula. It has an access to local variables of first function.
-This is a way to store some data between formula calls, without exposing it.
+This is a way to store some data between formula calls safely, without exposing it.
 
 ### Combining types
 
-There are 5 property types in mrr: async, nested, funnel, closure, and the default type. The fact is you can combine them as you like!
+There are 5 property types in mrr: async, nested, funnel, closure, and the default type(used when you don't specify any type). The fact is you can combine them as you like!
 ```jsx
 // you can combine two or more types by joining them with '.', order is not important
 num: ['closure.funnel', () => {
@@ -377,7 +378,8 @@ The only exception is you cannot combine "async" and "nested" type, as the secon
 ### Macros
 
 Macros are functions which transform arbitrary expression to valid mrr expression(one of 5 types).
-E.g., "map" macros transforms given object to funnel type:
+Using macros can make your code more expressive and robust.
+E.g., "map" macros transforms given object to funnel type.
 ```js
     popup_shown: ['map', {
 	'open_popup': true,
@@ -385,7 +387,7 @@ E.g., "map" macros transforms given object to funnel type:
 	'cancel': false,
     }]
 ```
-is internally transformed to something like this:
+is transformed by macros in compile time to something like this:
 ```js
    popup_shown: ['funnel', (cell, val) => {
 	if(...){
@@ -412,13 +414,13 @@ get __mrrCustomMacros(){
     }
 }
 ```
-E.g., we can do this code
+We can do this code
 ```js
     all_goods: ['async', (cb, category) => {
         fetch('/goods?category=' + category)
         .then(resp => resp.toJSON())
         .then(data => cb(data))
-    }, 'selectedCategory', '$start],
+    }, 'selectedCategory', '$start'],
 
 ```
 slightly more beautiful
@@ -426,7 +428,7 @@ slightly more beautiful
     all_goods: ['promise', (category) => {
         return fetch('/goods?category=' + category)
         .then(resp => resp.toJSON())
-    }, 'selectedCategory', '$start],
+    }, 'selectedCategory', '$start'],
 
 ```
 
