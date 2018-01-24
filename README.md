@@ -62,7 +62,7 @@ You may add any number of dependent(computable) properties, each dependent prope
 
 ### Event handling helpers
 
-Mrr also includes some handy methods in mrr which make changing state easier:
+Mrr includes some helpers which make changing state easier:
 ```jsx
     render() {
         return <div>
@@ -74,11 +74,11 @@ Mrr also includes some handy methods in mrr which make changing state easier:
         </div>
     }
 ```
-toState() method set's the value of e.target.value to the specified property of state. So, you don't need to create specific methods, bind them etc. It's common to use toState in mrr for most of event handlers, as we need only to set the value to state, the rest mrr will do for us.
+toState() method creates(and memoizes!) handler which set's the value of e.target.value to the specified property of state. Therefore you don't need to create specific methods, bind them etc. It's common to use toState in mrr for most of event handlers, as we need only to set the value to state, the further calculations will be done in computed cells.
 
 ### Asynchronous computing
 
-In most cases, you should use pure functions for calculating computable properties' values and avoid side-effect. But sometimes you may need to make something aynchronous, e.g. ajax request. For this case, use "async" type.
+In most cases, you should use pure functions for calculating computable properties' values and avoid side-effect. But sometimes you may need to make something asynchronous, e.g. ajax request. For this case, use "async" type.
 When using 'async' type, the first parameter in function is always callback function, which you should call to return the value for computed property.
 ```jsx
 get computed(){
@@ -144,6 +144,8 @@ render(){
     </div>
 }
 ```
+A "type" in mrr means different way of calculating the value of computed property.
+Unlike the Rx approach wich hundred of operators, mrr has only 5 types which cover all the cases. 
 
 ### $start cell
 
@@ -159,71 +161,7 @@ In this case we can use "$start" property.
 
 ```
 Now our 'all_goods' property will be computed when the "selectedCategory" property changes and when the component is created.
-(as the value of "$start" cell is useless for us, we don't mention it in our arguments' list) 
-
-### Intercomponent communication
-
-```jsx
-// Todos Component
-
-get computed(){
-    return {
-        $init: {
-            todos: [],
-        },
-	todos: [(arr, new_item) => { 
-            arr.push(new_item);
-            return arr;
-        }, '^', 'add_todo/new_todo'],
-    }
-}
-
-render(){
-    return <div>
-        <ul>
-            { this.state.todos.map(todo => <li>{ todo.text }</li>) }
-        </ul>
-        <AddTodoForm mrrConnect={ this.mrrConnect('add_todo') } />
-    </div>
-}
-
-// AddTodoForm Component
-
-get computed(){
-    return {
-        // returns new todo object when submit is pressed
-        new_todo: [(text, submit) => ({text}), 'text', 'submit'],
-    }
-}
-
-render(){
-    return <form>
-        <input type="text" onChange={ this.toState('text') } />
-        <input type="submit" onChange={ this.toState('submit') } />
-    </form>
-}
-```
-
-You can subscribe to changes in child component, you should add the property mrrConnect with a value of this.mrrConnect(%connect_as%)
-In this case, we connected AddTodoForm as 'add_todo'. 
-```jsx
-    todos: [(arr, new_item) => { 
-	arr.push(new_item);
-	return arr;
-    }, '^', 'add_todo/new_todo'],
-```
-We are listening to changes in "new_todo" property in child which was connected as "add_todo".
-'^' means the previous value of the very property, in this case an array of todos.
-
-### Passive listening
-
-In fact, this example won't work as expected. Our "new_todo" property of AddTodoForm will be computed each times "text" or "submit" are changed, so that new todo will be created after you enter first character. That happens because we are subscribed to "text" and emit new todo objects each time the "text" changes.
-To fix this, we can use passive listening approach.
-```jsx
-    new_todo: [(text, submit) => ({text}), '-text', 'submit'],
-```
-We added a "-" before the name of "text" argument. It means that our property will not be recalculated when the "text" changes. Still it remains accessible in the list of our arguments.
-Passive listening allows flexible control over the state.
+(as the very value of "$start" cell is useless for us, we don't mention it in our arguments' list) 
 
 ### Nested type
 
@@ -374,6 +312,71 @@ num: ['closure.funnel', () => {
 
 ```
 The only exception is you cannot combine "async" and "nested" type, as the second actually includes the first.
+
+
+### Intercomponent communication
+
+```jsx
+// Todos Component
+
+get computed(){
+    return {
+        $init: {
+            todos: [],
+        },
+	todos: [(arr, new_item) => { 
+            arr.push(new_item);
+            return arr;
+        }, '^', 'add_todo/new_todo'],
+    }
+}
+
+render(){
+    return <div>
+        <ul>
+            { this.state.todos.map(todo => <li>{ todo.text }</li>) }
+        </ul>
+        <AddTodoForm mrrConnect={ this.mrrConnect('add_todo') } />
+    </div>
+}
+
+// AddTodoForm Component
+
+get computed(){
+    return {
+        // returns new todo object when submit is pressed
+        new_todo: [(text, submit) => ({text}), 'text', 'submit'],
+    }
+}
+
+render(){
+    return <form>
+        <input type="text" onChange={ this.toState('text') } />
+        <input type="submit" onChange={ this.toState('submit') } />
+    </form>
+}
+```
+
+You can subscribe to changes in child component, you should add the property mrrConnect with a value of this.mrrConnect(%connect_as%)
+In this case, we connected AddTodoForm as 'add_todo'. 
+```jsx
+    todos: [(arr, new_item) => { 
+	arr.push(new_item);
+	return arr;
+    }, '^', 'add_todo/new_todo'],
+```
+We are listening to changes in "new_todo" property in child which was connected as "add_todo".
+'^' means the previous value of the very property, in this case an array of todos.
+
+### Passive listening
+
+In fact, this example won't work as expected. Our "new_todo" property of AddTodoForm will be computed each times "text" or "submit" are changed, so that new todo will be created after you enter first character. That happens because we are subscribed to "text" and emit new todo objects each time the "text" changes.
+To fix this, we can use passive listening approach.
+```jsx
+    new_todo: [(text, submit) => ({text}), '-text', 'submit'],
+```
+We added a "-" before the name of "text" argument. It means that our property will not be recalculated when the "text" changes. Still it remains accessible in the list of our arguments.
+Passive listening allows flexible control over the state.
 
 ### Macros
 
