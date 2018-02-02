@@ -6,7 +6,7 @@
   "scripts": {
     "readme": "node ./node_modules/.bin/node-readme",
     "test": "mocha spec/*.spec.js* --require babel-core/register",
-    "build": "npm run test && npm run readme && ./node_modules/.bin/babel -d ./dist ./src",
+    "build": "npm run test && ./node_modules/.bin/babel -d ./dist ./src",
     "ppublish": "git push && git push --tags && npm publish"
   },
   "repository": {

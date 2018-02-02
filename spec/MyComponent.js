@@ -57,17 +57,17 @@ export default withMrr({
       <div>
         { state['apiValidation.success'] ? 'Wait a second...' : 'Welcome' }
       </div>
-      <input onChange={ $('number') } value={ state.number } style={ state.inputValid ? {} : errorStyle } />
+      <input onChange={ $('number') } value={ state.number } className={ state.inputValid ? '' : 'error' } />
       { state.apiError &&
         <div className="tooltip">
           { state.apiError }
         </div>
       }
-      <button onClick={ $('submit') } >
+      <button onClick={ $('submit') } className="submitButton" >
         { state['apiValidation.pending'] ? 'Wait...' : 'Next' }
       </button>
-      <div className="foo" style={ state.termsValid ? {} : errorStyle } >
-        <input type="checkbox" onChange={ $('termsAccepted') } />
+      <div className={ state.termsValid ? '' : 'error' } >
+        <input type="checkbox" className="chb" onChange={ $('termsAccepted') } />
       </div>
     </div>
   );

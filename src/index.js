@@ -287,7 +287,7 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 							value = val;
 						}
 					} else {
-						if(a && a.target && (a.target instanceof Node)){
+						if(a && a.target && a.target.type){
 							if(a.target.type === 'checkbox'){
 								value = a.target.checked;
 							} else if(a.target.type === 'submit'){
