@@ -223,7 +223,7 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 			_createClass(MyMrrComponent, [{
 				key: 'render',
 				value: function render() {
-					return _render.apply(this);
+					return _render.call(this, this.state, this.props, this.toState.bind(this));
 				}
 			}, {
 				key: 'computed',
@@ -252,7 +252,8 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 				realComputed: Object.assign({}, _this2.computed),
 				constructing: true,
 				thunks: {},
-				skip: skip
+				skip: skip,
+				expose: []
 			};
 			_this2.parseMrr();
 			if (GG && _this2.__mrr.linksNeeded['^^']) {
@@ -286,6 +287,10 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 			key: 'parseRow',
 			value: function parseRow(row, key, depMap) {
 				if (key === "$log") return;
+				if (key === "$expose") {
+					this.__mrr.expose = row;
+					return;
+				};
 				for (var k in row) {
 					var cell = row[k];
 					if (k === '0') {
@@ -661,7 +666,7 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 					if (this.__mrrParent && this.__mrrParent.__mrr.linksNeeded['*'] && this.__mrrParent.__mrr.linksNeeded['*'][key]) {
 						updateOtherGrid(this.__mrrParent, '*', key, val);
 					}
-					if (GG && GG.__mrr.linksNeeded['*'] && GG.__mrr.linksNeeded['*'][key]) {
+					if (GG && GG.__mrr.linksNeeded['*'] && GG.__mrr.linksNeeded['*'][key] && this.__mrr.expose.includes(key)) {
 						updateOtherGrid(GG, '*', key, val);
 					}
 				}

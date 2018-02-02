@@ -24,7 +24,7 @@ const updateOtherGrid = (grid, as, key, val) => {
 	}
 }
 
-const defMacros = { 
+const defMacros = {
 	map: ([map]) => {
 		var res = ['funnel', (cell, val) => {
 			return map[cell] instanceof Function ? map[cell](val) : map[cell];
@@ -64,7 +64,7 @@ const defMacros = {
 		}
 	}, field],
 	accum: ([cell, time]) => {
-		var res = time 
+		var res = time
 		? ['async.closure', () => {
 			const vals = {};
 			let c = 0;
@@ -97,7 +97,7 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 				return mrrStructure;
 			}
 			render(){
-				return render.apply(this)
+				return render.call(this, this.state, this.props, this.toState.bind(this))
 			}
 		}
 	}
@@ -114,6 +114,7 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 				constructing: true,
 				thunks: {},
 				skip,
+				expose: [],
 			};
 			this.parseMrr();
 			if(GG && this.__mrr.linksNeeded['^^']){
@@ -144,6 +145,10 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 		}
 		parseRow(row, key, depMap){
 			if(key === "$log") return;
+		  if(key === "$expose") {
+					this.__mrr.expose = row;
+					return;
+			};
 			for(let k in row){
 				var cell = row[k];
 				if(k === '0') {
@@ -156,7 +161,7 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 						this.__mrr.realComputed[key] = new_row;
 						this.parseRow(new_row, key, depMap);
 						return;
-					} 
+					}
 					continue;
 				}
 				if(cell instanceof Function) continue;
@@ -319,12 +324,12 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 					if(arg_cell[0] === '-'){
 						arg_cell = arg_cell.slice(1);
 					}
-					return (this.mrrState[arg_cell] === undefined && this.state) 
-						? (	this.__mrr.constructing 
-								? this.initialState[arg_cell] 
+					return (this.mrrState[arg_cell] === undefined && this.state)
+						? (	this.__mrr.constructing
+								? this.initialState[arg_cell]
 								: this.state[arg_cell]
-							)  
-						: this.mrrState[arg_cell] 
+							)
+						: this.mrrState[arg_cell]
 				}
 			}));
 			return res;
@@ -363,10 +368,10 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 						this.checkMrrCellUpdate(subcellname, update);
 						(parentClassOrMrrStructure.prototype.setState || (() => {})).call(this, update);
 					})
-				} 
+				}
 				if(types.indexOf('async') !== -1){
 					args.unshift(updateFunc)
-				} 
+				}
 				if(types.indexOf('closure') !== -1){
 					if(!this.__mrr.closureFuncs[cell]){
 						const init_val = this.__mrr.realComputed.$init ? this.__mrr.realComputed.$init[cell] : null;
@@ -429,7 +434,7 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 				if(this.__mrrParent && this.__mrrParent.__mrr.linksNeeded['*'] && this.__mrrParent.__mrr.linksNeeded['*'][key]){
 					updateOtherGrid(this.__mrrParent, '*', key, val);
 				}
-				if(GG && GG.__mrr.linksNeeded['*'] && GG.__mrr.linksNeeded['*'][key]){
+				if(GG && GG.__mrr.linksNeeded['*'] && GG.__mrr.linksNeeded['*'][key] && this.__mrr.expose.includes(key)){
 					updateOtherGrid(GG, '*', key, val);
 				}
 			}
