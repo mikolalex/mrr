@@ -440,7 +440,10 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 			}
 			this.mrrState[key] = val;
 		}
-		setState(ns){
+		setState(ns, cb){
+      if(!(ns instanceof Object)) {
+        ns = ns.call(null, this.state, this.props);
+      }
 			const update = Object.assign({}, ns);
 			for(let cell in update){
 				this.__mrrSetState(cell, update[cell]);
@@ -449,7 +452,7 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 				this.checkMrrCellUpdate(parent_cell, update);
 			}
 			if(!this.__mrr.constructing){
-				return (parentClassOrMrrStructure.prototype.setState || (() => {})).call(this, update);
+				return (parentClassOrMrrStructure.prototype.setState || (() => {})).call(this, update, cb);
 			} else {
 				for(let cell in update){
 					this.initialState[cell] = update[cell];

@@ -674,7 +674,10 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 			}
 		}, {
 			key: 'setState',
-			value: function setState(ns) {
+			value: function setState(ns, cb) {
+				if (!(ns instanceof Object)) {
+					ns = ns.call(null, this.state, this.props);
+				}
 				var update = Object.assign({}, ns);
 				for (var cell in update) {
 					this.__mrrSetState(cell, update[cell]);
@@ -683,7 +686,7 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 					this.checkMrrCellUpdate(parent_cell, update);
 				}
 				if (!this.__mrr.constructing) {
-					return (parentClassOrMrrStructure.prototype.setState || function () {}).call(this, update);
+					return (parentClassOrMrrStructure.prototype.setState || function () {}).call(this, update, cb);
 				} else {
 					for (var _cell in update) {
 						this.initialState[_cell] = update[_cell];
