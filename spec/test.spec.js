@@ -1,17 +1,19 @@
 import React from 'react';
 import { expect } from 'chai';
-import { shallow, configure } from 'enzyme';
-import sinon from 'sinon';
+import { shallow, configure, mount } from 'enzyme';
 import { describe, it } from 'mocha';
 import Adapter from 'enzyme-adapter-react-16';
-import MyComponent from './MyComponent';
+
+import a from './setup';
+
+import LoginForm from './LoginForm';
+import TimerWrapper from './TimerWrapper';
 
 configure({ adapter: new Adapter() });
 
-describe('<MyComponent />', () => {
-
-  it('Submit empty field', () => {
-    const wrapper = shallow(<MyComponent />);
+describe('Form validation', () => {
+  it('Should validate', () => {
+    const wrapper = mount(<LoginForm />);
     wrapper.find('.submitButton').simulate('click');
     expect(wrapper.find('.error')).to.have.length(2);
     console.log('_______________________');
@@ -23,6 +25,28 @@ describe('<MyComponent />', () => {
     wrapper.find('.submitButton').simulate('click');
     expect(wrapper.find('.error')).to.have.length(1);
     console.log('_______________________');
+  });
+});
 
+describe('Ticks', () => {
+  it('Test timer', (done) => {
+    let c = 0;
+    let d = 0;
+    const onTimerMount = () => {
+      ++c;
+    };
+    const onTimerUnmount = () => {
+      ++d;
+    };
+    const props = {
+      onTimerMount,
+      onTimerUnmount,
+    };
+    mount(<TimerWrapper { ...props } />);
+    setTimeout(() => {
+      expect(c).to.equal(2);
+      expect(d).to.equal(2);
+      done();
+    }, 1900);
   });
 });

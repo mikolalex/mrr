@@ -125,13 +125,16 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 			if(this.props.mrrConnect){
 				this.props.mrrConnect.subscribe(this);
 			}
-			this.setState({$start: true});
 			if(GG){
 				setStateForLinkedCells(this, GG, '^^');
 			}
 			this.__mrr.constructing = false;
 		}
+		componentDidMount(){
+			this.setState({$start: true});
+    }
 		componentWillUnmount(){
+			this.setState({$end: true});
 			if(this.__mrrParent){
 				delete this.__mrrParent.children[this.__mrrLinkedAs];
 			}
@@ -169,7 +172,9 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 					// anon cell
 					const anonName = '@@anon' + (++this.__mrr.anonCellsCounter);
 					this.__mrr.realComputed[anonName] = cell;
-					this.__mrr.realComputed[key][k] = anonName;
+          const rowCopy = this.__mrr.realComputed[key].slice();
+          rowCopy[k] = anonName;
+					this.__mrr.realComputed[key] = rowCopy;
 					this.parseRow(cell, anonName, depMap);
 					cell = anonName;
 				}
@@ -324,6 +329,9 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 					if(arg_cell[0] === '-'){
 						arg_cell = arg_cell.slice(1);
 					}
+          if(arg_cell === '$props'){
+            return this.props;
+          }
 					return (this.mrrState[arg_cell] === undefined && this.state)
 						? (	this.__mrr.constructing
 								? this.initialState[arg_cell]
@@ -336,13 +344,14 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 		}
 		__mrrUpdateCell(cell, parent_cell, update){
 			var val, func, args, types;
+      const superSetState = super.setState;
 			const updateFunc = val => {
 				if(val === this.__mrr.skip) return;
 				this.__mrrSetState(cell, val);
 				const update = {};
 				update[cell] = val;
 				this.checkMrrCellUpdate(cell, update);
-				super.prototype.setState.call(this, update);
+				superSetState.call(this, update);
 			}
 			const fexpr = this.__mrr.realComputed[cell];
 			if(typeof fexpr[0] === 'string'){
@@ -408,8 +417,15 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 		}
 		__mrrSetState(key, val){
 			if(this.__mrr.realComputed.$log || 0) {
-				if((this.__mrr.realComputed.$log === true) || ((this.__mrr.realComputed.$log instanceof Array) && (this.__mrr.realComputed.$log.indexOf(key) !== -1))){
-					console.log('%c ' + key + ' ', 'background: #898cec; color: white; padding: 1px;', val);
+				if(
+          (this.__mrr.realComputed.$log && !(this.__mrr.realComputed.$log instanceof Array)) 
+          || 
+          ((this.__mrr.realComputed.$log instanceof Array) && (this.__mrr.realComputed.$log.indexOf(key) !== -1))){
+          if(this.__mrr.realComputed.$log === 'no-colour'){
+            console.log(key, val);
+          } else {
+            console.log('%c ' + key + ' ', 'background: #898cec; color: white; padding: 1px;', val);
+          }
 				}
 			}
 			if(GG && GG === this){

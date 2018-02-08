@@ -6,8 +6,10 @@ const errorStyle = {
 };
 const checkNumberApiCall = () => new Promise(res => setTimeout(res, 1000));
 
+const delay = seconds => (cb, a) => setTimeout(() => cb(a), seconds*1000);
+
 export default withMrr({
-  $log: true,
+  $log: 'no-colour',
   $expose: ['loginCredentials', 'redirectAfterLogin'],
   $init: {
     number: '',
@@ -50,7 +52,7 @@ export default withMrr({
     'number': '',
   }],
   loginCredentials: 'apiValidation.success',
-  redirectAfterLogin: [(cb) => setTimeout(cb, 1000), 'apiValidation.success'],
+  redirectAfterLogin: ['async', delay(1), 'apiValidation.success'],
 }, (state, props, $) => {
   return (
     <div>

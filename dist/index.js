@@ -264,7 +264,6 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 			if (_this2.props.mrrConnect) {
 				_this2.props.mrrConnect.subscribe(_this2);
 			}
-			_this2.setState({ $start: true });
 			if (GG) {
 				setStateForLinkedCells(_this2, GG, '^^');
 			}
@@ -273,8 +272,14 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 		}
 
 		_createClass(Mrr, [{
+			key: 'componentDidMount',
+			value: function componentDidMount() {
+				this.setState({ $start: true });
+			}
+		}, {
 			key: 'componentWillUnmount',
 			value: function componentWillUnmount() {
+				this.setState({ $end: true });
 				if (this.__mrrParent) {
 					delete this.__mrrParent.children[this.__mrrLinkedAs];
 				}
@@ -311,7 +316,9 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 						// anon cell
 						var anonName = '@@anon' + ++this.__mrr.anonCellsCounter;
 						this.__mrr.realComputed[anonName] = cell;
-						this.__mrr.realComputed[key][k] = anonName;
+						var rowCopy = this.__mrr.realComputed[key].slice();
+						rowCopy[k] = anonName;
+						this.__mrr.realComputed[key] = rowCopy;
 						this.parseRow(cell, anonName, depMap);
 						cell = anonName;
 					}
@@ -511,6 +518,9 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 						if (arg_cell[0] === '-') {
 							arg_cell = arg_cell.slice(1);
 						}
+						if (arg_cell === '$props') {
+							return _this5.props;
+						}
 						return _this5.mrrState[arg_cell] === undefined && _this5.state ? _this5.__mrr.constructing ? _this5.initialState[arg_cell] : _this5.state[arg_cell] : _this5.mrrState[arg_cell];
 					}
 				});
@@ -522,13 +532,14 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 				var _this6 = this;
 
 				var val, func, args, types;
+				var superSetState = _get(Mrr.prototype.__proto__ || Object.getPrototypeOf(Mrr.prototype), 'setState', this);
 				var updateFunc = function updateFunc(val) {
 					if (val === _this6.__mrr.skip) return;
 					_this6.__mrrSetState(cell, val);
 					var update = {};
 					update[cell] = val;
 					_this6.checkMrrCellUpdate(cell, update);
-					_get(Mrr.prototype.__proto__ || Object.getPrototypeOf(Mrr.prototype), 'prototype', _this6).setState.call(_this6, update);
+					superSetState.call(_this6, update);
 				};
 				var fexpr = this.__mrr.realComputed[cell];
 				if (typeof fexpr[0] === 'string') {
@@ -619,8 +630,12 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 			key: '__mrrSetState',
 			value: function __mrrSetState(key, val) {
 				if (this.__mrr.realComputed.$log || 0) {
-					if (this.__mrr.realComputed.$log === true || this.__mrr.realComputed.$log instanceof Array && this.__mrr.realComputed.$log.indexOf(key) !== -1) {
-						console.log('%c ' + key + ' ', 'background: #898cec; color: white; padding: 1px;', val);
+					if (this.__mrr.realComputed.$log && !(this.__mrr.realComputed.$log instanceof Array) || this.__mrr.realComputed.$log instanceof Array && this.__mrr.realComputed.$log.indexOf(key) !== -1) {
+						if (this.__mrr.realComputed.$log === 'no-colour') {
+							console.log(key, val);
+						} else {
+							console.log('%c ' + key + ' ', 'background: #898cec; color: white; padding: 1px;', val);
+						}
 					}
 				}
 				if (GG && GG === this) {
