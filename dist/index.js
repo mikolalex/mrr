@@ -3,7 +3,7 @@
 Object.defineProperty(exports, "__esModule", {
 	value: true
 });
-exports.initGlobalGrid = exports.withMrr = undefined;
+exports.initGlobalGrid = exports.withMrr = exports.skip = undefined;
 
 var _get = function get(object, property, receiver) { if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { return get(parent, property, receiver); } } else if ("value" in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } };
 
@@ -23,9 +23,9 @@ function _possibleConstructorReturn(self, call) { if (!self) { throw new Referen
 
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
-
 function _toArray(arr) { return Array.isArray(arr) ? arr : Array.from(arr); }
+
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
@@ -35,7 +35,7 @@ var isPromise = function isPromise(a) {
 };
 
 var cell_types = ['funnel', 'closure', 'nested', 'async'];
-var skip = new function MrrSkip() {}();
+var skip = exports.skip = new function MrrSkip() {}();
 var GG = void 0;
 
 var setStateForLinkedCells = function setStateForLinkedCells(slave, master, as) {
@@ -110,9 +110,30 @@ var defMacros = {
 		}
 		return res;
 	},
-	mapPrev: function mapPrev(_ref3) {
-		var _ref4 = _slicedToArray(_ref3, 1),
-		    map = _ref4[0];
+	transist: function transist(cells) {
+		return [function (a, b) {
+			return a ? b : skip;
+		}].concat(_toConsumableArray(cells));
+	},
+	closureMap: function closureMap(_ref3) {
+		var _ref4 = _slicedToArray(_ref3, 2),
+		    initVal = _ref4[0],
+		    map = _ref4[1];
+
+		var cells = Object.keys(map);
+		return ['closure.funnel', function () {
+			return function (cell, val) {
+				if (map[cell] instanceof Function) {
+					return initVal = map[cell].call(null, initVal, val);
+				} else {
+					return initVal = map[cell];
+				}
+			};
+		}].concat(_toConsumableArray(cells));
+	},
+	mapPrev: function mapPrev(_ref5) {
+		var _ref6 = _slicedToArray(_ref5, 1),
+		    map = _ref6[0];
 
 		var res = ['closure.funnel', function (prev) {
 			return function (cell, val) {
@@ -125,44 +146,44 @@ var defMacros = {
 		}
 		return res;
 	},
-	join: function join(_ref5) {
-		var _ref6 = _toArray(_ref5),
-		    fields = _ref6.slice(0);
+	join: function join(_ref7) {
+		var _ref8 = _toArray(_ref7),
+		    fields = _ref8.slice(0);
 
 		return ['funnel', function (cell, val) {
 			return val;
 		}].concat(_toConsumableArray(fields));
 	},
-	'&&': function _(_ref7) {
-		var _ref8 = _slicedToArray(_ref7, 2),
-		    a = _ref8[0],
-		    b = _ref8[1];
+	'&&': function _(_ref9) {
+		var _ref10 = _slicedToArray(_ref9, 2),
+		    a = _ref10[0],
+		    b = _ref10[1];
 
 		return [function (a, b) {
 			return a && b;
 		}, a, b];
 	},
-	trigger: function trigger(_ref9) {
-		var _ref10 = _slicedToArray(_ref9, 2),
-		    field = _ref10[0],
-		    val = _ref10[1];
+	trigger: function trigger(_ref11) {
+		var _ref12 = _slicedToArray(_ref11, 2),
+		    field = _ref12[0],
+		    val = _ref12[1];
 
 		return [function (a) {
 			return a === val ? true : undefined.__mrr.skip;
 		}, field];
 	},
-	skipSame: function skipSame(_ref11) {
-		var _ref12 = _slicedToArray(_ref11, 1),
-		    field = _ref12[0];
+	skipSame: function skipSame(_ref13) {
+		var _ref14 = _slicedToArray(_ref13, 1),
+		    field = _ref14[0];
 
 		return [function (z, x) {
 			return z == x ? undefined.__mrr.skip : z;
 		}, field, '^'];
 	},
-	skipN: function skipN(_ref13) {
-		var _ref14 = _slicedToArray(_ref13, 2),
-		    field = _ref14[0],
-		    n = _ref14[1];
+	skipN: function skipN(_ref15) {
+		var _ref16 = _slicedToArray(_ref15, 2),
+		    field = _ref16[0],
+		    n = _ref16[1];
 
 		return ['closure', function () {
 			var count = 0;
@@ -176,10 +197,10 @@ var defMacros = {
 			};
 		}, field];
 	},
-	accum: function accum(_ref15) {
-		var _ref16 = _slicedToArray(_ref15, 2),
-		    cell = _ref16[0],
-		    time = _ref16[1];
+	accum: function accum(_ref17) {
+		var _ref18 = _slicedToArray(_ref17, 2),
+		    cell = _ref18[0],
+		    time = _ref18[1];
 
 		var res = time ? ['async.closure', function () {
 			var vals = {};
@@ -478,6 +499,7 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 							}
 						} else {
 							if (a && a.target && a.target.type) {
+								a.preventDefault();
 								if (a.target.type === 'checkbox') {
 									value = a.target.checked;
 								} else if (a.target.type === 'submit') {
@@ -531,7 +553,11 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 			value: function __mrrUpdateCell(cell, parent_cell, update) {
 				var _this6 = this;
 
-				var val, func, args, types;
+				var val,
+				    func,
+				    args,
+				    updateNested,
+				    types = [];
 				var superSetState = _get(Mrr.prototype.__proto__ || Object.getPrototypeOf(Mrr.prototype), 'setState', this);
 				var updateFunc = function updateFunc(val) {
 					if (val === _this6.__mrr.skip) return;
@@ -545,6 +571,18 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 				if (typeof fexpr[0] === 'string') {
 					types = fexpr[0].split('.');
 				}
+
+				if (types.indexOf('nested') !== -1) {
+					updateNested = function updateNested(subcell, val) {
+						var subcellname = cell + '.' + subcell;
+						_this6.__mrrSetState(subcellname, val);
+						var update = {};
+						update[subcellname] = val;
+						_this6.checkMrrCellUpdate(subcellname, update);
+						(parentClassOrMrrStructure.prototype.setState || function () {}).call(_this6, update);
+					};
+				}
+
 				if (fexpr[0] instanceof Function) {
 					func = this.__mrr.realComputed[cell][0];
 					args = this.__getCellArgs(cell);
@@ -557,14 +595,7 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 						args = this.__getCellArgs(cell);
 					}
 					if (types.indexOf('nested') !== -1) {
-						args.unshift(function (subcell, val) {
-							var subcellname = cell + '.' + subcell;
-							_this6.__mrrSetState(subcellname, val);
-							var update = {};
-							update[subcellname] = val;
-							_this6.checkMrrCellUpdate(subcellname, update);
-							(parentClassOrMrrStructure.prototype.setState || function () {}).call(_this6, update);
-						});
+						args.unshift(updateNested);
 					}
 					if (types.indexOf('async') !== -1) {
 						args.unshift(updateFunc);
@@ -581,9 +612,30 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 					if (!func || !func.apply) {
 						throw new Error('MRR_ERROR_101: closure type should provide function');
 					}
-					val = func.apply(null, args);
+					try {
+						val = func.apply(null, args);
+					} catch (e) {
+						if (this.__mrr.realComputed['$err.' + cell]) {
+							this.setState(_defineProperty({}, '$err.' + cell, e));
+						} else {
+							if (this.__mrr.realComputed.$err) {
+								this.setState({ $err: e });
+							} else {
+								throw e;
+							}
+						}
+						return;
+					}
 				}
-				if (types && (types.indexOf('nested') !== -1 || types.indexOf('async') !== -1)) {
+				if (types && types.indexOf('nested') !== -1) {
+					if (val instanceof Object) {
+						for (var k in val) {
+							updateNested(k, val[k]);
+						}
+					}
+					return;
+				}
+				if (types && types.indexOf('async') !== -1) {
 					// do nothing!
 					return;
 				}

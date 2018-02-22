@@ -6,8 +6,9 @@ import Adapter from 'enzyme-adapter-react-16';
 
 import a from './setup';
 
-import LoginForm from './LoginForm';
-import TimerWrapper from './TimerWrapper';
+import LoginForm from './testComponents/LoginForm';
+import TimerWrapper from './testComponents/TimerWrapper';
+import InputForm from './testComponents/InputForm';
 
 configure({ adapter: new Adapter() });
 
@@ -16,15 +17,25 @@ describe('Form validation', () => {
     const wrapper = mount(<LoginForm />);
     wrapper.find('.submitButton').simulate('click');
     expect(wrapper.find('.error')).to.have.length(2);
-    console.log('_______________________');
+    //console.log('_______________________');
 
     wrapper.find('.chb').simulate('change', { target: { checked: true, type: 'checkbox' } });
     expect(wrapper.find('.error')).to.have.length(0);
-    console.log('_______________________');
+    //console.log('_______________________');
 
     wrapper.find('.submitButton').simulate('click');
     expect(wrapper.find('.error')).to.have.length(1);
-    console.log('_______________________');
+    //console.log('_______________________');
+  });
+});
+  
+describe('Some input form', () => {
+  const wrapper = mount(<InputForm />);
+  it('Should show error on empty input', () => {
+
+    wrapper.find('.submit').simulate('click');
+    expect(wrapper.find('.error')).to.have.length(1);
+
   });
 });
 
@@ -49,4 +60,18 @@ describe('Ticks', () => {
       done();
     }, 1900);
   });
+  
 });
+/*
+
+describe('', () => {
+  it('', (done) => {
+    const wrapper = mount(<TimerWrapper { ...props } />);
+
+    expect(wrapper.find('div')).to.have.length(0);
+
+    done();
+  });
+});
+
+*/

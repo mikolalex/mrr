@@ -1,5 +1,5 @@
 import React from 'react';
-import { withMrr } from '../src';
+import { withMrr } from '../../src';
 import Timer from './Timer';
 
 const set = (cb, val) => { 

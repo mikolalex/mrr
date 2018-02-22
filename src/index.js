@@ -4,7 +4,7 @@ import React from 'react';
 const isPromise = a => a instanceof Object && a.toString && a.toString().indexOf('Promise') !== -1;
 
 const cell_types = ['funnel', 'closure', 'nested', 'async'];
-const skip = new function MrrSkip(){};
+export const skip = new function MrrSkip(){};
 let GG;
 
 const setStateForLinkedCells = function(slave, master, as){
@@ -34,6 +34,23 @@ const defMacros = {
 		}
 		return res;
 	},
+  transist: (cells) => {
+    return [(a, b) => {
+        return a ? b : skip;
+    }, ...cells];
+  },
+  closureMap: ([initVal, map]) => {
+    const cells = Object.keys(map);
+    return ['closure.funnel', () => {
+        return (cell, val) => {
+          if(map[cell] instanceof Function){
+            return initVal = map[cell].call(null, initVal, val);
+          } else {
+            return initVal= map[cell];
+          }
+        }
+    }, ...cells];
+  },
 	mapPrev: ([map]) => {
 		var res = ['closure.funnel', (prev) => {
 			return (cell, val) => {
@@ -293,6 +310,7 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 						}
 					} else {
 						if(a && a.target && a.target.type){
+              a.preventDefault();
 							if(a.target.type === 'checkbox'){
 								value = a.target.checked;
 							} else if(a.target.type === 'submit'){
@@ -343,7 +361,7 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 			return res;
 		}
 		__mrrUpdateCell(cell, parent_cell, update){
-			var val, func, args, types;
+			var val, func, args, updateNested, types = [];
       const superSetState = super.setState;
 			const updateFunc = val => {
 				if(val === this.__mrr.skip) return;
@@ -357,6 +375,18 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 			if(typeof fexpr[0] === 'string'){
 				types = fexpr[0].split('.');
 			}
+
+			if(types.indexOf('nested') !== -1){
+				updateNested = (subcell, val) => {
+					const subcellname = cell + '.' + subcell;
+					this.__mrrSetState(subcellname, val);
+					const update = {};
+					update[subcellname] = val;
+					this.checkMrrCellUpdate(subcellname, update);
+					(parentClassOrMrrStructure.prototype.setState || (() => {})).call(this, update);
+				}
+			}
+
 			if(fexpr[0] instanceof Function){
 				func = this.__mrr.realComputed[cell][0];
 				args = this.__getCellArgs(cell);
@@ -369,14 +399,7 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 					args = this.__getCellArgs(cell);
 				}
 				if(types.indexOf('nested') !== -1){
-					args.unshift((subcell, val) => {
-						const subcellname = cell + '.' + subcell;
-						this.__mrrSetState(subcellname, val);
-						const update = {};
-						update[subcellname] = val;
-						this.checkMrrCellUpdate(subcellname, update);
-						(parentClassOrMrrStructure.prototype.setState || (() => {})).call(this, update);
-					})
+					args.unshift(updateNested)
 				}
 				if(types.indexOf('async') !== -1){
 					args.unshift(updateFunc)
@@ -393,9 +416,30 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 				if(!func || !func.apply) {
 					throw new Error('MRR_ERROR_101: closure type should provide function');
 				}
-				val = func.apply(null, args);
+        try {
+          val = func.apply(null, args);
+        } catch (e) {
+          if(this.__mrr.realComputed['$err.' + cell]){
+            this.setState({['$err.' + cell]: e});
+          } else {
+            if(this.__mrr.realComputed.$err){
+              this.setState({$err: e});
+            } else {
+              throw e;
+            }
+          }
+          return;
+        }
 			}
-			if(types && ((types.indexOf('nested') !== -1) || (types.indexOf('async') !== -1))){
+			if(types && (types.indexOf('nested') !== -1)){
+				if(val instanceof Object){
+					for(let k in val){
+						updateNested(k, val[k]);
+					}
+				}
+				return;
+			}
+			if(types && (types.indexOf('async') !== -1)){
 				// do nothing!
 				return;
 			}
@@ -418,8 +462,8 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 		__mrrSetState(key, val){
 			if(this.__mrr.realComputed.$log || 0) {
 				if(
-          (this.__mrr.realComputed.$log && !(this.__mrr.realComputed.$log instanceof Array)) 
-          || 
+          (this.__mrr.realComputed.$log && !(this.__mrr.realComputed.$log instanceof Array))
+          ||
           ((this.__mrr.realComputed.$log instanceof Array) && (this.__mrr.realComputed.$log.indexOf(key) !== -1))){
           if(this.__mrr.realComputed.$log === 'no-colour'){
             console.log(key, val);
