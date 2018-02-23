@@ -18,16 +18,17 @@ export default withMrr({
   }, '-isFormValid', '-input', 'submit'],
   apiRequest: ['nested', (cb, text) => {
     cb('loading', true);
-    return fetch('/check-input?text=' + text)
-        .then(() => {
-          if (text % 2) {
-            cb('error', 'Wrong number!');
-          } else {
-            cb('success', '');
-          }
-        })
-        .catch(e => cb('error', e.errorMessage))
-        .then(() => cb('loading', false));
+    new Promise((resolve) => {
+      setTimeout(resolve, 1);
+    }).then(() => {
+      if (text % 2) {
+        cb('error', 'Wrong number!');
+      } else {
+        cb('success', '');
+      }
+    })
+    .catch(e => cb('error', e.errorMessage))
+    .then(() => cb('loading', false));
   }, 'submission.success'],
   correctInputs: 'apiRequest.success',
   failedAttempts: ['closureMap', 0, {
@@ -46,7 +47,7 @@ export default withMrr({
     <form>
       { state.failedAttempts < 5
       ? <div>
-          <input onKeyUp={ $('input') } disabled={ state['apiRequest.loading'] } />
+          <input className="input-value" onChange={ $('input') } disabled={ state['apiRequest.loading'] } />
           <input type="submit" className="submit" onClick={ $('submit') } />
           { state.inputErrorShown &&
               <div className="error"> { state.inputErrorShown } </div>
