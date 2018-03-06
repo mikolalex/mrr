@@ -7,14 +7,33 @@ const cell_types = ['funnel', 'closure', 'nested', 'async'];
 export const skip = new function MrrSkip(){};
 let GG;
 
-const setStateForLinkedCells = function(slave, master, as){
-	if(slave.__mrr.linksNeeded[as]){
-		for(let master_cell_name in slave.__mrr.linksNeeded[as]){
-			for(let slave_cell_name of slave.__mrr.linksNeeded[as][master_cell_name]){
-				if(slave_cell_name[0] === '~') continue;
-				slave.setState({[slave_cell_name]: master.mrrState[master_cell_name]});
+const shallow_equal = (a, b) => {
+	if(a instanceof Object){
+		if(!b) return false;
+		if(a instanceof Function){
+			return a.toString() === b.toString();
+		}
+		for(let k in a){
+			if(!(a.hasOwnProperty(k))){
+				continue;
+			}
+			if(a[k] != b[k]){
+				return false;
 			}
 		}
+		return true;
+	}
+	return a == b;
+}
+
+const setStateForLinkedCells = function(slave, master, as){
+	if(slave.__mrr.linksNeeded[as]){
+	    for(let master_cell_name in slave.__mrr.linksNeeded[as]){
+		for(let slave_cell_name of slave.__mrr.linksNeeded[as][master_cell_name]){
+			if(slave_cell_name[0] === '~') continue;
+			slave.setState({[slave_cell_name]: master.mrrState[master_cell_name]});
+		}
+	    }
 	}
 }
 const updateOtherGrid = (grid, as, key, val) => {
@@ -34,9 +53,40 @@ const defMacros = {
 		}
 		return res;
 	},
+	merge: ([map]) => {
+		var res = ['funnel', (cell, val) => {
+			return map[cell] instanceof Function ? map[cell](val) : map[cell];
+		}];
+		for(let cell in map){
+			res.push(cell);
+		}
+		return res;
+	},
+	split: ([map, ...argCells]) => {
+		return ['nested', (cb, ...args) => {
+			for(let k in map){
+				const res = map[k].apply(null, args);
+				if(res){
+					cb(k, res);
+				}
+			}
+		}, ...argCells];
+	},
   transist: (cells) => {
     return [(a, b) => {
         return a ? b : skip;
+    }, ...cells];
+  },
+  closureMerge: ([initVal, map]) => {
+    const cells = Object.keys(map);
+    return ['closure.funnel', () => {
+        return (cell, val) => {
+          if(map[cell] instanceof Function){
+            return initVal = map[cell].call(null, initVal, val);
+          } else {
+            return initVal= map[cell];
+          }
+        }
     }, ...cells];
   },
   closureMap: ([initVal, map]) => {
@@ -68,7 +118,7 @@ const defMacros = {
 		return [(a, b) => (a && b), a, b];
 	},
 	trigger: ([field, val]) => [a => a === val ? true : this.__mrr.skip, field],
-	skipSame: ([field]) => [(z, x) => z == x ? this.__mrr.skip : z, field, '^'],
+	skipSame: ([field]) => [(z, x) => shallow_equal(z, x) ? skip : z, field, '^'],
 	skipN: ([field, n]) => ['closure', () => {
 		let count = 0;
 		n = n || 1;
@@ -114,7 +164,19 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 				return mrrStructure;
 			}
 			render(){
-				return render.call(this, this.state, this.props, this.toState.bind(this))
+				return render.call(this, this.state, this.props, this.toState.bind(this), as => ({ mrrConnect: this.mrrConnect(as)}));
+			}
+		}
+	} else {
+		if(render){
+			const mrrStructure = parentClassOrMrrStructure;
+			parentClassOrMrrStructure = class MyMrrComponent extends React.Component {
+				get computed(){
+					return mrrStructure(this.props);
+				}
+				render(){
+					return render.call(this, this.state, this.props, this.toState.bind(this), as => ({ mrrConnect: this.mrrConnect(as)}))
+				}
 			}
 		}
 	}
@@ -162,6 +224,9 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 		}
 		get __mrrMacros(){
 			return Object.assign({}, defMacros, this.__mrrCustomMacros || {});
+		}
+		get __mrrPath(){
+			return this.__mrrParent ? this.__mrrParent.__mrrPath + '/' + this.$name : 'root';
 		}
 		parseRow(row, key, depMap){
 			if(key === "$log") return;
@@ -285,6 +350,7 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 			}
 			return {
 				subscribe: (child) => {
+					child.$name = as;
 					this.__mrr.children[as] = child;
 					child.__mrrParent = self;
 					child.__mrrLinkedAs = as;
@@ -350,6 +416,9 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
           if(arg_cell === '$props'){
             return this.props;
           }
+          if(arg_cell === '$name'){
+            return this.$name;
+          }
 					return (this.mrrState[arg_cell] === undefined && this.state)
 						? (	this.__mrr.constructing
 								? this.initialState[arg_cell]
@@ -365,7 +434,7 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
       const superSetState = super.setState;
 			const updateFunc = val => {
 				if(val === this.__mrr.skip) return;
-				this.__mrrSetState(cell, val);
+				this.__mrrSetState(cell, val, parent_cell);
 				const update = {};
 				update[cell] = val;
 				this.checkMrrCellUpdate(cell, update);
@@ -379,7 +448,7 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 			if(types.indexOf('nested') !== -1){
 				updateNested = (subcell, val) => {
 					const subcellname = cell + '.' + subcell;
-					this.__mrrSetState(subcellname, val);
+					this.__mrrSetState(subcellname, val, parent_cell);
 					const update = {};
 					update[subcellname] = val;
 					this.checkMrrCellUpdate(subcellname, update);
@@ -448,7 +517,7 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 			} else {
 				if(val === this.__mrr.skip) return;
 				update[cell] = val;
-				this.__mrrSetState(cell, val);
+				this.__mrrSetState(cell, val, parent_cell);
 				this.checkMrrCellUpdate(cell, update);
 			}
 		}
@@ -459,7 +528,8 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 				}
 			}
 		}
-		__mrrSetState(key, val){
+		__mrrSetState(key, val, parent_cell){
+			const styles = 'background: #898cec; color: white; padding: 1px;';
 			if(this.__mrr.realComputed.$log || 0) {
 				if(
           (this.__mrr.realComputed.$log && !(this.__mrr.realComputed.$log instanceof Array))
@@ -468,7 +538,9 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
           if(this.__mrr.realComputed.$log === 'no-colour'){
             console.log(key, val);
           } else {
-            console.log('%c ' + key + ' ', 'background: #898cec; color: white; padding: 1px;', val);
+            console.log('%c ' + this.__mrrPath + '::' + key 
+              //+ '(' + parent_cell +') '
+              , styles, val);
           }
 				}
 			}

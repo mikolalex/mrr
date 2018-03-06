@@ -14,10 +14,10 @@ configure({ adapter: new Adapter() });
 
 const wait = ms => resolve => {
   setTimeout(resolve, ms);
-}
+};
 const wwait = ms => () => {
   return new Promise(wait(ms));
-}
+};
 
 describe('Form validation', () => {
   it('Should validate', () => {
@@ -69,7 +69,7 @@ describe('Some input form', () => {
         done();
     }).catch(e => {
       console.log("E", e);
-    })
+    });
     //expect(wrapper.find('.error')).to.have.length(0);
 
   });

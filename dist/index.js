@@ -23,9 +23,9 @@ function _possibleConstructorReturn(self, call) { if (!self) { throw new Referen
 
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-function _toArray(arr) { return Array.isArray(arr) ? arr : Array.from(arr); }
-
 function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+
+function _toArray(arr) { return Array.isArray(arr) ? arr : Array.from(arr); }
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
@@ -37,6 +37,25 @@ var isPromise = function isPromise(a) {
 var cell_types = ['funnel', 'closure', 'nested', 'async'];
 var skip = exports.skip = new function MrrSkip() {}();
 var GG = void 0;
+
+var shallow_equal = function shallow_equal(a, b) {
+	if (a instanceof Object) {
+		if (!b) return false;
+		if (a instanceof Function) {
+			return a.toString() === b.toString();
+		}
+		for (var k in a) {
+			if (!a.hasOwnProperty(k)) {
+				continue;
+			}
+			if (a[k] != b[k]) {
+				return false;
+			}
+		}
+		return true;
+	}
+	return a == b;
+};
 
 var setStateForLinkedCells = function setStateForLinkedCells(slave, master, as) {
 	if (slave.__mrr.linksNeeded[as]) {
@@ -110,15 +129,45 @@ var defMacros = {
 		}
 		return res;
 	},
+	merge: function merge(_ref3) {
+		var _ref4 = _slicedToArray(_ref3, 1),
+		    map = _ref4[0];
+
+		var res = ['funnel', function (cell, val) {
+			return map[cell] instanceof Function ? map[cell](val) : map[cell];
+		}];
+		for (var cell in map) {
+			res.push(cell);
+		}
+		return res;
+	},
+	split: function split(_ref5) {
+		var _ref6 = _toArray(_ref5),
+		    map = _ref6[0],
+		    argCells = _ref6.slice(1);
+
+		return ['nested', function (cb) {
+			for (var _len = arguments.length, args = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+				args[_key - 1] = arguments[_key];
+			}
+
+			for (var k in map) {
+				var res = map[k].apply(null, args);
+				if (res) {
+					cb(k, res);
+				}
+			}
+		}].concat(_toConsumableArray(argCells));
+	},
 	transist: function transist(cells) {
 		return [function (a, b) {
 			return a ? b : skip;
 		}].concat(_toConsumableArray(cells));
 	},
-	closureMap: function closureMap(_ref3) {
-		var _ref4 = _slicedToArray(_ref3, 2),
-		    initVal = _ref4[0],
-		    map = _ref4[1];
+	closureMerge: function closureMerge(_ref7) {
+		var _ref8 = _slicedToArray(_ref7, 2),
+		    initVal = _ref8[0],
+		    map = _ref8[1];
 
 		var cells = Object.keys(map);
 		return ['closure.funnel', function () {
@@ -131,9 +180,25 @@ var defMacros = {
 			};
 		}].concat(_toConsumableArray(cells));
 	},
-	mapPrev: function mapPrev(_ref5) {
-		var _ref6 = _slicedToArray(_ref5, 1),
-		    map = _ref6[0];
+	closureMap: function closureMap(_ref9) {
+		var _ref10 = _slicedToArray(_ref9, 2),
+		    initVal = _ref10[0],
+		    map = _ref10[1];
+
+		var cells = Object.keys(map);
+		return ['closure.funnel', function () {
+			return function (cell, val) {
+				if (map[cell] instanceof Function) {
+					return initVal = map[cell].call(null, initVal, val);
+				} else {
+					return initVal = map[cell];
+				}
+			};
+		}].concat(_toConsumableArray(cells));
+	},
+	mapPrev: function mapPrev(_ref11) {
+		var _ref12 = _slicedToArray(_ref11, 1),
+		    map = _ref12[0];
 
 		var res = ['closure.funnel', function (prev) {
 			return function (cell, val) {
@@ -146,44 +211,44 @@ var defMacros = {
 		}
 		return res;
 	},
-	join: function join(_ref7) {
-		var _ref8 = _toArray(_ref7),
-		    fields = _ref8.slice(0);
+	join: function join(_ref13) {
+		var _ref14 = _toArray(_ref13),
+		    fields = _ref14.slice(0);
 
 		return ['funnel', function (cell, val) {
 			return val;
 		}].concat(_toConsumableArray(fields));
 	},
-	'&&': function _(_ref9) {
-		var _ref10 = _slicedToArray(_ref9, 2),
-		    a = _ref10[0],
-		    b = _ref10[1];
+	'&&': function _(_ref15) {
+		var _ref16 = _slicedToArray(_ref15, 2),
+		    a = _ref16[0],
+		    b = _ref16[1];
 
 		return [function (a, b) {
 			return a && b;
 		}, a, b];
 	},
-	trigger: function trigger(_ref11) {
-		var _ref12 = _slicedToArray(_ref11, 2),
-		    field = _ref12[0],
-		    val = _ref12[1];
+	trigger: function trigger(_ref17) {
+		var _ref18 = _slicedToArray(_ref17, 2),
+		    field = _ref18[0],
+		    val = _ref18[1];
 
 		return [function (a) {
 			return a === val ? true : undefined.__mrr.skip;
 		}, field];
 	},
-	skipSame: function skipSame(_ref13) {
-		var _ref14 = _slicedToArray(_ref13, 1),
-		    field = _ref14[0];
+	skipSame: function skipSame(_ref19) {
+		var _ref20 = _slicedToArray(_ref19, 1),
+		    field = _ref20[0];
 
 		return [function (z, x) {
-			return z == x ? undefined.__mrr.skip : z;
+			return shallow_equal(z, x) ? skip : z;
 		}, field, '^'];
 	},
-	skipN: function skipN(_ref15) {
-		var _ref16 = _slicedToArray(_ref15, 2),
-		    field = _ref16[0],
-		    n = _ref16[1];
+	skipN: function skipN(_ref21) {
+		var _ref22 = _slicedToArray(_ref21, 2),
+		    field = _ref22[0],
+		    n = _ref22[1];
 
 		return ['closure', function () {
 			var count = 0;
@@ -197,10 +262,10 @@ var defMacros = {
 			};
 		}, field];
 	},
-	accum: function accum(_ref17) {
-		var _ref18 = _slicedToArray(_ref17, 2),
-		    cell = _ref18[0],
-		    time = _ref18[1];
+	accum: function accum(_ref23) {
+		var _ref24 = _slicedToArray(_ref23, 2),
+		    cell = _ref24[0],
+		    time = _ref24[1];
 
 		var res = time ? ['async.closure', function () {
 			var vals = {};
@@ -244,7 +309,11 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 			_createClass(MyMrrComponent, [{
 				key: 'render',
 				value: function render() {
-					return _render.call(this, this.state, this.props, this.toState.bind(this));
+					var _this2 = this;
+
+					return _render.call(this, this.state, this.props, this.toState.bind(this), function (as) {
+						return { mrrConnect: _this2.mrrConnect(as) };
+					});
 				}
 			}, {
 				key: 'computed',
@@ -255,6 +324,37 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 
 			return MyMrrComponent;
 		}(_react2.default.Component);
+	} else {
+		if (_render) {
+			var _mrrStructure = parentClassOrMrrStructure;
+			parentClassOrMrrStructure = function (_React$Component2) {
+				_inherits(MyMrrComponent, _React$Component2);
+
+				function MyMrrComponent() {
+					_classCallCheck(this, MyMrrComponent);
+
+					return _possibleConstructorReturn(this, (MyMrrComponent.__proto__ || Object.getPrototypeOf(MyMrrComponent)).apply(this, arguments));
+				}
+
+				_createClass(MyMrrComponent, [{
+					key: 'render',
+					value: function render() {
+						var _this4 = this;
+
+						return _render.call(this, this.state, this.props, this.toState.bind(this), function (as) {
+							return { mrrConnect: _this4.mrrConnect(as) };
+						});
+					}
+				}, {
+					key: 'computed',
+					get: function get() {
+						return _mrrStructure(this.props);
+					}
+				}]);
+
+				return MyMrrComponent;
+			}(_react2.default.Component);
+		}
 	}
 	return function (_parentClassOrMrrStru) {
 		_inherits(Mrr, _parentClassOrMrrStru);
@@ -262,34 +362,34 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 		function Mrr(props, context) {
 			_classCallCheck(this, Mrr);
 
-			var _this2 = _possibleConstructorReturn(this, (Mrr.__proto__ || Object.getPrototypeOf(Mrr)).call(this, props, context));
+			var _this5 = _possibleConstructorReturn(this, (Mrr.__proto__ || Object.getPrototypeOf(Mrr)).call(this, props, context));
 
-			_this2.__mrr = {
+			_this5.__mrr = {
 				closureFuncs: {},
 				children: {},
 				childrenCounter: 0,
 				anonCellsCounter: 0,
 				linksNeeded: {},
-				realComputed: Object.assign({}, _this2.computed),
+				realComputed: Object.assign({}, _this5.computed),
 				constructing: true,
 				thunks: {},
 				skip: skip,
 				expose: []
 			};
-			_this2.parseMrr();
-			if (GG && _this2.__mrr.linksNeeded['^^']) {
-				GG.__mrr.subscribers.push(_this2);
+			_this5.parseMrr();
+			if (GG && _this5.__mrr.linksNeeded['^^']) {
+				GG.__mrr.subscribers.push(_this5);
 			}
-			_this2.state = _this2.initialState;
-			_this2.props = _this2.props || {};
-			if (_this2.props.mrrConnect) {
-				_this2.props.mrrConnect.subscribe(_this2);
+			_this5.state = _this5.initialState;
+			_this5.props = _this5.props || {};
+			if (_this5.props.mrrConnect) {
+				_this5.props.mrrConnect.subscribe(_this5);
 			}
 			if (GG) {
-				setStateForLinkedCells(_this2, GG, '^^');
+				setStateForLinkedCells(_this5, GG, '^^');
 			}
-			_this2.__mrr.constructing = false;
-			return _this2;
+			_this5.__mrr.constructing = false;
+			return _this5;
 		}
 
 		_createClass(Mrr, [{
@@ -462,7 +562,7 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 		}, {
 			key: 'mrrConnect',
 			value: function mrrConnect(as) {
-				var _this3 = this;
+				var _this6 = this;
 
 				var self = this;
 				if (!as) {
@@ -470,19 +570,20 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 				}
 				return {
 					subscribe: function subscribe(child) {
-						_this3.__mrr.children[as] = child;
+						child.$name = as;
+						_this6.__mrr.children[as] = child;
 						child.__mrrParent = self;
 						child.__mrrLinkedAs = as;
 						// read values for linked cells from child
-						setStateForLinkedCells(_this3, child, as);
-						setStateForLinkedCells(child, _this3, '..');
+						setStateForLinkedCells(_this6, child, as);
+						setStateForLinkedCells(child, _this6, '..');
 					}
 				};
 			}
 		}, {
 			key: 'toState',
 			value: function toState(key, val) {
-				var _this4 = this;
+				var _this7 = this;
 
 				if (val === undefined && this.__mrr.thunks[key]) {
 					//console.log('=== skip');
@@ -516,9 +617,9 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 							key.forEach(function (k) {
 								ns[k] = value;
 							});
-							_this4.setState(ns);
+							_this7.setState(ns);
 						} else {
-							_this4.setState(_defineProperty({}, key, value));
+							_this7.setState(_defineProperty({}, key, value));
 						}
 					};
 					if (val === undefined) {
@@ -530,20 +631,23 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 		}, {
 			key: '__getCellArgs',
 			value: function __getCellArgs(cell) {
-				var _this5 = this;
+				var _this8 = this;
 
 				var res = this.__mrr.realComputed[cell].slice(this.__mrr.realComputed[cell][0] instanceof Function ? 1 : 2).map(function (arg_cell) {
 					if (arg_cell === '^') {
 						//console.log('looking for prev val of', cell, this.mrrState, this.state);
-						return _this5.mrrState[cell];
+						return _this8.mrrState[cell];
 					} else {
 						if (arg_cell[0] === '-') {
 							arg_cell = arg_cell.slice(1);
 						}
 						if (arg_cell === '$props') {
-							return _this5.props;
+							return _this8.props;
 						}
-						return _this5.mrrState[arg_cell] === undefined && _this5.state ? _this5.__mrr.constructing ? _this5.initialState[arg_cell] : _this5.state[arg_cell] : _this5.mrrState[arg_cell];
+						if (arg_cell === '$name') {
+							return _this8.$name;
+						}
+						return _this8.mrrState[arg_cell] === undefined && _this8.state ? _this8.__mrr.constructing ? _this8.initialState[arg_cell] : _this8.state[arg_cell] : _this8.mrrState[arg_cell];
 					}
 				});
 				return res;
@@ -551,7 +655,7 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 		}, {
 			key: '__mrrUpdateCell',
 			value: function __mrrUpdateCell(cell, parent_cell, update) {
-				var _this6 = this;
+				var _this9 = this;
 
 				var val,
 				    func,
@@ -560,12 +664,12 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 				    types = [];
 				var superSetState = _get(Mrr.prototype.__proto__ || Object.getPrototypeOf(Mrr.prototype), 'setState', this);
 				var updateFunc = function updateFunc(val) {
-					if (val === _this6.__mrr.skip) return;
-					_this6.__mrrSetState(cell, val);
+					if (val === _this9.__mrr.skip) return;
+					_this9.__mrrSetState(cell, val, parent_cell);
 					var update = {};
 					update[cell] = val;
-					_this6.checkMrrCellUpdate(cell, update);
-					superSetState.call(_this6, update);
+					_this9.checkMrrCellUpdate(cell, update);
+					superSetState.call(_this9, update);
 				};
 				var fexpr = this.__mrr.realComputed[cell];
 				if (typeof fexpr[0] === 'string') {
@@ -575,11 +679,11 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 				if (types.indexOf('nested') !== -1) {
 					updateNested = function updateNested(subcell, val) {
 						var subcellname = cell + '.' + subcell;
-						_this6.__mrrSetState(subcellname, val);
+						_this9.__mrrSetState(subcellname, val, parent_cell);
 						var update = {};
 						update[subcellname] = val;
-						_this6.checkMrrCellUpdate(subcellname, update);
-						(parentClassOrMrrStructure.prototype.setState || function () {}).call(_this6, update);
+						_this9.checkMrrCellUpdate(subcellname, update);
+						(parentClassOrMrrStructure.prototype.setState || function () {}).call(_this9, update);
 					};
 				}
 
@@ -644,7 +748,7 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 				} else {
 					if (val === this.__mrr.skip) return;
 					update[cell] = val;
-					this.__mrrSetState(cell, val);
+					this.__mrrSetState(cell, val, parent_cell);
 					this.checkMrrCellUpdate(cell, update);
 				}
 			}
@@ -680,13 +784,16 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 			}
 		}, {
 			key: '__mrrSetState',
-			value: function __mrrSetState(key, val) {
+			value: function __mrrSetState(key, val, parent_cell) {
+				var styles = 'background: #898cec; color: white; padding: 1px;';
 				if (this.__mrr.realComputed.$log || 0) {
 					if (this.__mrr.realComputed.$log && !(this.__mrr.realComputed.$log instanceof Array) || this.__mrr.realComputed.$log instanceof Array && this.__mrr.realComputed.$log.indexOf(key) !== -1) {
 						if (this.__mrr.realComputed.$log === 'no-colour') {
 							console.log(key, val);
 						} else {
-							console.log('%c ' + key + ' ', 'background: #898cec; color: white; padding: 1px;', val);
+							console.log('%c ' + this.__mrrPath + '::' + key
+							//+ '(' + parent_cell +') '
+							, styles, val);
 						}
 					}
 				}
@@ -764,6 +871,11 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 			key: '__mrrMacros',
 			get: function get() {
 				return Object.assign({}, defMacros, this.__mrrCustomMacros || {});
+			}
+		}, {
+			key: '__mrrPath',
+			get: function get() {
+				return this.__mrrParent ? this.__mrrParent.__mrrPath + '/' + this.$name : 'root';
 			}
 		}]);
 
