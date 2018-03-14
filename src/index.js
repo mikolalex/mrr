@@ -4,6 +4,7 @@ import React from 'react';
 const isPromise = a => a instanceof Object && a.toString && a.toString().indexOf('Promise') !== -1;
 
 const cell_types = ['funnel', 'closure', 'nested', 'async'];
+const isJustObject = a => (a instanceof Object) && !(a instanceof Array) && !(a instanceof Function);
 export const skip = new function MrrSkip(){};
 let GG;
 
@@ -53,14 +54,18 @@ const defMacros = {
 		}
 		return res;
 	},
-	merge: ([map]) => {
-		var res = ['funnel', (cell, val) => {
-			return map[cell] instanceof Function ? map[cell](val) : map[cell];
-		}];
-		for(let cell in map){
-			res.push(cell);
+	merge: ([map, ...others]) => {
+		if(isJustObject(map)){
+			var res = ['funnel', (cell, val) => {
+				return map[cell] instanceof Function ? map[cell](val) : map[cell];
+			}];
+			for(let cell in map){
+				res.push(cell);
+			}
+			return res;
+		} else {
+			return [(cell, val) => val, map, ...others];
 		}
-		return res;
 	},
 	split: ([map, ...argCells]) => {
 		return ['nested', (cb, ...args) => {
@@ -512,6 +517,11 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 				// do nothing!
 				return;
 			}
+			const current_val = this.mrrState[cell];
+			if(current_val == val){
+				//console.log('DUPLICATE!', val);
+				//return;
+			}
 			if(isPromise(val)){
 				val.then(updateFunc)
 			} else {
@@ -538,7 +548,7 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
           if(this.__mrr.realComputed.$log === 'no-colour'){
             console.log(key, val);
           } else {
-            console.log('%c ' + this.__mrrPath + '::' + key 
+            console.log('%c ' + this.__mrrPath + '::' + key
               //+ '(' + parent_cell +') '
               , styles, val);
           }

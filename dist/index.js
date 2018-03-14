@@ -35,6 +35,9 @@ var isPromise = function isPromise(a) {
 };
 
 var cell_types = ['funnel', 'closure', 'nested', 'async'];
+var isJustObject = function isJustObject(a) {
+	return a instanceof Object && !(a instanceof Array) && !(a instanceof Function);
+};
 var skip = exports.skip = new function MrrSkip() {}();
 var GG = void 0;
 
@@ -130,16 +133,23 @@ var defMacros = {
 		return res;
 	},
 	merge: function merge(_ref3) {
-		var _ref4 = _slicedToArray(_ref3, 1),
-		    map = _ref4[0];
+		var _ref4 = _toArray(_ref3),
+		    map = _ref4[0],
+		    others = _ref4.slice(1);
 
-		var res = ['funnel', function (cell, val) {
-			return map[cell] instanceof Function ? map[cell](val) : map[cell];
-		}];
-		for (var cell in map) {
-			res.push(cell);
+		if (isJustObject(map)) {
+			var res = ['funnel', function (cell, val) {
+				return map[cell] instanceof Function ? map[cell](val) : map[cell];
+			}];
+			for (var cell in map) {
+				res.push(cell);
+			}
+			return res;
+		} else {
+			return [function (cell, val) {
+				return val;
+			}, map].concat(_toConsumableArray(others));
 		}
-		return res;
 	},
 	split: function split(_ref5) {
 		var _ref6 = _toArray(_ref5),
@@ -742,6 +752,11 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 				if (types && types.indexOf('async') !== -1) {
 					// do nothing!
 					return;
+				}
+				var current_val = this.mrrState[cell];
+				if (current_val == val) {
+					//console.log('DUPLICATE!', val);
+					//return;
 				}
 				if (isPromise(val)) {
 					val.then(updateFunc);
