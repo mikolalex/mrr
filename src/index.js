@@ -1,4 +1,5 @@
 import React from 'react';
+import _ from 'lodash';
 
 // if polyfill used
 const isPromise = a => a instanceof Object && a.toString && a.toString().indexOf('Promise') !== -1;
@@ -54,18 +55,49 @@ const defMacros = {
 		}
 		return res;
 	},
+	list: ([map]) => {
+		const res = ['funnel', (cell, val) => val];
+		for(let type in map){
+			if(type !== 'custom'){
+				res.push([(...args) => [type, ...args], map[type]]);
+			}
+		}
+		return [([type, changes], prev) => {
+			const next = [...prev];
+			switch(type){
+				case 'edit':
+					const [newProps, predicate] = changes;
+	        next.forEach((item, i) => {
+	          if(_.find([item], predicate)){
+	            next[i] = Object.assign({}, item, newProps);
+	          }
+	        })
+				break;
+				case 'remove':
+					const removePredicate = changes;
+	      	_.remove(next, removePredicate);
+				break;
+				case 'add':
+					const newItem = changes;
+					const id = next.push(newItem);
+					newItem.id = id;
+				break;
+			}
+			return next;
+		}, res, '^'];
+	},
 	merge: ([map, ...others]) => {
 		if(isJustObject(map)){
-			var res = ['funnel', (cell, val) => {
-				return map[cell] instanceof Function ? map[cell](val) : map[cell];
-			}];
-			for(let cell in map){
-				res.push(cell);
-			}
-			return res;
+			var res = ['funnel', (cell, val) => [cell, val], ...Object.keys(map)];
+			return [([cell, val], ...otherArgs) => {
+				return map[cell] instanceof Function ? map[cell](val, ...otherArgs) : map[cell];
+			}, res, ...others];
 		} else {
-			return [(cell, val) => val, map, ...others];
+			return ['funnel', (cell, val) => val, map, ...others];
 		}
+	},
+	toggle: ([setTrue, setFalse]) => {
+			return ['funnel', (cell) => cell === setTrue, setTrue, setFalse]
 	},
 	split: ([map, ...argCells]) => {
 		return ['nested', (cb, ...args) => {
@@ -215,12 +247,18 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 			this.__mrr.constructing = false;
 		}
 		componentDidMount(){
-			this.setState({$start: true});
+			this.setState({
+				$start: true,
+				$props: this.props,
+			});
     }
+		componentWillReceiveProps(nextProps){
+			this.setState({$props: nextProps});
+		}
 		componentWillUnmount(){
 			this.setState({$end: true});
 			if(this.__mrrParent){
-				delete this.__mrrParent.children[this.__mrrLinkedAs];
+				delete this.__mrrParent.__mrr.children[this.__mrrLinkedAs];
 			}
 			if(GG && this.__mrr.linksNeeded['^^']){
 				const i = GG.__mrr.subscribers.indexOf(this);
@@ -303,9 +341,10 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 			const updateOnInit = {};
 			for(let key in mrr){
 				if(key === '$init'){
-					for(let cell in mrr[key]){
-						this.__mrrSetState(cell, mrr[key][cell]);
-						updateOnInit[cell] = mrr[key][cell];
+					let init_vals = mrr[key] instanceof Function ? mrr[key](this.props) : mrr[key];
+					for(let cell in init_vals){
+						this.__mrrSetState(cell, init_vals[cell]);
+						updateOnInit[cell] = init_vals[cell];
 						if(cell[0] !== '~'){
 							initial_compute.push(cell);
 						}
@@ -393,6 +432,9 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 							value = a;
 						}
 					}
+					if(value === skip){
+						return;
+					}
 					if(key instanceof Array){
 						const ns = {};
 						key.forEach(k => {
@@ -418,9 +460,6 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 					if(arg_cell[0] === '-'){
 						arg_cell = arg_cell.slice(1);
 					}
-          if(arg_cell === '$props'){
-            return this.props;
-          }
           if(arg_cell === '$name'){
             return this.$name;
           }
@@ -480,7 +519,7 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 				}
 				if(types.indexOf('closure') !== -1){
 					if(!this.__mrr.closureFuncs[cell]){
-						const init_val = this.__mrr.realComputed.$init ? this.__mrr.realComputed.$init[cell] : null;
+						const init_val = this.mrrState[cell];
 						this.__mrr.closureFuncs[cell] = fexpr[1](init_val);
 					}
 					func = this.__mrr.closureFuncs[cell];
