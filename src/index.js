@@ -74,13 +74,10 @@ const defMacros = {
 	        })
 				break;
 				case 'remove':
-					const removePredicate = changes;
-	      	_.remove(next, removePredicate);
+	      	_.remove(next, changes);
 				break;
 				case 'add':
-					const newItem = changes;
-					const id = next.push(newItem);
-					newItem.id = id;
+					next.push(changes);
 				break;
 			}
 			return next;
