@@ -66,18 +66,27 @@ const defMacros = {
 			const next = [...prev];
 			switch(type){
 				case 'edit':
-					const [newProps, predicate] = changes;
-	        next.forEach((item, i) => {
-	          if(_.find([item], predicate)){
-	            next[i] = Object.assign({}, item, newProps);
-	          }
-	        })
+				  changes.forEach(change => {
+						const [newProps, predicate] = change;
+						_.chain(prev)
+				    .map((item, i) => [i, item])
+				    .filter(pair => _.matches(predicate)(pair[1]))
+				    .map(pair => pair[0])
+				    .value()
+						.forEach(i => {
+					  	next[i] = Object.assign({}, next[i], newProps);
+						});
+					})
 				break;
 				case 'remove':
-	      	_.remove(next, changes);
+				  changes.forEach(change => {
+	      		_.remove(next, change);
+					})
 				break;
 				case 'add':
-					next.push(changes);
+				  changes.forEach(change => {
+						next.push(change);
+					})
 				break;
 			}
 			return next;
@@ -90,7 +99,13 @@ const defMacros = {
 				return map[cell] instanceof Function ? map[cell](val, ...otherArgs) : map[cell];
 			}, res, ...others];
 		} else {
-			return ['funnel', (cell, val) => val, map, ...others];
+			let f = a => a;
+			let args = [map, ...others]
+			if(map instanceof Function){
+				f = map;
+				args = others;
+			}
+			return ['funnel', (cell, val) => f(val), ...args];
 		}
 	},
 	toggle: ([setTrue, setFalse]) => {
@@ -417,13 +432,15 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 						}
 					} else {
 						if(a && a.target && a.target.type){
-              a.preventDefault();
 							if(a.target.type === 'checkbox'){
 								value = a.target.checked;
-							} else if(a.target.type === 'submit'){
-								value = true;
 							} else {
-								value = a.target.value;
+	              a.preventDefault();
+								if(a.target.type === 'submit'){
+									value = true;
+								} else {
+									value = a.target.value;
+								}
 							}
 						} else {
 							value = a;

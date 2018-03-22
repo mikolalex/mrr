@@ -167,24 +167,31 @@ var defMacros = {
 			var next = [].concat(_toConsumableArray(prev));
 			switch (type) {
 				case 'edit':
-					var _changes = _slicedToArray(changes, 2),
-					    newProps = _changes[0],
-					    predicate = _changes[1];
+					changes.forEach(function (change) {
+						var _change = _slicedToArray(change, 2),
+						    newProps = _change[0],
+						    predicate = _change[1];
 
-					next.forEach(function (item, i) {
-						if (_lodash2.default.find([item], predicate)) {
-							next[i] = Object.assign({}, item, newProps);
-						}
+						_lodash2.default.chain(prev).map(function (item, i) {
+							return [i, item];
+						}).filter(function (pair) {
+							return _lodash2.default.matches(predicate)(pair[1]);
+						}).map(function (pair) {
+							return pair[0];
+						}).value().forEach(function (i) {
+							next[i] = Object.assign({}, next[i], newProps);
+						});
 					});
 					break;
 				case 'remove':
-					var removePredicate = changes;
-					_lodash2.default.remove(next, removePredicate);
+					changes.forEach(function (change) {
+						_lodash2.default.remove(next, change);
+					});
 					break;
 				case 'add':
-					var newItem = changes;
-					var id = next.push(newItem);
-					newItem.id = id;
+					changes.forEach(function (change) {
+						next.push(change);
+					});
 					break;
 			}
 			return next;
@@ -211,9 +218,17 @@ var defMacros = {
 				return map[cell] instanceof Function ? map[cell].apply(map, [val].concat(otherArgs)) : map[cell];
 			}, res].concat(_toConsumableArray(others));
 		} else {
+			var f = function f(a) {
+				return a;
+			};
+			var args = [map].concat(_toConsumableArray(others));
+			if (map instanceof Function) {
+				f = map;
+				args = others;
+			}
 			return ['funnel', function (cell, val) {
-				return val;
-			}, map].concat(_toConsumableArray(others));
+				return f(val);
+			}].concat(_toConsumableArray(args));
 		}
 	},
 	toggle: function toggle(_ref11) {
@@ -693,13 +708,15 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 							}
 						} else {
 							if (a && a.target && a.target.type) {
-								a.preventDefault();
 								if (a.target.type === 'checkbox') {
 									value = a.target.checked;
-								} else if (a.target.type === 'submit') {
-									value = true;
 								} else {
-									value = a.target.value;
+									a.preventDefault();
+									if (a.target.type === 'submit') {
+										value = true;
+									} else {
+										value = a.target.value;
+									}
 								}
 							} else {
 								value = a;
