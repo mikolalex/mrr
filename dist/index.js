@@ -15,10 +15,6 @@ var _react = require('react');
 
 var _react2 = _interopRequireDefault(_react);
 
-var _lodash = require('lodash');
-
-var _lodash2 = _interopRequireDefault(_lodash);
-
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -62,6 +58,15 @@ var shallow_equal = function shallow_equal(a, b) {
 		return true;
 	}
 	return a == b;
+};
+
+var matches = function matches(obj, subset) {
+	for (var k in subset) {
+		if (!shallow_equal(obj[k], subset[k])) {
+			return false;
+		}
+	}
+	return true;
 };
 
 var setStateForLinkedCells = function setStateForLinkedCells(slave, master, as) {
@@ -167,31 +172,25 @@ var defMacros = {
 			var next = [].concat(_toConsumableArray(prev));
 			switch (type) {
 				case 'edit':
-					changes.forEach(function (change) {
-						var _change = _slicedToArray(change, 2),
-						    newProps = _change[0],
-						    predicate = _change[1];
+					var _changes = _slicedToArray(changes, 2),
+					    newProps = _changes[0],
+					    predicate = _changes[1];
 
-						_lodash2.default.chain(prev).map(function (item, i) {
-							return [i, item];
-						}).filter(function (pair) {
-							return _lodash2.default.matches(predicate)(pair[1]);
-						}).map(function (pair) {
-							return pair[0];
-						}).value().forEach(function (i) {
-							next[i] = Object.assign({}, next[i], newProps);
-						});
+					prev.map(function (item, i) {
+						return [i, item];
+					}).filter(function (pair) {
+						return matches(pair[1], predicate);
+					}).forEach(function (i) {
+						next[i[0]] = Object.assign({}, next[i[0]], newProps);
 					});
 					break;
 				case 'remove':
-					changes.forEach(function (change) {
-						_lodash2.default.remove(next, change);
+					next = next.filter(function (item) {
+						return !matches(item, changes);
 					});
 					break;
 				case 'add':
-					changes.forEach(function (change) {
-						next.push(change);
-					});
+					next.push(changes);
 					break;
 			}
 			return next;
