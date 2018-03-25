@@ -1,9 +1,11 @@
 import React from 'react';
+import _ from 'lodash';
 
 // if polyfill used
 const isPromise = a => a instanceof Object && a.toString && a.toString().indexOf('Promise') !== -1;
 
 const cell_types = ['funnel', 'closure', 'nested', 'async'];
+const isJustObject = a => (a instanceof Object) && !(a instanceof Array) && !(a instanceof Function);
 export const skip = new function MrrSkip(){};
 let GG;
 
@@ -53,14 +55,61 @@ const defMacros = {
 		}
 		return res;
 	},
-	merge: ([map]) => {
-		var res = ['funnel', (cell, val) => {
-			return map[cell] instanceof Function ? map[cell](val) : map[cell];
-		}];
-		for(let cell in map){
-			res.push(cell);
+	list: ([map]) => {
+		const res = ['funnel', (cell, val) => val];
+		for(let type in map){
+			if(type !== 'custom'){
+				res.push([(...args) => [type, ...args], map[type]]);
+			}
 		}
-		return res;
+		return [([type, changes], prev) => {
+			const next = [...prev];
+			switch(type){
+				case 'edit':
+				  changes.forEach(change => {
+						const [newProps, predicate] = change;
+						_.chain(prev)
+				    .map((item, i) => [i, item])
+				    .filter(pair => _.matches(predicate)(pair[1]))
+				    .map(pair => pair[0])
+				    .value()
+						.forEach(i => {
+					  	next[i] = Object.assign({}, next[i], newProps);
+						});
+					})
+				break;
+				case 'remove':
+				  changes.forEach(change => {
+	      		_.remove(next, change);
+					})
+				break;
+				case 'add':
+				  changes.forEach(change => {
+						next.push(change);
+					})
+				break;
+			}
+			return next;
+		}, res, '^'];
+	},
+	merge: ([map, ...others]) => {
+		if(isJustObject(map)){
+			var res = ['funnel', (cell, val) => [cell, val], ...Object.keys(map)];
+			return [([cell, val], ...otherArgs) => {
+				return map[cell] instanceof Function ? map[cell](val, ...otherArgs) : map[cell];
+			}, res, ...others];
+		} else {
+			let f = a => a;
+			let args = [map, ...others]
+			if(map instanceof Function){
+				f = map;
+				args = others;
+			}
+			return ['funnel', (cell, val) => f(val), ...args];
+		}
+	},
+	toggle: ([setTrue, setFalse]) => {
+			return ['funnel', (cell) => cell === setTrue, setTrue, setFalse]
 	},
 	split: ([map, ...argCells]) => {
 		return ['nested', (cb, ...args) => {
@@ -210,12 +259,18 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 			this.__mrr.constructing = false;
 		}
 		componentDidMount(){
-			this.setState({$start: true});
+			this.setState({
+				$start: true,
+				$props: this.props,
+			});
     }
+		componentWillReceiveProps(nextProps){
+			this.setState({$props: nextProps});
+		}
 		componentWillUnmount(){
 			this.setState({$end: true});
 			if(this.__mrrParent){
-				delete this.__mrrParent.children[this.__mrrLinkedAs];
+				delete this.__mrrParent.__mrr.children[this.__mrrLinkedAs];
 			}
 			if(GG && this.__mrr.linksNeeded['^']){
 				const i = GG.__mrr.subscribers.indexOf(this);
@@ -298,9 +353,10 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 			const updateOnInit = {};
 			for(let key in mrr){
 				if(key === '$init'){
-					for(let cell in mrr[key]){
-						this.__mrrSetState(cell, mrr[key][cell]);
-						updateOnInit[cell] = mrr[key][cell];
+					let init_vals = mrr[key] instanceof Function ? mrr[key](this.props) : mrr[key];
+					for(let cell in init_vals){
+						this.__mrrSetState(cell, init_vals[cell]);
+						updateOnInit[cell] = init_vals[cell];
 						if(cell[0] !== '~'){
 							initial_compute.push(cell);
 						}
@@ -376,17 +432,22 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 						}
 					} else {
 						if(a && a.target && a.target.type){
-              a.preventDefault();
 							if(a.target.type === 'checkbox'){
 								value = a.target.checked;
-							} else if(a.target.type === 'submit'){
-								value = true;
 							} else {
-								value = a.target.value;
+	              a.preventDefault();
+								if(a.target.type === 'submit'){
+									value = true;
+								} else {
+									value = a.target.value;
+								}
 							}
 						} else {
 							value = a;
 						}
+					}
+					if(value === skip){
+						return;
 					}
 					if(key instanceof Array){
 						const ns = {};
@@ -413,9 +474,6 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 					if(arg_cell[0] === '-'){
 						arg_cell = arg_cell.slice(1);
 					}
-          if(arg_cell === '$props'){
-            return this.props;
-          }
           if(arg_cell === '$name'){
             return this.$name;
           }
@@ -475,7 +533,7 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 				}
 				if(types.indexOf('closure') !== -1){
 					if(!this.__mrr.closureFuncs[cell]){
-						const init_val = this.__mrr.realComputed.$init ? this.__mrr.realComputed.$init[cell] : null;
+						const init_val = this.mrrState[cell];
 						this.__mrr.closureFuncs[cell] = fexpr[1](init_val);
 					}
 					func = this.__mrr.closureFuncs[cell];
@@ -512,6 +570,11 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 				// do nothing!
 				return;
 			}
+			const current_val = this.mrrState[cell];
+			if(current_val == val){
+				//console.log('DUPLICATE!', val);
+				//return;
+			}
 			if(isPromise(val)){
 				val.then(updateFunc)
 			} else {
@@ -538,7 +601,7 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
           if(this.__mrr.realComputed.$log === 'no-colour'){
             console.log(key, val);
           } else {
-            console.log('%c ' + this.__mrrPath + '::' + key 
+            console.log('%c ' + this.__mrrPath + '::' + key
               //+ '(' + parent_cell +') '
               , styles, val);
           }

@@ -15,6 +15,10 @@ var _react = require('react');
 
 var _react2 = _interopRequireDefault(_react);
 
+var _lodash = require('lodash');
+
+var _lodash2 = _interopRequireDefault(_lodash);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -23,9 +27,9 @@ function _possibleConstructorReturn(self, call) { if (!self) { throw new Referen
 
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
-
 function _toArray(arr) { return Array.isArray(arr) ? arr : Array.from(arr); }
+
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
@@ -35,6 +39,9 @@ var isPromise = function isPromise(a) {
 };
 
 var cell_types = ['funnel', 'closure', 'nested', 'async'];
+var isJustObject = function isJustObject(a) {
+	return a instanceof Object && !(a instanceof Array) && !(a instanceof Function);
+};
 var skip = exports.skip = new function MrrSkip() {}();
 var GG = void 0;
 
@@ -129,26 +136,118 @@ var defMacros = {
 		}
 		return res;
 	},
-	merge: function merge(_ref3) {
+	list: function list(_ref3) {
 		var _ref4 = _slicedToArray(_ref3, 1),
 		    map = _ref4[0];
 
 		var res = ['funnel', function (cell, val) {
-			return map[cell] instanceof Function ? map[cell](val) : map[cell];
+			return val;
 		}];
-		for (var cell in map) {
-			res.push(cell);
+
+		var _loop = function _loop(type) {
+			if (type !== 'custom') {
+				res.push([function () {
+					for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+						args[_key] = arguments[_key];
+					}
+
+					return [type].concat(args);
+				}, map[type]]);
+			}
+		};
+
+		for (var type in map) {
+			_loop(type);
 		}
-		return res;
+		return [function (_ref5, prev) {
+			var _ref6 = _slicedToArray(_ref5, 2),
+			    type = _ref6[0],
+			    changes = _ref6[1];
+
+			var next = [].concat(_toConsumableArray(prev));
+			switch (type) {
+				case 'edit':
+					changes.forEach(function (change) {
+						var _change = _slicedToArray(change, 2),
+						    newProps = _change[0],
+						    predicate = _change[1];
+
+						_lodash2.default.chain(prev).map(function (item, i) {
+							return [i, item];
+						}).filter(function (pair) {
+							return _lodash2.default.matches(predicate)(pair[1]);
+						}).map(function (pair) {
+							return pair[0];
+						}).value().forEach(function (i) {
+							next[i] = Object.assign({}, next[i], newProps);
+						});
+					});
+					break;
+				case 'remove':
+					changes.forEach(function (change) {
+						_lodash2.default.remove(next, change);
+					});
+					break;
+				case 'add':
+					changes.forEach(function (change) {
+						next.push(change);
+					});
+					break;
+			}
+			return next;
+		}, res, '^'];
 	},
-	split: function split(_ref5) {
-		var _ref6 = _toArray(_ref5),
-		    map = _ref6[0],
-		    argCells = _ref6.slice(1);
+	merge: function merge(_ref7) {
+		var _ref8 = _toArray(_ref7),
+		    map = _ref8[0],
+		    others = _ref8.slice(1);
+
+		if (isJustObject(map)) {
+			var res = ['funnel', function (cell, val) {
+				return [cell, val];
+			}].concat(_toConsumableArray(Object.keys(map)));
+			return [function (_ref9) {
+				for (var _len2 = arguments.length, otherArgs = Array(_len2 > 1 ? _len2 - 1 : 0), _key2 = 1; _key2 < _len2; _key2++) {
+					otherArgs[_key2 - 1] = arguments[_key2];
+				}
+
+				var _ref10 = _slicedToArray(_ref9, 2),
+				    cell = _ref10[0],
+				    val = _ref10[1];
+
+				return map[cell] instanceof Function ? map[cell].apply(map, [val].concat(otherArgs)) : map[cell];
+			}, res].concat(_toConsumableArray(others));
+		} else {
+			var f = function f(a) {
+				return a;
+			};
+			var args = [map].concat(_toConsumableArray(others));
+			if (map instanceof Function) {
+				f = map;
+				args = others;
+			}
+			return ['funnel', function (cell, val) {
+				return f(val);
+			}].concat(_toConsumableArray(args));
+		}
+	},
+	toggle: function toggle(_ref11) {
+		var _ref12 = _slicedToArray(_ref11, 2),
+		    setTrue = _ref12[0],
+		    setFalse = _ref12[1];
+
+		return ['funnel', function (cell) {
+			return cell === setTrue;
+		}, setTrue, setFalse];
+	},
+	split: function split(_ref13) {
+		var _ref14 = _toArray(_ref13),
+		    map = _ref14[0],
+		    argCells = _ref14.slice(1);
 
 		return ['nested', function (cb) {
-			for (var _len = arguments.length, args = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
-				args[_key - 1] = arguments[_key];
+			for (var _len3 = arguments.length, args = Array(_len3 > 1 ? _len3 - 1 : 0), _key3 = 1; _key3 < _len3; _key3++) {
+				args[_key3 - 1] = arguments[_key3];
 			}
 
 			for (var k in map) {
@@ -164,10 +263,10 @@ var defMacros = {
 			return a ? b : skip;
 		}].concat(_toConsumableArray(cells));
 	},
-	closureMerge: function closureMerge(_ref7) {
-		var _ref8 = _slicedToArray(_ref7, 2),
-		    initVal = _ref8[0],
-		    map = _ref8[1];
+	closureMerge: function closureMerge(_ref15) {
+		var _ref16 = _slicedToArray(_ref15, 2),
+		    initVal = _ref16[0],
+		    map = _ref16[1];
 
 		var cells = Object.keys(map);
 		return ['closure.funnel', function () {
@@ -180,10 +279,10 @@ var defMacros = {
 			};
 		}].concat(_toConsumableArray(cells));
 	},
-	closureMap: function closureMap(_ref9) {
-		var _ref10 = _slicedToArray(_ref9, 2),
-		    initVal = _ref10[0],
-		    map = _ref10[1];
+	closureMap: function closureMap(_ref17) {
+		var _ref18 = _slicedToArray(_ref17, 2),
+		    initVal = _ref18[0],
+		    map = _ref18[1];
 
 		var cells = Object.keys(map);
 		return ['closure.funnel', function () {
@@ -196,9 +295,9 @@ var defMacros = {
 			};
 		}].concat(_toConsumableArray(cells));
 	},
-	mapPrev: function mapPrev(_ref11) {
-		var _ref12 = _slicedToArray(_ref11, 1),
-		    map = _ref12[0];
+	mapPrev: function mapPrev(_ref19) {
+		var _ref20 = _slicedToArray(_ref19, 1),
+		    map = _ref20[0];
 
 		var res = ['closure.funnel', function (prev) {
 			return function (cell, val) {
@@ -211,44 +310,44 @@ var defMacros = {
 		}
 		return res;
 	},
-	join: function join(_ref13) {
-		var _ref14 = _toArray(_ref13),
-		    fields = _ref14.slice(0);
+	join: function join(_ref21) {
+		var _ref22 = _toArray(_ref21),
+		    fields = _ref22.slice(0);
 
 		return ['funnel', function (cell, val) {
 			return val;
 		}].concat(_toConsumableArray(fields));
 	},
-	'&&': function _(_ref15) {
-		var _ref16 = _slicedToArray(_ref15, 2),
-		    a = _ref16[0],
-		    b = _ref16[1];
+	'&&': function _(_ref23) {
+		var _ref24 = _slicedToArray(_ref23, 2),
+		    a = _ref24[0],
+		    b = _ref24[1];
 
 		return [function (a, b) {
 			return a && b;
 		}, a, b];
 	},
-	trigger: function trigger(_ref17) {
-		var _ref18 = _slicedToArray(_ref17, 2),
-		    field = _ref18[0],
-		    val = _ref18[1];
+	trigger: function trigger(_ref25) {
+		var _ref26 = _slicedToArray(_ref25, 2),
+		    field = _ref26[0],
+		    val = _ref26[1];
 
 		return [function (a) {
 			return a === val ? true : undefined.__mrr.skip;
 		}, field];
 	},
-	skipSame: function skipSame(_ref19) {
-		var _ref20 = _slicedToArray(_ref19, 1),
-		    field = _ref20[0];
+	skipSame: function skipSame(_ref27) {
+		var _ref28 = _slicedToArray(_ref27, 1),
+		    field = _ref28[0];
 
 		return [function (z, x) {
 			return shallow_equal(z, x) ? skip : z;
 		}, field, '^'];
 	},
-	skipN: function skipN(_ref21) {
-		var _ref22 = _slicedToArray(_ref21, 2),
-		    field = _ref22[0],
-		    n = _ref22[1];
+	skipN: function skipN(_ref29) {
+		var _ref30 = _slicedToArray(_ref29, 2),
+		    field = _ref30[0],
+		    n = _ref30[1];
 
 		return ['closure', function () {
 			var count = 0;
@@ -262,10 +361,10 @@ var defMacros = {
 			};
 		}, field];
 	},
-	accum: function accum(_ref23) {
-		var _ref24 = _slicedToArray(_ref23, 2),
-		    cell = _ref24[0],
-		    time = _ref24[1];
+	accum: function accum(_ref31) {
+		var _ref32 = _slicedToArray(_ref31, 2),
+		    cell = _ref32[0],
+		    time = _ref32[1];
 
 		var res = time ? ['async.closure', function () {
 			var vals = {};
@@ -395,14 +494,22 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 		_createClass(Mrr, [{
 			key: 'componentDidMount',
 			value: function componentDidMount() {
-				this.setState({ $start: true });
+				this.setState({
+					$start: true,
+					$props: this.props
+				});
+			}
+		}, {
+			key: 'componentWillReceiveProps',
+			value: function componentWillReceiveProps(nextProps) {
+				this.setState({ $props: nextProps });
 			}
 		}, {
 			key: 'componentWillUnmount',
 			value: function componentWillUnmount() {
 				this.setState({ $end: true });
 				if (this.__mrrParent) {
-					delete this.__mrrParent.children[this.__mrrLinkedAs];
+					delete this.__mrrParent.__mrr.children[this.__mrrLinkedAs];
 				}
 				if (GG && this.__mrr.linksNeeded['^']) {
 					var i = GG.__mrr.subscribers.indexOf(this);
@@ -487,9 +594,10 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 				var updateOnInit = {};
 				for (var key in mrr) {
 					if (key === '$init') {
-						for (var cell in mrr[key]) {
-							this.__mrrSetState(cell, mrr[key][cell]);
-							updateOnInit[cell] = mrr[key][cell];
+						var init_vals = mrr[key] instanceof Function ? mrr[key](this.props) : mrr[key];
+						for (var cell in init_vals) {
+							this.__mrrSetState(cell, init_vals[cell]);
+							updateOnInit[cell] = init_vals[cell];
 							if (cell[0] !== '~') {
 								initial_compute.push(cell);
 							}
@@ -600,17 +708,22 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 							}
 						} else {
 							if (a && a.target && a.target.type) {
-								a.preventDefault();
 								if (a.target.type === 'checkbox') {
 									value = a.target.checked;
-								} else if (a.target.type === 'submit') {
-									value = true;
 								} else {
-									value = a.target.value;
+									a.preventDefault();
+									if (a.target.type === 'submit') {
+										value = true;
+									} else {
+										value = a.target.value;
+									}
 								}
 							} else {
 								value = a;
 							}
+						}
+						if (value === skip) {
+							return;
 						}
 						if (key instanceof Array) {
 							var ns = {};
@@ -640,9 +753,6 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 					} else {
 						if (arg_cell[0] === '-') {
 							arg_cell = arg_cell.slice(1);
-						}
-						if (arg_cell === '$props') {
-							return _this8.props;
 						}
 						if (arg_cell === '$name') {
 							return _this8.$name;
@@ -706,7 +816,7 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 					}
 					if (types.indexOf('closure') !== -1) {
 						if (!this.__mrr.closureFuncs[cell]) {
-							var init_val = this.__mrr.realComputed.$init ? this.__mrr.realComputed.$init[cell] : null;
+							var init_val = this.mrrState[cell];
 							this.__mrr.closureFuncs[cell] = fexpr[1](init_val);
 						}
 						func = this.__mrr.closureFuncs[cell];
@@ -742,6 +852,11 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 				if (types && types.indexOf('async') !== -1) {
 					// do nothing!
 					return;
+				}
+				var current_val = this.mrrState[cell];
+				if (current_val == val) {
+					//console.log('DUPLICATE!', val);
+					//return;
 				}
 				if (isPromise(val)) {
 					val.then(updateFunc);

@@ -20,16 +20,17 @@ const wwait = ms => () => {
 };
 
 describe('Form validation', () => {
+  const wrapper = mount(<LoginForm />);
   it('Should validate', () => {
-    const wrapper = mount(<LoginForm />);
     wrapper.find('.submitButton').simulate('click');
     expect(wrapper.find('.error')).to.have.length(2);
     //console.log('_______________________');
-
+  });
+  it('Should validate 2', () => {
     wrapper.find('.chb').simulate('change', { target: { checked: true, type: 'checkbox' } });
     expect(wrapper.find('.error')).to.have.length(0);
-    //console.log('_______________________');
-
+  });
+  it('Should validate 3', () => {
     wrapper.find('.submitButton').simulate('click');
     expect(wrapper.find('.error')).to.have.length(1);
     //console.log('_______________________');
