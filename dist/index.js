@@ -377,7 +377,7 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 				expose: []
 			};
 			_this5.parseMrr();
-			if (GG && _this5.__mrr.linksNeeded['^^']) {
+			if (GG && _this5.__mrr.linksNeeded['^']) {
 				GG.__mrr.subscribers.push(_this5);
 			}
 			_this5.state = _this5.initialState;
@@ -386,7 +386,7 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 				_this5.props.mrrConnect.subscribe(_this5);
 			}
 			if (GG) {
-				setStateForLinkedCells(_this5, GG, '^^');
+				setStateForLinkedCells(_this5, GG, '^');
 			}
 			_this5.__mrr.constructing = false;
 			return _this5;
@@ -404,7 +404,7 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 				if (this.__mrrParent) {
 					delete this.__mrrParent.children[this.__mrrLinkedAs];
 				}
-				if (GG && this.__mrr.linksNeeded['^^']) {
+				if (GG && this.__mrr.linksNeeded['^']) {
 					var i = GG.__mrr.subscribers.indexOf(this);
 					delete GG.__mrr.subscribers[i];
 				}
@@ -806,8 +806,8 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 						for (var _iterator5 = this.__mrr.subscribers[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
 							var sub = _step5.value;
 
-							if (sub && sub.__mrr.linksNeeded['^^'][key]) {
-								updateOtherGrid(sub, '^^', key, val);
+							if (sub && sub.__mrr.linksNeeded['^'][key]) {
+								updateOtherGrid(sub, '^', key, val);
 							}
 						}
 					} catch (err) {
@@ -828,9 +828,6 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 					for (var _as in this.__mrr.children) {
 						if (this.__mrr.children[_as].__mrr.linksNeeded['..'] && this.__mrr.children[_as].__mrr.linksNeeded['..'][key]) {
 							updateOtherGrid(this.__mrr.children[_as], '..', key, val);
-						}
-						if (this.__mrr.children[_as].__mrr.linksNeeded['^'] && this.__mrr.children[_as].__mrr.linksNeeded['^'][key]) {
-							updateOtherGrid(this.__mrr.children[_as], '^', key, val);
 						}
 					}
 					var as = this.__mrrLinkedAs;

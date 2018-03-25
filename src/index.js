@@ -196,7 +196,7 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 				expose: [],
 			};
 			this.parseMrr();
-			if(GG && this.__mrr.linksNeeded['^^']){
+			if(GG && this.__mrr.linksNeeded['^']){
 				GG.__mrr.subscribers.push(this);
 			}
 			this.state = this.initialState;
@@ -205,7 +205,7 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 				this.props.mrrConnect.subscribe(this);
 			}
 			if(GG){
-				setStateForLinkedCells(this, GG, '^^');
+				setStateForLinkedCells(this, GG, '^');
 			}
 			this.__mrr.constructing = false;
 		}
@@ -217,7 +217,7 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 			if(this.__mrrParent){
 				delete this.__mrrParent.children[this.__mrrLinkedAs];
 			}
-			if(GG && this.__mrr.linksNeeded['^^']){
+			if(GG && this.__mrr.linksNeeded['^']){
 				const i = GG.__mrr.subscribers.indexOf(this);
 				delete GG.__mrr.subscribers[i];
 			}
@@ -546,17 +546,14 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 			}
 			if(GG && GG === this){
 				for(let sub of this.__mrr.subscribers){
-					if(sub && sub.__mrr.linksNeeded['^^'][key]){
-						updateOtherGrid(sub, '^^', key, val);
+					if(sub && sub.__mrr.linksNeeded['^'][key]){
+						updateOtherGrid(sub, '^', key, val);
 					}
 				}
 			} else {
 				for(let as in this.__mrr.children){
 					if(this.__mrr.children[as].__mrr.linksNeeded['..'] && this.__mrr.children[as].__mrr.linksNeeded['..'][key]){
 						updateOtherGrid(this.__mrr.children[as], '..', key, val);
-					}
-					if(this.__mrr.children[as].__mrr.linksNeeded['^'] && this.__mrr.children[as].__mrr.linksNeeded['^'][key]){
-						updateOtherGrid(this.__mrr.children[as], '^', key, val);
 					}
 				}
 				let as  = this.__mrrLinkedAs;
