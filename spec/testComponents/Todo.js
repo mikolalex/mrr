@@ -73,11 +73,20 @@ const Todos = withMrr({
     [I(prop('length'), incr), '-todos', '$start'],
     [incr, '-lastId', 'addTodo'],
   ],
-  addTodo: [(item, id) => assoc('id')(id)(item), ['merge', '*/add', 'newTodoItem'], '-lastId'],
+  addTodo: [(item, id) => assoc('id')(id)(item),
+    ['merge', '*/add', 'newTodoItem'],
+    '-lastId'
+  ],
   todos: ['list', {
     add: 'addTodo',
-    edit: ['merge', '*/changes', [completed => [{ completed }, {}], 'toggleCompleted']],
-    remove: ['merge', '*/remove', [always({ completed: true}), 'clear_done']],
+    edit: ['merge',
+      '*/changes',
+      [completed => [{ completed }, {}], 'toggleCompleted']
+    ],
+    remove: ['merge',
+      '*/remove',
+      [always({ completed: true}), 'clear_done']
+    ],
   }],
   openNumber: [todos => todos.filter(I(prop('completed'), not)).length, 'todos'],
   shownTodos: [(a, val) => a.filter(i => i.completed !== val), 'todos', 'show'],

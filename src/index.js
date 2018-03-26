@@ -5,8 +5,16 @@ const isPromise = a => a instanceof Object && a.toString && a.toString().indexOf
 
 const cell_types = ['funnel', 'closure', 'nested', 'async'];
 const isJustObject = a => (a instanceof Object) && !(a instanceof Array) && !(a instanceof Function);
-export const skip = new function MrrSkip(){};
 let GG;
+let global_macros = {};
+
+export const skip = new function MrrSkip(){};
+
+export const registerMacros = (name, func) => {
+	global_macros[name] = func;
+}
+
+
 
 const shallow_equal = (a, b) => {
 	if(a instanceof Object){
@@ -277,7 +285,7 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 			}
 		}
 		get __mrrMacros(){
-			return Object.assign({}, defMacros, this.__mrrCustomMacros || {});
+			return Object.assign({}, defMacros, global_macros);
 		}
 		get __mrrPath(){
 			return this.__mrrParent ? this.__mrrParent.__mrrPath + '/' + this.$name : 'root';
