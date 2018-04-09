@@ -3,7 +3,7 @@
 Object.defineProperty(exports, "__esModule", {
 	value: true
 });
-exports.initGlobalGrid = exports.withMrr = exports.skip = undefined;
+exports.initGlobalGrid = exports.withMrr = exports.registerMacros = exports.skip = undefined;
 
 var _get = function get(object, property, receiver) { if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { return get(parent, property, receiver); } } else if ("value" in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } };
 
@@ -14,10 +14,6 @@ var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = [
 var _react = require('react');
 
 var _react2 = _interopRequireDefault(_react);
-
-var _lodash = require('lodash');
-
-var _lodash2 = _interopRequireDefault(_lodash);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -42,8 +38,14 @@ var cell_types = ['funnel', 'closure', 'nested', 'async'];
 var isJustObject = function isJustObject(a) {
 	return a instanceof Object && !(a instanceof Array) && !(a instanceof Function);
 };
-var skip = exports.skip = new function MrrSkip() {}();
 var GG = void 0;
+var global_macros = {};
+
+var skip = exports.skip = new function MrrSkip() {}();
+
+var registerMacros = exports.registerMacros = function registerMacros(name, func) {
+	global_macros[name] = func;
+};
 
 var shallow_equal = function shallow_equal(a, b) {
 	if (a instanceof Object) {
@@ -62,6 +64,15 @@ var shallow_equal = function shallow_equal(a, b) {
 		return true;
 	}
 	return a == b;
+};
+
+var matches = function matches(obj, subset) {
+	for (var k in subset) {
+		if (!shallow_equal(obj[k], subset[k])) {
+			return false;
+		}
+	}
+	return true;
 };
 
 var setStateForLinkedCells = function setStateForLinkedCells(slave, master, as) {
@@ -167,31 +178,25 @@ var defMacros = {
 			var next = [].concat(_toConsumableArray(prev));
 			switch (type) {
 				case 'edit':
-					changes.forEach(function (change) {
-						var _change = _slicedToArray(change, 2),
-						    newProps = _change[0],
-						    predicate = _change[1];
+					var _changes = _slicedToArray(changes, 2),
+					    newProps = _changes[0],
+					    predicate = _changes[1];
 
-						_lodash2.default.chain(prev).map(function (item, i) {
-							return [i, item];
-						}).filter(function (pair) {
-							return _lodash2.default.matches(predicate)(pair[1]);
-						}).map(function (pair) {
-							return pair[0];
-						}).value().forEach(function (i) {
-							next[i] = Object.assign({}, next[i], newProps);
-						});
+					prev.map(function (item, i) {
+						return [i, item];
+					}).filter(function (pair) {
+						return matches(pair[1], predicate);
+					}).forEach(function (i) {
+						next[i[0]] = Object.assign({}, next[i[0]], newProps);
 					});
 					break;
 				case 'remove':
-					changes.forEach(function (change) {
-						_lodash2.default.remove(next, change);
+					next = next.filter(function (item) {
+						return !matches(item, changes);
 					});
 					break;
 				case 'add':
-					changes.forEach(function (change) {
-						next.push(change);
-					});
+					next.push(changes);
 					break;
 			}
 			return next;
@@ -982,7 +987,7 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 		}, {
 			key: '__mrrMacros',
 			get: function get() {
-				return Object.assign({}, defMacros, this.__mrrCustomMacros || {});
+				return Object.assign({}, defMacros, global_macros);
 			}
 		}, {
 			key: '__mrrPath',

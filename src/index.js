@@ -1,13 +1,20 @@
 import React from 'react';
-import _ from 'lodash';
 
 // if polyfill used
 const isPromise = a => a instanceof Object && a.toString && a.toString().indexOf('Promise') !== -1;
 
 const cell_types = ['funnel', 'closure', 'nested', 'async'];
 const isJustObject = a => (a instanceof Object) && !(a instanceof Array) && !(a instanceof Function);
-export const skip = new function MrrSkip(){};
 let GG;
+let global_macros = {};
+
+export const skip = new function MrrSkip(){};
+
+export const registerMacros = (name, func) => {
+	global_macros[name] = func;
+}
+
+
 
 const shallow_equal = (a, b) => {
 	if(a instanceof Object){
@@ -26,6 +33,15 @@ const shallow_equal = (a, b) => {
 		return true;
 	}
 	return a == b;
+}
+
+const matches = (obj, subset) => {
+	for(let k in subset){
+		if(!shallow_equal(obj[k], subset[k])){
+			return false;
+		}
+	}
+	return true;
 }
 
 const setStateForLinkedCells = function(slave, master, as){
@@ -63,30 +79,21 @@ const defMacros = {
 			}
 		}
 		return [([type, changes], prev) => {
-			const next = [...prev];
+			let next = [...prev];
 			switch(type){
 				case 'edit':
-				  changes.forEach(change => {
-						const [newProps, predicate] = change;
-						_.chain(prev)
-				    .map((item, i) => [i, item])
-				    .filter(pair => _.matches(predicate)(pair[1]))
-				    .map(pair => pair[0])
-				    .value()
-						.forEach(i => {
-					  	next[i] = Object.assign({}, next[i], newProps);
-						});
-					})
+					const [newProps, predicate] = changes;
+					prev.map((item, i) => [i, item])
+			    .filter(pair => matches(pair[1], predicate))
+					.forEach(i => {
+				  	next[i[0]] = Object.assign({}, next[i[0]], newProps);
+					});
 				break;
 				case 'remove':
-				  changes.forEach(change => {
-	      		_.remove(next, change);
-					})
+					next = next.filter(item => !matches(item, changes));
 				break;
 				case 'add':
-				  changes.forEach(change => {
-						next.push(change);
-					})
+					next.push(changes);
 				break;
 			}
 			return next;
@@ -278,7 +285,7 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 			}
 		}
 		get __mrrMacros(){
-			return Object.assign({}, defMacros, this.__mrrCustomMacros || {});
+			return Object.assign({}, defMacros, global_macros);
 		}
 		get __mrrPath(){
 			return this.__mrrParent ? this.__mrrParent.__mrrPath + '/' + this.$name : 'root';
