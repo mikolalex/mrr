@@ -9,6 +9,7 @@ import a from './setup';
 import LoginForm from './testComponents/LoginForm';
 import TimerWrapper from './testComponents/TimerWrapper';
 import InputForm from './testComponents/InputForm';
+import Map from './testComponents/Map';
 
 configure({ adapter: new Adapter() });
 
@@ -99,9 +100,32 @@ describe('Ticks', () => {
   });
 });
 
-describe('', () => {
-  it('', () => {
-      
+describe('Macros', () => {
+  const wrapper = mount(<Map />);
+  it('Test "map" macro', (done) => {
+    const state = wrapper.state();
+    assert(state.d, 20);
+
+    new Promise(wait(0))
+    .then(() => {
+        wrapper.find('.input-a').simulate('click');
+    })
+    .then(wwait(10))
+    .then(() => {
+        const state = wrapper.state();
+        assert(state.d, 42);
+
+
+        wrapper.find('.input-c').simulate('click');
+    })
+    .then(wwait(10))
+    .then(() => {
+        const state = wrapper.state();
+        assert.strictEqual(state.d, 0);
+        done();
+    }).catch(e => {
+        console.log("E", e);
+    });
   });
 });
 /*

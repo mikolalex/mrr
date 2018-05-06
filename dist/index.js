@@ -140,6 +140,7 @@ var defMacros = {
 		    _map = _ref2[0];
 
 		var res = ['funnel', function (cell, val) {
+			debugger;
 			return _map[cell] instanceof Function ? _map[cell](val) : _map[cell];
 		}];
 		for (var cell in _map) {

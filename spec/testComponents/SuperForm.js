@@ -59,6 +59,9 @@ const state = () => {
   };
 };
 
+
+export { Input };
+
 export default withMrr({
   $log: true,
   $init: {

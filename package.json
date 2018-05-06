@@ -7,7 +7,6 @@
     "readme": "node ./node_modules/.bin/node-readme",
     "test": "mocha spec/*.spec.js* --require babel-core/register",
     "build": "npm run test && ./node_modules/.bin/babel -d ./dist ./src",
-    "wb": ".\node_modules\.bin\babel -d .\dist .\src",
     "ppublish": "git push && git push --tags && npm publish"
   },
   "repository": {
@@ -46,7 +45,7 @@
     "chai": "^4.1.2",
     "enzyme": "^3.3.0",
     "enzyme-adapter-react-16": "^1.1.1",
-    "jsdom": "^11.6.2",
+    "jsdom": "^11.10.0",
     "mocha": "^5.0.0",
     "react-test-renderer": "^16.2.0",
     "sinon": "^4.2.2"
