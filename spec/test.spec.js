@@ -9,7 +9,8 @@ import a from './setup';
 import LoginForm from './testComponents/LoginForm';
 import TimerWrapper from './testComponents/TimerWrapper';
 import InputForm from './testComponents/InputForm';
-import Map from './testComponents/Map';
+import Merge from './testComponents/Merge';
+import Split from './testComponents/Split';
 
 configure({ adapter: new Adapter() });
 
@@ -101,8 +102,8 @@ describe('Ticks', () => {
 });
 
 describe('Macros', () => {
-  const wrapper = mount(<Map />);
-  it('Test "map" macro', (done) => {
+  it('Test "merge" macro', (done) => {
+    const wrapper = mount(<Merge />);
     const state = wrapper.state();
     assert(state.d, 20);
 
@@ -125,6 +126,36 @@ describe('Macros', () => {
         done();
     }).catch(e => {
         console.log("E", e);
+    });
+  });
+  
+  
+  it('Test "split" macro', (done) => {
+    const wrapper = mount(<Split />);
+    const state = wrapper.state();
+    assert.strictEqual(state.a, 11);
+    assert.strictEqual(state['a.c'], undefined);
+
+    new Promise(wait(0))
+    .then(() => {
+        wrapper.find('.input-1').simulate('click');
+    })
+    .then(wwait(10))
+    .then(() => {
+        const state = wrapper.state();
+        assert.strictEqual(state['a.c'], true);
+
+
+        wrapper.find('.input-2').simulate('click');
+    })
+    .then(wwait(10))
+    .then(() => {
+        const state = wrapper.state();
+        assert.strictEqual(state['a.d'], 10);
+        done();
+    }).catch(e => {
+        console.log("E", e);
+        done();
     });
   });
 });

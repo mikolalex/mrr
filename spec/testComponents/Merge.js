@@ -10,7 +10,7 @@ export default withMrr({
       b: 20, 
       c: false
   },
-  d: ['map', {
+  d: ['merge', {
     a: 42,
     b: a => a + 10,
     c: () => 0,
