@@ -140,7 +140,6 @@ var defMacros = {
 		    _map = _ref2[0];
 
 		var res = ['funnel', function (cell, val) {
-			debugger;
 			return _map[cell] instanceof Function ? _map[cell](val) : _map[cell];
 		}];
 		for (var cell in _map) {
@@ -339,7 +338,7 @@ var defMacros = {
 		    val = _ref26[1];
 
 		return [function (a) {
-			return a === val ? true : undefined.__mrr.skip;
+			return a === val ? true : skip;
 		}, field];
 	},
 	skipSame: function skipSame(_ref27) {
@@ -362,7 +361,7 @@ var defMacros = {
 				if (++count > n) {
 					return val;
 				} else {
-					return undefined.__mrr.skip;
+					return skip;
 				}
 			};
 		}, field];
@@ -780,7 +779,7 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 				    types = [];
 				var superSetState = _get(Mrr.prototype.__proto__ || Object.getPrototypeOf(Mrr.prototype), 'setState', this);
 				var updateFunc = function updateFunc(val) {
-					if (val === _this9.__mrr.skip) return;
+					if (val === skip) return;
 					_this9.__mrrSetState(cell, val, parent_cell);
 					var update = {};
 					update[cell] = val;
@@ -867,7 +866,7 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 				if (isPromise(val)) {
 					val.then(updateFunc);
 				} else {
-					if (val === this.__mrr.skip) return;
+					if (val === skip) return;
 					update[cell] = val;
 					this.__mrrSetState(cell, val, parent_cell);
 					this.checkMrrCellUpdate(cell, update);

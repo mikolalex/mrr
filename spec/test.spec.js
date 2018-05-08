@@ -11,6 +11,7 @@ import TimerWrapper from './testComponents/TimerWrapper';
 import InputForm from './testComponents/InputForm';
 import Merge from './testComponents/Merge';
 import Split from './testComponents/Split';
+import SkipN from './testComponents/SkipN';
 
 configure({ adapter: new Adapter() });
 
@@ -144,8 +145,7 @@ describe('Macros', () => {
     .then(() => {
         const state = wrapper.state();
         assert.strictEqual(state['a.c'], true);
-
-
+        
         wrapper.find('.input-2').simulate('click');
     })
     .then(wwait(10))
@@ -153,6 +153,47 @@ describe('Macros', () => {
         const state = wrapper.state();
         assert.strictEqual(state['a.d'], 10);
         done();
+    }).catch(e => {
+        console.log("E", e);
+        done();
+    });
+  });
+  it('Test "skipN" macro', (done) => {
+    const wrapper = mount(<SkipN />);
+    const state = wrapper.state();
+    assert.strictEqual(state.b, 20);
+
+    new Promise(wait(0))
+    .then(() => {
+        wrapper.find('.input-a').simulate('click');
+    })
+    .then(wwait(10))
+    .then(() => {
+        const state = wrapper.state();
+        assert.strictEqual(state['b'], 20);
+        
+        wrapper.find('.input-a').simulate('click');
+    })
+    .then(wwait(10))
+    .then(() => {
+        const state = wrapper.state();
+        assert.strictEqual(state['b'], 20);
+        
+        wrapper.find('.input-a').simulate('click');
+    })
+    .then(wwait(10))
+    .then(() => {
+        const state = wrapper.state();
+        assert.strictEqual(state['b'], 20);
+        
+        wrapper.find('.input-a').simulate('click');
+    })
+    .then(wwait(10))
+    .then(() => {
+        const state = wrapper.state();
+        assert.strictEqual(state['b'], 11);
+        done();
+        
     }).catch(e => {
         console.log("E", e);
         done();

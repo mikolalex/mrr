@@ -173,7 +173,7 @@ const defMacros = {
 	'&&': ([a, b]) => {
 		return [(a, b) => (a && b), a, b];
 	},
-	trigger: ([field, val]) => [a => a === val ? true : this.__mrr.skip, field],
+	trigger: ([field, val]) => [a => a === val ? true : skip, field],
 	skipSame: ([field]) => [(z, x) => shallow_equal(z, x) ? skip : z, field, '^'],
 	skipN: ([field, n]) => ['closure', () => {
 		let count = 0;
@@ -182,7 +182,7 @@ const defMacros = {
 			if(++count > n){
 				return val;
 			} else {
-				return this.__mrr.skip;
+				return skip;
 			}
 		}
 	}, field],
@@ -498,7 +498,7 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 			var val, func, args, updateNested, types = [];
       const superSetState = super.setState;
 			const updateFunc = val => {
-				if(val === this.__mrr.skip) return;
+				if(val === skip) return;
 				this.__mrrSetState(cell, val, parent_cell);
 				const update = {};
 				update[cell] = val;
@@ -585,7 +585,7 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 			if(isPromise(val)){
 				val.then(updateFunc)
 			} else {
-				if(val === this.__mrr.skip) return;
+				if(val === skip) return;
 				update[cell] = val;
 				this.__mrrSetState(cell, val, parent_cell);
 				this.checkMrrCellUpdate(cell, update);
