@@ -594,7 +594,6 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 			value: function parseMrr() {
 				var depMap = {};
 				var mrr = this.__mrr.realComputed;
-				var initial_compute = [];
 				this.mrrState = Object.assign({}, this.state);
 				var updateOnInit = {};
 				for (var key in mrr) {
@@ -603,9 +602,6 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 						for (var cell in init_vals) {
 							this.__mrrSetState(cell, init_vals[cell]);
 							updateOnInit[cell] = init_vals[cell];
-							if (cell[0] !== '~') {
-								initial_compute.push(cell);
-							}
 						}
 						continue;
 					}
@@ -627,31 +623,7 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 				}
 				this.initialState = updateOnInit;
 				this.mrrDepMap = depMap;
-				var _iteratorNormalCompletion3 = true;
-				var _didIteratorError3 = false;
-				var _iteratorError3 = undefined;
-
-				try {
-					for (var _iterator3 = initial_compute[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
-						var cell1 = _step3.value;
-
-						this.checkMrrCellUpdate(cell1, updateOnInit);
-					}
-					//console.log('parsed depMap', this.mrrDepMap);
-				} catch (err) {
-					_didIteratorError3 = true;
-					_iteratorError3 = err;
-				} finally {
-					try {
-						if (!_iteratorNormalCompletion3 && _iterator3.return) {
-							_iterator3.return();
-						}
-					} finally {
-						if (_didIteratorError3) {
-							throw _iteratorError3;
-						}
-					}
-				}
+				//console.log('parsed depMap', this.mrrDepMap);
 			}
 		}, {
 			key: 'setStateFromEvent',
@@ -876,27 +848,27 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 			key: 'checkMrrCellUpdate',
 			value: function checkMrrCellUpdate(parent_cell, update) {
 				if (this.mrrDepMap[parent_cell]) {
-					var _iteratorNormalCompletion4 = true;
-					var _didIteratorError4 = false;
-					var _iteratorError4 = undefined;
+					var _iteratorNormalCompletion3 = true;
+					var _didIteratorError3 = false;
+					var _iteratorError3 = undefined;
 
 					try {
-						for (var _iterator4 = this.mrrDepMap[parent_cell][Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
-							var cell = _step4.value;
+						for (var _iterator3 = this.mrrDepMap[parent_cell][Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+							var cell = _step3.value;
 
 							this.__mrrUpdateCell(cell, parent_cell, update);
 						}
 					} catch (err) {
-						_didIteratorError4 = true;
-						_iteratorError4 = err;
+						_didIteratorError3 = true;
+						_iteratorError3 = err;
 					} finally {
 						try {
-							if (!_iteratorNormalCompletion4 && _iterator4.return) {
-								_iterator4.return();
+							if (!_iteratorNormalCompletion3 && _iterator3.return) {
+								_iterator3.return();
 							}
 						} finally {
-							if (_didIteratorError4) {
-								throw _iteratorError4;
+							if (_didIteratorError3) {
+								throw _iteratorError3;
 							}
 						}
 					}
@@ -918,29 +890,29 @@ var withMrr = exports.withMrr = function withMrr(parentClassOrMrrStructure) {
 					}
 				}
 				if (GG && GG === this) {
-					var _iteratorNormalCompletion5 = true;
-					var _didIteratorError5 = false;
-					var _iteratorError5 = undefined;
+					var _iteratorNormalCompletion4 = true;
+					var _didIteratorError4 = false;
+					var _iteratorError4 = undefined;
 
 					try {
-						for (var _iterator5 = this.__mrr.subscribers[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
-							var sub = _step5.value;
+						for (var _iterator4 = this.__mrr.subscribers[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+							var sub = _step4.value;
 
 							if (sub && sub.__mrr.linksNeeded['^'][key]) {
 								updateOtherGrid(sub, '^', key, val);
 							}
 						}
 					} catch (err) {
-						_didIteratorError5 = true;
-						_iteratorError5 = err;
+						_didIteratorError4 = true;
+						_iteratorError4 = err;
 					} finally {
 						try {
-							if (!_iteratorNormalCompletion5 && _iterator5.return) {
-								_iterator5.return();
+							if (!_iteratorNormalCompletion4 && _iterator4.return) {
+								_iterator4.return();
 							}
 						} finally {
-							if (_didIteratorError5) {
-								throw _iteratorError5;
+							if (_didIteratorError4) {
+								throw _iteratorError4;
 							}
 						}
 					}

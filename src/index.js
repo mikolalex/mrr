@@ -355,7 +355,6 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 		parseMrr(){
 			const depMap = {};
 			const mrr = this.__mrr.realComputed;
-			const initial_compute = [];
 			this.mrrState = Object.assign({}, this.state);
 			const updateOnInit = {};
 			for(let key in mrr){
@@ -364,9 +363,6 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 					for(let cell in init_vals){
 						this.__mrrSetState(cell, init_vals[cell]);
 						updateOnInit[cell] = init_vals[cell];
-						if(cell[0] !== '~'){
-							initial_compute.push(cell);
-						}
 					}
 					continue;
 				}
@@ -386,9 +382,6 @@ export const withMrr = (parentClassOrMrrStructure, render = null) => {
 			}
 			this.initialState = updateOnInit;
 			this.mrrDepMap = depMap;
-			for(let cell1 of initial_compute){
-				this.checkMrrCellUpdate(cell1, updateOnInit);
-			}
 			//console.log('parsed depMap', this.mrrDepMap);
 		}
 		setStateFromEvent(key, e){

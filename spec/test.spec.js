@@ -12,6 +12,7 @@ import InputForm from './testComponents/InputForm';
 import Merge from './testComponents/Merge';
 import Split from './testComponents/Split';
 import SkipN from './testComponents/SkipN';
+import Init from './testComponents/Init';
 
 configure({ adapter: new Adapter() });
 
@@ -198,6 +199,9 @@ describe('Macros', () => {
         console.log("E", e);
         done();
     });
+  });
+  it('Test init execution', () => {
+    const wrapper = mount(<Init />);
   });
 });
 /*
