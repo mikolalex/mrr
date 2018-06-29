@@ -13,6 +13,9 @@ import Merge from './testComponents/Merge';
 import Split from './testComponents/Split';
 import SkipN from './testComponents/SkipN';
 import Init from './testComponents/Init';
+import TestGG from './testComponents/TestGG';
+
+import { initGlobalGrid } from '../src';
 
 configure({ adapter: new Adapter() });
 
@@ -204,6 +207,24 @@ describe('Macros', () => {
     const wrapper = mount(<Init />);
   });
 });
+
+
+describe('Testing global grid', () => {
+  it('Test cells\' linking with $expose', () => {
+    const GG = initGlobalGrid({
+        a: [a => a + 10, '*/bar'],
+        b: [a => a + 10, '*/baz'],
+    })
+    const component = mount(<TestGG />);
+    
+    assert.strictEqual(GG.mrrState['*/bar'], 10);
+    assert.strictEqual(GG.mrrState['a'], 20);
+    assert.strictEqual(GG.mrrState['*/baz'], undefined);
+    assert.strictEqual(GG.mrrState['b'], undefined);
+  });
+});
+
+
 /*
 
 describe('', () => {

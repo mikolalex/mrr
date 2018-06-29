@@ -106,6 +106,13 @@ const Todos = withMrr({
     show: '*',
     shownTodos: [],
   },
+//  $meta: {
+//	requires: {
+//		'*': {
+//			'changes': Array,
+//		}
+//	},
+//  },
   newTodoItem: [I(asProp('text'), assoc('completed')(false)), '-newInput', 'addNewTodo'],
   newInput: [always(''), 'newTodoItem'],
   lastId: ['merge',

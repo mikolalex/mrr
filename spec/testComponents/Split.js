@@ -4,7 +4,7 @@ import { withMrr, skip } from '../../src';
 const max_failed_attempts = 5;
 
 export default withMrr({
-  $log: true,
+  //$log: true,
   $init: {
       a: 11,
   },
