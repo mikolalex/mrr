@@ -16,6 +16,7 @@ export const registerMacros = (name, func) => {
 
 const isUndef = a => (a === null || a === undefined);
 
+const always = a => _ => a;
 
 const shallow_equal = (a, b) => {
     if(a instanceof Object){
@@ -45,16 +46,6 @@ const matches = (obj, subset) => {
     return true;
 }
 
-const setStateForLinkedCells = function(slave, master, as){
-    if(slave.__mrr.linksNeeded[as]){
-        for(let master_cell_name in slave.__mrr.linksNeeded[as]){
-            for(let slave_cell_name of slave.__mrr.linksNeeded[as][master_cell_name]){
-                if(slave_cell_name[0] === '~') continue;
-                slave.setState({[slave_cell_name]: master.mrrState[master_cell_name]});
-            }
-        }
-    }
-}
 const updateOtherGrid = (grid, as, key, val) => {
     const his_cells = grid.__mrr.linksNeeded[as][key];
     for(let cell of his_cells){
@@ -100,9 +91,9 @@ const defMacros = {
                     }
                 break;
                 case 'delete':
-                    next = next.filter((item, i) => { 
+                    next = next.filter((item, i) => {
                         if(changes instanceof Object){
-                            return !matches(item, changes)  
+                            return !matches(item, changes)
                         } else {
                             return Number(i) !== changes;
                         }
@@ -132,7 +123,7 @@ const defMacros = {
         }
     },
     toggle: ([setTrue, setFalse]) => {
-            return ['funnel', (cell) => cell === setTrue, setTrue, setFalse]
+            return ['funnel', (a,b) => b, [always(true), setTrue], [always(false), setFalse]]
     },
     split: ([map, ...argCells]) => {
         return ['nested', (cb, ...args) => {
@@ -191,6 +182,28 @@ const defMacros = {
     },
     trigger: ([field, val]) => [a => a === val ? true : skip, field],
     skipSame: ([field]) => [(z, x) => shallow_equal(z, x) ? skip : z, field, '^'],
+    skipIf: ([func, ...fields]) => {
+      if(!fields.length) {
+        fields = [func];
+        func = a => a;
+      }
+      return [function(){
+        const res = func.apply(null, arguments);
+        return !res ? true : skip;
+      }, ...fields]
+    },
+    turnsFromTo: ([from, to, cell]) => ['closure', () => {
+        let prev_val;
+        return (val) => {
+            if((val === to) && (prev_val === from)){
+                prev_val = val;
+                return true;
+            } else {
+                prev_val = val;
+                return skip;
+            }
+        }
+    }, cell],
     skipN: ([field, n]) => ['closure', () => {
         let count = 0;
         n = n || 1;
@@ -227,45 +240,36 @@ const defMacros = {
     }
 }
 
-export const withMrr = (parentClassOrMrrStructure, render = null, parentClass = null) => {
-    if(!(parentClassOrMrrStructure instanceof Function)){
-        render = render || (() => null);
-        const mrrStructure = parentClassOrMrrStructure;
-        const parent = parentClass || React.Component;
-        parentClassOrMrrStructure = class MyMrrComponent extends parent {
-            get computed(){
-                const parent_struct = parent.prototype.computed || {};
-                return Object.assign({}, parent_struct, mrrStructure);
-            }
-            render(){
-                return render.call(this, this.state, this.props, this.toState.bind(this), as => ({ mrrConnect: this.mrrConnect(as)}));
-            }
+export const withMrr = (mrrStructure, render = null, parentClass = null) => {
+    let mrrParentClass = mrrStructure;
+    const parent = parentClass || React.Component;
+    render = render || parent.prototype.render || (() => null);
+    mrrParentClass = class MyMrrComponent extends parent {
+        __mrrGetComputed(){
+            const parent_struct = parent.prototype.__mrrGetComputed
+              ? parent.prototype.__mrrGetComputed.apply(this)
+              : {};
+            return Object.assign({}, parent_struct, mrrStructure instanceof Function ?  mrrStructure(this.props || {}) : mrrStructure);
         }
-    } else {
-        if(render){
-            const mrrStructure = parentClassOrMrrStructure;
-            const parent = parentClass || React.Component;
-            parentClassOrMrrStructure = class MyMrrComponent extends parent {
-                get computed(){
-                    const parent_struct = parent.prototype.computed || {};
-                    return Object.assign({}, parent_struct, mrrStructure(this.props));
-                }
-                render(){
-                    return render.call(this, this.state, this.props, this.toState.bind(this), as => ({ mrrConnect: this.mrrConnect(as)}))
-                }
-            }
+        render(){
+            const self = this;
+            return render.call(this, this.state, this.props, this.toState.bind(this), as => ({ mrrConnect: this.mrrConnect(as)}));
         }
     }
-    return class Mrr extends parentClassOrMrrStructure {
-        constructor(props, context) {
-            super(props, context);
+    return class Mrr extends mrrParentClass {
+        constructor(props, context, already_inited) {
+            super(props, context, true);
+            if(already_inited) {
+              //return;
+            }
+            this.props = props || {};
             this.__mrr = {
                 closureFuncs: {},
                 children: {},
                 childrenCounter: 0,
                 anonCellsCounter: 0,
                 linksNeeded: {},
-                realComputed: Object.assign({}, this.computed),
+                realComputed: Object.assign({}, this.__mrrGetComputed()),
                 constructing: true,
                 thunks: {},
                 skip,
@@ -276,12 +280,8 @@ export const withMrr = (parentClassOrMrrStructure, render = null, parentClass = 
                 GG.__mrr.subscribers.push(this);
             }
             this.state = this.initialState;
-            this.props = this.props || {};
             if(this.props.mrrConnect){
                 this.props.mrrConnect.subscribe(this);
-            }
-            if(GG){
-                setStateForLinkedCells(this, GG, '^');
             }
             this.__mrr.constructing = false;
         }
@@ -377,7 +377,7 @@ export const withMrr = (parentClassOrMrrStructure, render = null, parentClass = 
                 if(key === '$init'){
                     let init_vals = mrr[key] instanceof Function ? mrr[key](this.props) : mrr[key];
                     for(let cell in init_vals){
-                        this.__mrrSetState(cell, init_vals[cell]);
+                        this.__mrrSetState(cell, init_vals[cell], []);
                         updateOnInit[cell] = init_vals[cell];
                     }
                     continue;
@@ -423,7 +423,7 @@ export const withMrr = (parentClassOrMrrStructure, render = null, parentClass = 
             this.setState({[key]: val});
         }
         toStateAs(key, val){
-            this.setState({[key]: val});
+            this.setState({[key]: val}, null, null, true);
         }
         mrrConnect(as){
             const self = this;
@@ -436,9 +436,6 @@ export const withMrr = (parentClassOrMrrStructure, render = null, parentClass = 
                     this.__mrr.children[as] = child;
                     child.__mrrParent = self;
                     child.__mrrLinkedAs = as;
-                    // read values for linked cells from child
-                    setStateForLinkedCells(this, child, as);
-                    setStateForLinkedCells(child, this, '..');
                 }
             }
         }
@@ -480,9 +477,9 @@ export const withMrr = (parentClassOrMrrStructure, render = null, parentClass = 
                         key.forEach(k => {
                             ns[k] = value;
                         })
-                        this.setState(ns);
+                        this.setState(ns, null, null, true);
                     } else {
-                        this.setState({[key]: value});
+                        this.setState({[key]: value}, null, null, true);
                     }
                 }
                 if(val === undefined){
@@ -513,18 +510,18 @@ export const withMrr = (parentClassOrMrrStructure, render = null, parentClass = 
             }));
             return res;
         }
-        __mrrUpdateCell(cell, parent_cell, update){
+        __mrrUpdateCell(cell, parent_cell, update, parent_stack){
             var val, func, args, updateNested, types = [];
             const superSetState = super.setState;
             const updateFunc = val => {
                 if(val === skip) {
                     return;
                 }
-                this.__mrrSetState(cell, val, parent_cell);
+                this.__mrrSetState(cell, val, parent_cell, parent_stack);
                 const update = {};
                 update[cell] = val;
-                this.checkMrrCellUpdate(cell, update);
-                superSetState.call(this, update);
+                this.checkMrrCellUpdate(cell, update, parent_stack, val);
+                superSetState.call(this, update, null, true);
             }
             const fexpr = this.__mrr.realComputed[cell];
             if(typeof fexpr[0] === 'string'){
@@ -534,11 +531,11 @@ export const withMrr = (parentClassOrMrrStructure, render = null, parentClass = 
             if(types.indexOf('nested') !== -1){
                 updateNested = (subcell, val) => {
                     const subcellname = cell + '.' + subcell;
-                    this.__mrrSetState(subcellname, val, parent_cell);
+                    this.__mrrSetState(subcellname, val, parent_cell, parent_stack);
                     const update = {};
                     update[subcellname] = val;
-                    this.checkMrrCellUpdate(subcellname, update);
-                    (parentClassOrMrrStructure.prototype.setState || (() => {})).call(this, update);
+                    this.checkMrrCellUpdate(subcellname, update, parent_stack, val);
+                    (mrrParentClass.prototype.setState || (() => {})).call(this, update, null, true);
                 }
             }
 
@@ -610,18 +607,19 @@ export const withMrr = (parentClassOrMrrStructure, render = null, parentClass = 
                     return;
                 }
                 update[cell] = val;
-                this.__mrrSetState(cell, val, parent_cell);
-                this.checkMrrCellUpdate(cell, update);
+                this.__mrrSetState(cell, val, parent_cell, parent_stack);
+                this.checkMrrCellUpdate(cell, update, parent_stack, val);
             }
         }
-        checkMrrCellUpdate(parent_cell, update){
+        checkMrrCellUpdate(parent_cell, update, parent_stack = [], val){
             if(this.mrrDepMap[parent_cell]){
                 for(let cell of this.mrrDepMap[parent_cell]){
-                    this.__mrrUpdateCell(cell, parent_cell, update);
+                    const next_parent_stack = this.__mrr.realComputed.$log ? [...parent_stack, [parent_cell, val]] : parent_stack;
+                    this.__mrrUpdateCell(cell, parent_cell, update, next_parent_stack);
                 }
             }
         }
-        __mrrSetState(key, val, parent_cell){
+        __mrrSetState(key, val, parent_cell, parent_stack){
             const styles = 'background: #898cec; color: white; padding: 1px;';
             if(this.__mrr.realComputed.$log || 0) {
                 if(
@@ -634,7 +632,8 @@ export const withMrr = (parentClassOrMrrStructure, render = null, parentClass = 
                     } else {
                       console.log('%c ' + this.__mrrPath + '::' + key
                         //+ '(' + parent_cell +') '
-                        , styles, val);
+                        , styles, val, parent_stack);
+                      //if(!parent_stack) debugger;
                     }
                 }
             }
@@ -646,29 +645,29 @@ export const withMrr = (parentClassOrMrrStructure, render = null, parentClass = 
                 }
             } else {
                 for(let as in this.__mrr.children){
-                    if(    this.__mrr.children[as].__mrr.linksNeeded['..'] 
+                    if(    this.__mrr.children[as].__mrr.linksNeeded['..']
                         && this.__mrr.children[as].__mrr.linksNeeded['..'][key]
                     ){
                         updateOtherGrid(this.__mrr.children[as], '..', key, val);
                     }
                 }
                 let as  = this.__mrrLinkedAs;
-                if(    this.__mrrParent 
-                    && this.__mrrParent.__mrr.linksNeeded[as] 
+                if(    this.__mrrParent
+                    && this.__mrrParent.__mrr.linksNeeded[as]
                     && this.__mrrParent.__mrr.linksNeeded[as][key]
                 ){
                     updateOtherGrid(this.__mrrParent, as, key, val);
                 }
-                if(    this.__mrrParent 
-                    && this.__mrrParent.__mrr.linksNeeded['*'] 
+                if(    this.__mrrParent
+                    && this.__mrrParent.__mrr.linksNeeded['*']
                     && this.__mrrParent.__mrr.linksNeeded['*'][key]
                 ){
                     updateOtherGrid(this.__mrrParent, '*', key, val);
                 }
-                if(    this.__mrr.expose 
-                    && this.__mrr.expose[key] 
-                    && GG 
-                    && GG.__mrr.linksNeeded['*'] 
+                if(    this.__mrr.expose
+                    && this.__mrr.expose[key]
+                    && GG
+                    && GG.__mrr.linksNeeded['*']
                     && GG.__mrr.linksNeeded['*'][this.__mrr.expose[key]]
                 ){
                     updateOtherGrid(GG, '*', this.__mrr.expose[key], val);
@@ -676,19 +675,27 @@ export const withMrr = (parentClassOrMrrStructure, render = null, parentClass = 
             }
             this.mrrState[key] = val;
         }
-        setState(ns, cb){
+        getUpdateQueue(cell){
+
+        }
+        setState(ns, cb, alreadyRun, topLevel){
+            if(topLevel){
+                //console.log('SSSSS', ns);
+            }
             if(!(ns instanceof Object)) {
                 ns = ns.call(null, this.state, this.props);
             }
             const update = Object.assign({}, ns);
-            for(let cell in update){
-                this.__mrrSetState(cell, update[cell]);
-            }
-            for(let parent_cell in update){
-                this.checkMrrCellUpdate(parent_cell, update);
+            if(!alreadyRun){
+              for(let cell in update){
+                  this.__mrrSetState(cell, update[cell], null, []);
+              }
+              for(let parent_cell in update){
+                  this.checkMrrCellUpdate(parent_cell, update);
+              }
             }
             if(!this.__mrr.constructing){
-                return (parentClassOrMrrStructure.prototype.setState || (() => {})).call(this, update, cb);
+                return (mrrParentClass.prototype.setState || (() => {})).call(this, update, cb, true);
             } else {
                 for(let cell in update){
                     this.initialState[cell] = update[cell];
@@ -699,7 +706,7 @@ export const withMrr = (parentClassOrMrrStructure, render = null, parentClass = 
     }
 }
 
-const def = withMrr(React.Component);
+const def = withMrr({}, null, React.Component);
 def.skip = skip;
 
 export const initGlobalGrid = (struct, force = false) => {
@@ -707,11 +714,11 @@ export const initGlobalGrid = (struct, force = false) => {
         throw new Error('Mrr Error: Global Grid already inited!');
     }
     class GlobalGrid {
-        get computed(){
+        __mrrGetComputed(){
             return struct;
         }
     }
-    const GlobalGridClass = withMrr(GlobalGrid);
+    const GlobalGridClass = withMrr(null, null, GlobalGrid);
     GG = new GlobalGridClass;
     GG.__mrr.subscribers = [];
     return GG;
