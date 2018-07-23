@@ -422,6 +422,28 @@ var defMacros = {
     }
 };
 
+var mrrJoin = function mrrJoin() {
+    var child_struct = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+    var parent_struct = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+    var struct = Object.assign({}, parent_struct, child_struct);
+    if (parent_struct && child_struct && parent_struct.$init && child_struct.$init) {
+        struct.$init = Object.assign({}, parent_struct.$init || {}, child_struct.$init || {});
+    }
+    for (var k in struct) {
+        if (k[0] === '+') {
+            var real_k = k.substr(1);
+            if (!struct[real_k]) {
+                struct[real_k] = struct[k];
+            } else {
+                struct[real_k] = ['join', struct[k], struct[real_k]];
+            }
+            delete struct[k];
+        }
+    }
+    return struct;
+};
+
 var withMrr = exports.withMrr = function withMrr(mrrStructure) {
     var _render = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
 
@@ -445,7 +467,7 @@ var withMrr = exports.withMrr = function withMrr(mrrStructure) {
             key: '__mrrGetComputed',
             value: function __mrrGetComputed() {
                 var parent_struct = parent.prototype.__mrrGetComputed ? parent.prototype.__mrrGetComputed.apply(this) : {};
-                return Object.assign({}, parent_struct, mrrStructure instanceof Function ? mrrStructure(this.props || {}) : mrrStructure);
+                return mrrJoin(this.props.__mrr, mrrJoin(mrrStructure instanceof Function ? mrrStructure(this.props || {}) : mrrStructure, parent_struct));
             }
         }, {
             key: 'render',
@@ -666,6 +688,34 @@ var withMrr = exports.withMrr = function withMrr(mrrStructure) {
                         _this4.__mrr.children[as] = child;
                         child.__mrrParent = self;
                         child.__mrrLinkedAs = as;
+                        for (var a in child.__mrr.linksNeeded['..']) {
+                            var child_cells = child.__mrr.linksNeeded['..'][a];
+                            var val = self.mrrState[a];
+                            var _iteratorNormalCompletion2 = true;
+                            var _didIteratorError2 = false;
+                            var _iteratorError2 = undefined;
+
+                            try {
+                                for (var _iterator2 = child_cells[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+                                    var cell = _step2.value;
+
+                                    child.mrrState[cell] = val;
+                                }
+                            } catch (err) {
+                                _didIteratorError2 = true;
+                                _iteratorError2 = err;
+                            } finally {
+                                try {
+                                    if (!_iteratorNormalCompletion2 && _iterator2.return) {
+                                        _iterator2.return();
+                                    }
+                                } finally {
+                                    if (_didIteratorError2) {
+                                        throw _iteratorError2;
+                                    }
+                                }
+                            }
+                        }
                     }
                 };
             }
@@ -859,28 +909,28 @@ var withMrr = exports.withMrr = function withMrr(mrrStructure) {
                 var val = arguments[3];
 
                 if (this.mrrDepMap[parent_cell]) {
-                    var _iteratorNormalCompletion2 = true;
-                    var _didIteratorError2 = false;
-                    var _iteratorError2 = undefined;
+                    var _iteratorNormalCompletion3 = true;
+                    var _didIteratorError3 = false;
+                    var _iteratorError3 = undefined;
 
                     try {
-                        for (var _iterator2 = this.mrrDepMap[parent_cell][Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-                            var cell = _step2.value;
+                        for (var _iterator3 = this.mrrDepMap[parent_cell][Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+                            var cell = _step3.value;
 
                             var next_parent_stack = this.__mrr.realComputed.$log ? [].concat(_toConsumableArray(parent_stack), [[parent_cell, val]]) : parent_stack;
                             this.__mrrUpdateCell(cell, parent_cell, update, next_parent_stack);
                         }
                     } catch (err) {
-                        _didIteratorError2 = true;
-                        _iteratorError2 = err;
+                        _didIteratorError3 = true;
+                        _iteratorError3 = err;
                     } finally {
                         try {
-                            if (!_iteratorNormalCompletion2 && _iterator2.return) {
-                                _iterator2.return();
+                            if (!_iteratorNormalCompletion3 && _iterator3.return) {
+                                _iterator3.return();
                             }
                         } finally {
-                            if (_didIteratorError2) {
-                                throw _iteratorError2;
+                            if (_didIteratorError3) {
+                                throw _iteratorError3;
                             }
                         }
                     }
@@ -903,29 +953,29 @@ var withMrr = exports.withMrr = function withMrr(mrrStructure) {
                     }
                 }
                 if (GG && GG === this) {
-                    var _iteratorNormalCompletion3 = true;
-                    var _didIteratorError3 = false;
-                    var _iteratorError3 = undefined;
+                    var _iteratorNormalCompletion4 = true;
+                    var _didIteratorError4 = false;
+                    var _iteratorError4 = undefined;
 
                     try {
-                        for (var _iterator3 = this.__mrr.subscribers[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
-                            var sub = _step3.value;
+                        for (var _iterator4 = this.__mrr.subscribers[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+                            var sub = _step4.value;
 
                             if (sub && sub.__mrr.linksNeeded['^'][key]) {
                                 updateOtherGrid(sub, '^', key, val);
                             }
                         }
                     } catch (err) {
-                        _didIteratorError3 = true;
-                        _iteratorError3 = err;
+                        _didIteratorError4 = true;
+                        _iteratorError4 = err;
                     } finally {
                         try {
-                            if (!_iteratorNormalCompletion3 && _iterator3.return) {
-                                _iterator3.return();
+                            if (!_iteratorNormalCompletion4 && _iterator4.return) {
+                                _iterator4.return();
                             }
                         } finally {
-                            if (_didIteratorError3) {
-                                throw _iteratorError3;
+                            if (_didIteratorError4) {
+                                throw _iteratorError4;
                             }
                         }
                     }

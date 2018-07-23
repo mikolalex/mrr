@@ -240,6 +240,25 @@ const defMacros = {
     }
 }
 
+const mrrJoin = (child_struct = {}, parent_struct = {}) => {
+    const struct = Object.assign({}, parent_struct, child_struct);
+    if(parent_struct && child_struct && parent_struct.$init && child_struct.$init) {
+      struct.$init = Object.assign({}, parent_struct.$init || {}, child_struct.$init || {});
+    }
+    for(let k in struct){
+        if(k[0] === '+'){
+            const real_k = k.substr(1);
+            if(!struct[real_k]){
+                struct[real_k] = struct[k];
+            } else {
+                struct[real_k] = ['join', struct[k], struct[real_k]];
+            }
+            delete struct[k];
+        }
+    }
+    return struct;
+}
+
 export const withMrr = (mrrStructure, render = null, parentClass = null) => {
     let mrrParentClass = mrrStructure;
     const parent = parentClass || React.Component;
@@ -249,7 +268,7 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
             const parent_struct = parent.prototype.__mrrGetComputed
               ? parent.prototype.__mrrGetComputed.apply(this)
               : {};
-            return Object.assign({}, parent_struct, mrrStructure instanceof Function ?  mrrStructure(this.props || {}) : mrrStructure);
+            return mrrJoin(this.props.__mrr, mrrJoin(mrrStructure instanceof Function ?  mrrStructure(this.props || {}) : mrrStructure, parent_struct));
         }
         render(){
             const self = this;
@@ -436,6 +455,13 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
                     this.__mrr.children[as] = child;
                     child.__mrrParent = self;
                     child.__mrrLinkedAs = as;
+                    for(let a in child.__mrr.linksNeeded['..']){
+                        const child_cells = child.__mrr.linksNeeded['..'][a];
+                        const val = self.mrrState[a];
+                        for(let cell of child_cells){
+                            child.mrrState[cell] = val;
+                        }
+                    }
                 }
             }
         }
