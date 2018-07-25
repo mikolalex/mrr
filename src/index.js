@@ -180,6 +180,9 @@ const defMacros = {
     '&&': ([a, b]) => {
         return [(a, b) => (a && b), a, b];
     },
+    '||': ([a, b]) => {
+        return [(a, b) => (a || b), a, b];
+    },
     trigger: ([field, val]) => [a => a === val ? true : skip, field],
     skipSame: ([field]) => [(z, x) => shallow_equal(z, x) ? skip : z, field, '^'],
     skipIf: ([func, ...fields]) => {
@@ -647,6 +650,7 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
         }
         __mrrSetState(key, val, parent_cell, parent_stack){
             const styles = 'background: #898cec; color: white; padding: 1px;';
+            //@ todo: omit @@anon cells
             if(this.__mrr.realComputed.$log || 0) {
                 if(
                     (this.__mrr.realComputed.$log && !(this.__mrr.realComputed.$log instanceof Array))
