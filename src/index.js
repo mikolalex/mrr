@@ -177,11 +177,29 @@ const defMacros = {
         return res;
     },
     join: ([...fields]) => ['funnel', (cell, val) => val, ...fields],
-    '&&': ([a, b]) => {
-        return [(a, b) => (a && b), a, b];
+    '&&': ([...cells]) => {
+        return [function(){
+            let res = true;
+            for(let i in arguments){
+                res = res && arguments[i];
+                if(!res){
+                    return res;
+                }
+            }
+            return res;
+        }, ...cells];
     },
-    '||': ([a, b]) => {
-        return [(a, b) => (a || b), a, b];
+    '||': ([...cells]) => {
+        return [function(){
+            let res = false;
+            for(let i in arguments){
+                res = res || arguments[i];
+                if(res){
+                    return res;
+                }
+            }
+            return res;
+        }, ...cells];
     },
     trigger: ([field, val]) => [a => a === val ? true : skip, field],
     skipSame: ([field]) => [(z, x) => shallow_equal(z, x) ? skip : z, field, '^'],
@@ -336,6 +354,10 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
             if(key === "$log") return;
             for(let k in row){
                 var cell = row[k];
+                if((cell === '^') || (cell === skip)){
+                    // prev val of cell or "no cell"
+                    continue;
+                }
                 if(k === '0') {
                     if(!(cell instanceof Function) && (!cell.indexOf ||  (cell.indexOf('.') === -1) && (cell_types.indexOf(cell) === -1))){
                         // it's macro
@@ -374,10 +396,6 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
                     if(this.__mrr.linksNeeded[from][parent_cell].indexOf(cell) === -1){
                         this.__mrr.linksNeeded[from][parent_cell].push(cell);
                     }
-                }
-                if(cell === '^'){
-                    // prev val of cell
-                    continue;
                 }
                 if(cell[0] === '-'){
                     // passive listening
@@ -455,6 +473,7 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
             return {
                 subscribe: (child) => {
                     child.$name = as;
+                    child.state.$name = as;
                     this.__mrr.children[as] = child;
                     child.__mrrParent = self;
                     child.__mrrLinkedAs = as;
@@ -518,7 +537,10 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
             }
         }
         __getCellArgs(cell){
-            const res = this.__mrr.realComputed[cell].slice(this.__mrr.realComputed[cell][0] instanceof Function ? 1 : 2).map((arg_cell => {
+            const arg_cells = this.__mrr.realComputed[cell]
+                .slice(this.__mrr.realComputed[cell][0] instanceof Function ? 1 : 2)
+                .filter(a => a !== skip);
+            const res = arg_cells.map((arg_cell => {
                 if(arg_cell === '^'){
                     //console.log('looking for prev val of', cell, this.mrrState, this.state);
                     return this.mrrState[cell];
@@ -529,11 +551,8 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
                     if(arg_cell === '$name'){
                       return this.$name;
                     }
-                    return (this.mrrState[arg_cell] === undefined && this.state)
-                        ? (this.__mrr.constructing
-                            ? this.initialState[arg_cell]
-                            : this.state[arg_cell]
-                        )
+                    return ((this.mrrState[arg_cell] === undefined) && this.state && this.__mrr.constructing)
+                        ? this.initialState[arg_cell]
                         : this.mrrState[arg_cell]
                 }
             }));
@@ -651,7 +670,9 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
         __mrrSetState(key, val, parent_cell, parent_stack){
             const styles = 'background: #898cec; color: white; padding: 1px;';
             //@ todo: omit @@anon cells
-            if(this.__mrr.realComputed.$log || 0) {
+            if(this.__mrr.realComputed.$log 
+                && (key[0] !== '@')
+            ) {
                 if(
                     (this.__mrr.realComputed.$log && !(this.__mrr.realComputed.$log instanceof Array))
                     ||
@@ -662,7 +683,11 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
                     } else {
                       console.log('%c ' + this.__mrrPath + '::' + key
                         //+ '(' + parent_cell +') '
-                        , styles, val, parent_stack);
+                        , styles
+                        , val
+                        //, JSON.stringify(parent_stack)
+                        //, this
+                        );
                       //if(!parent_stack) debugger;
                     }
                 }

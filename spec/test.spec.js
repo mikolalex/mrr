@@ -15,6 +15,8 @@ import SkipN from './testComponents/SkipN';
 import Init from './testComponents/Init';
 import TestGG from './testComponents/TestGG';
 
+import { CardForm } from './testComponents/SuperForm';
+
 import { initGlobalGrid } from '../src';
 
 configure({ adapter: new Adapter() });
@@ -103,6 +105,32 @@ describe('Ticks', () => {
       expect(d).to.equal(2);
       done();
     }, 1900);
+  });
+});
+
+
+describe('Mrr Forms', () => {
+  it('Test validation', (done) => {
+    const wrapper = mount(<CardForm />);
+
+    new Promise(wait(0))
+    .then(() => {
+        wrapper.find('.submit').simulate('click');
+    })
+    .then(wwait(200))
+    .then(() => {
+        const disabled = wrapper.find('.submit').prop('disabled');
+        assert(disabled, true);
+    })
+    .then(wwait(600))
+    .then(() => {
+        const disabled = wrapper.find('.submit').prop('disabled');
+        assert(disabled, false);
+        done();
+    })
+    .catch(e => {
+        console.log("E", e);
+    });
   });
 });
 
