@@ -19,9 +19,7 @@ const skipSame = func => function(prev, ...args){
 
 export default withMrr((props) => {
   const struct = {
-    $init: {
-      val: '',
-    },
+    $init: {},
     '+val': ['merge', {
       setVal: props.filter ? (val => props.filter(val) ? val : skip ) : id,
       '~../clear': always(''),
@@ -34,6 +32,14 @@ export default withMrr((props) => {
 }, (state, props, $) => {
   if(state.hidden) return null;
   let options;
+  const elProps = {
+    onFocus: $('focused', true),
+    onBlur: $('focused', false),
+    onChange: $('setVal'),
+    value: state.val || '',
+    disabled: !!state.disabled,
+    name: state.$name,
+  };
   if(props.type === 'select'){
     if(props.options){
       options = props.options;
@@ -43,15 +49,9 @@ export default withMrr((props) => {
       }
     }
     if(!options) options = [];
+  } else {
+    elProps.type = props.type;
   }
-  const elProps = {
-    onFocus: $('focused', true),
-    onBlur: $('focused', false),
-    onChange: $('setVal'),
-    value: state.val,
-    disabled: !!state.disabled,
-    name: state.$name,
-  };
   return ( <div className="my-input">
     { !props.hideLabel && <label>{ props.label || '' }</label> }
     { !props.hideInput && <div className="input" style={ { display: 'inline-block' } }>

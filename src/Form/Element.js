@@ -51,6 +51,7 @@ const getValidationFunc = props => (cb, val, vals, valids, num) => {
     }
   }
   if(promises.length){
+    cb('clearErrors', true);
     cb('checking', true);
     Promise.all(promises.map(p => p[0])).then(results => {
       for(let k in results){
@@ -74,21 +75,18 @@ export { getValidationFunc }
 export default withMrr((props) => {
   const valPrefix = props.validateOnlyAfterSubmit ? '-' : '';
   const struct = {
-    $init: {
-      val: props.defaultValue,
-      initVal: props.defaultValue,
-    },
-    'initVal': [(parent, name) => {
-      if(props.defaultValue){
-        return props.defaultValue;
+    $init: {},
+    initVal: [(parent, name) => {
+      if(parent && (parent[name] !== undefined)){
+        return props.disassemble ? props.disassemble(parent[name]) : parent[name];
       } else {
-        if(parent){
-          return props.disassemble ? props.disassemble(parent[name]) : parent[name];
+        if(props.defaultValue){
+          return props.defaultValue;
         } else {
           return skip;
         }
       }
-    }, '../initVal', '$name', '$start'],
+    }, '-../val', '$name', '$start'],
     val: 'initVal',
     clear: '../clear',
     'focusedWithName': [(val, name) => [val, name], 'focused', '$name'], 
@@ -98,6 +96,9 @@ export default withMrr((props) => {
     'somethingIsChecked': ['||', ['skipSame', '../somethingIsChecked'], 'beingChecked'],
     //'validWithName': [(status, name) => [status === 'valid', name]
     'validWithName': [(status, name) => {
+      if(status === 'checking'){
+        return ['checking', name];
+      }
       if(status === 'valid'){
         return [true, name];
       }
@@ -107,10 +108,13 @@ export default withMrr((props) => {
       return skip;
     }, 'status', '$name'],
     'orderWithName': [(props, name) => [props.order, name], '-$props', '$name', '$start'],
+    otherVals: ['skipSame', '../val'],
     validation: ['nested', 
       getValidationFunc(props), 
-      valPrefix + 'val', ['skipSame', valPrefix + '../val'], '-valids', 'submit', valPrefix + '$start'],
-    submit: '../submit',
+      valPrefix + 'val', '-otherVals', valPrefix + 'valids', 'submit', valPrefix + '$start'
+      //, props.validateOnlyAfterSubmit ? skip : ['skipIf', not, '-submit', ['join', '../vals', 'val']]
+    ],
+    submit: ['skipIf', a => a, '-hidden', '../submit'],
     status: ['skipSame', ['merge', {
         'validation.checking': a => a ? 'checking' : skip,
         'validation.error': 'invalid',
@@ -120,6 +124,8 @@ export default withMrr((props) => {
     currentError: ['merge', {
       'validation.error': id,
       'validation.success': '',
+      'validation.clearErrors': '',
+      'val': '',
     }],
     canShowErrors: ['skipSame', ['toggle', 'submit', ['join', 'val', ['turnsFromTo', true, false, 'hidden']]]],
     hideErrors: ['skipSame', [Boolean, 'val']],
@@ -135,7 +141,11 @@ export default withMrr((props) => {
         return currentStep != props.order;
       }
       return props.hidden ? (props.hidden(vals, valids, val, valid)) : false;
-    }, '../currentStep', '../val', '../valids', 'val', 'valid']],
+    }, '../currentStep', '../val', '../valids', 'val', 'valid', '$start']],
+  }
+  if(props.defaultValue !== undefined) {
+    struct.$init.val = props.defaultValue;
+    struct.$init.initVal = props.defaultValue;
   }
   return struct;  
 }, (state, props, $) => {

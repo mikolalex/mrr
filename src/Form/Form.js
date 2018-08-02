@@ -23,10 +23,8 @@ const state = () => {
 
 const propOrSkip = (obj, key) => {
   if(obj){
-    console.log("RET", obj, key);
     return obj[key];
   } else {
-    console.log('SKIP', key);
     return skip;
   }
 }
@@ -46,6 +44,9 @@ const renderFields = (state, props, $, connectAs) => {
     }
     if(!config.type){
       elProps.type = 'text';
+    }
+    if(props.defaultValue && (props.defaultValue[as] !== undefined)){
+      elProps.defaultValue = config.disassemble ? config.disassemble(props.defaultValue[as]) : props.defaultValue[as];
     }
     return <Comp {...elProps}  />
   })
@@ -69,7 +70,7 @@ function isChecked(a){
 
 const Form = withMrr(props => {
     const struct = {
-        meta: {
+        $meta: {
 
         },
         val: ['skipSame', ['closure', state, ['join', '*/valWithName', 'initVal']]],
@@ -89,6 +90,7 @@ const Form = withMrr(props => {
     };
     return struct;
 }, (state, props, $, connectAs) => {
+  if(state.hidden) return null;
   if(!props.fields){
     return <div>Please override me!</div>;
   }
@@ -104,7 +106,11 @@ const Form = withMrr(props => {
     { state.errorShown && <div className="form-errors">
       { state.currentError }
     </div> }
-    { !props.isChildForm && <div className="form-controls">
+    { state.currentStep && <div className="form-controls">
+        <button className="prevStep" onClick={ $('prevStep') } disabled={ state.controlsDisabled }>Back</button>&nbsp;&nbsp;&nbsp;
+        <button className="nextStep" onClick={ $('nextStep') } disabled={ state.controlsDisabled }>Next</button>
+    </div>}
+    { (state.currentStep === undefined) && !props.isChildForm && <div className="form-controls">
         <button className="clear" onClick={ $('clear') } disabled={ state.controlsDisabled }>Clear</button>&nbsp;&nbsp;&nbsp;
         <button className="submit" onClick={ $('submit') } disabled={ state.controlsDisabled }>Submit</button>
     </div> }

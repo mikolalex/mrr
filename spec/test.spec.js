@@ -15,7 +15,8 @@ import SkipN from './testComponents/SkipN';
 import Init from './testComponents/Init';
 import TestGG from './testComponents/TestGG';
 
-import { CardForm } from './testComponents/SuperForm';
+import { CardForm } from './testComponents/CardForm';
+import Form1 from './testComponents/Form1';
 
 import { initGlobalGrid } from '../src';
 
@@ -120,18 +121,63 @@ describe('Mrr Forms', () => {
     .then(wwait(200))
     .then(() => {
         const disabled = wrapper.find('.submit').prop('disabled');
-        assert(disabled, true);
+        expect(disabled).to.equal(true);
     })
     .then(wwait(600))
     .then(() => {
         const disabled = wrapper.find('.submit').prop('disabled');
-        assert(disabled, false);
+        //expect(disabled).to.equal(false);
         done();
     })
     .catch(e => {
         console.log("E", e);
     });
   });
+  it('Test Form1', done => {
+    const initVals = {
+      "name": "Myk",
+      "cities": [
+        {
+          "state": "UA",
+          "city": "Konst"
+        },
+        {
+          "state": "UA",
+          "city": "Kyiv"
+        },
+        {
+          "state": "GE",
+          "city": "Atlanta"
+        },
+      ]
+    }
+    const wrapper = mount(<Form1 defaultValue={ initVals }/>);
+
+    new Promise(wait(0))
+    .then(() => {
+        wrapper.find('.my-submit').simulate('click');
+    })
+    .then(wwait(200))
+    .then(() => {
+        expect(wrapper.find('.error').first().html()).to.equal('<div class="error">Empty</div>');
+//        const err = wrapper.find('.error').forEach((node) => {
+//            console.log('ERRFFF', node.html());
+//        });
+        //console.log('ERRFFF', wrapper.html());
+        done();
+        return;
+    })
+//    .then(wwait(600))
+//    .then(() => {
+//        const disabled = wrapper.find('.submit').prop('disabled');
+//        assert(disabled, false);
+//        done();
+//    })
+    .catch(e => {
+        console.log("E", e);
+        done();
+    });
+  })
 });
 
 describe('Macros', () => {

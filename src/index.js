@@ -414,6 +414,8 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
             const updateOnInit = {};
             for(let key in mrr){
                 let fexpr = mrr[key];
+                if(key === '$log') continue;
+                if(key === '$meta') continue;
                 if(key === '$init'){
                     let init_vals = mrr[key] instanceof Function ? mrr[key](this.props) : mrr[key];
                     for(let cell in init_vals){
@@ -685,12 +687,15 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
                         //+ '(' + parent_cell +') '
                         , styles
                         , val
-                        //, JSON.stringify(parent_stack)
+                        , JSON.stringify(parent_stack)
                         //, this
                         );
                       //if(!parent_stack) debugger;
                     }
                 }
+            }
+            if(key === 'val' && this.$name === undefined && !val){
+                debugger;
             }
             if(GG && GG === this){
                 for(let sub of this.__mrr.subscribers){

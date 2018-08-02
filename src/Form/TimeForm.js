@@ -1,5 +1,6 @@
 import React from 'react';
 import { withMrr, skip } from '../';
+import Form from './Form';
 
 const not = a => !a;
 const incr = a => a + 1;
@@ -54,52 +55,87 @@ const objFlip = obj => {
   return flippedObj;
 }
 
-export default withMrr({
-  $log: ['allSteps'],
-  $init: {
-    isFormValid: false,
-    input: '',
-    failedAttempts: 0,
-    currentStep: 1,
-  },
-  submit: ['merge', '../submit', 'tryNextStep'],
-  currentStep: ['merge', {
-      nextStep: (_, prev, orders) => {
-        const next = Number(prev) + 1;
-        if(orders[next]){
-          return next;
-        } else {
-          return prev;
-        }
-      },
-      prevStep: (_, prev) => prev - 1 || 1,
-      toStep: id,
-  }, '^', '-orders'],
-  vals: ['skipSame', ['closure', state, '*/valWithName']],
-  allSteps: ['skipSame', [a => a.size, ['closure', set, '*/orderWithName']]],
-  valids: ['skipSame', ['closure', state, '*/validWithName']],
-  validSoFar: [(valids, orders, currentStep) => {
-    let valid = true;
-    for(let i = 1; i <= currentStep; i++){
-      valid = valid && valids[orders[i]];
+
+const isPromise = a => a && a.constructor && a.constructor.name === 'Promise';
+
+const getValidationFunc = props => (cb, val, vals, valids, orders, currentStep) => {
+  if(!props.errors){
+    return;
+  }
+  const promises = [];
+  for(let msg in props.errors){
+    const res = props.errors[msg](val, vals, valids, currentStep);
+    if(isPromise(res)){
+      promises.push([res, msg]);
+    } else {
+      if(res){
+        cb('error', msg);
+        return;
+      }
     }
-    //console.log('Valid so far?', valids, orders, currentStep, valid);
-    return valid;
-  }, '-valids', '-orders', '-currentStep', 'tryNextStep'],
-  nextStep: ['skipIf', not, 'validSoFar'],
-  reset: ['skipSame', 'currentStep'],
-  orders: ['skipSame', [objFlip, ['closure', state, '*/orderWithName']]],
-  'valWithName': [(val, name) => [val, name], 'vals', '$name'],
-  'validWithName': [(valids, name) => {
-    let valid = true;
-    for(let k in valids){
-        if(!valids[k]) {
-            valid = false;
-            break;
+  }
+  if(promises.length){
+    cb('checking', true);
+    Promise.all(promises.map(p => p[0])).then(results => {
+      for(let k in results){
+        if(results[k]){
+          cb('checking', false);
+          cb('error', promises[k][1]);
+          return;
         }
-    }
-    return [valid, name];
-  }, 'valids', '$name']
-}, (state, props, $, connectAs) => {
-    return 'Please override me!';
-})
+      }
+      cb('checking', false);
+      cb('success', true);
+      return;
+    })
+  } else {
+    cb('success', true);
+  }
+};
+
+export default withMrr(props => {
+
+  const valPrefix = props.validateOnlyAfterSubmit ? '-' : '';
+  return {
+    $init: {
+      currentStep: 1,
+    },
+    currentStep: ['merge', {
+        "makeNextStep.next": (_, prev) => Number(prev) + 1,
+        prevStep: (_, prev) => prev - 1 || 1,
+        toStep: id,
+    }, '^'],
+    makeNextStep: ['split', {
+      'next': (orders, currentStep) => orders[currentStep + 1],
+      'final': (orders, currentStep) => !orders[currentStep + 1],
+    }, '-orders', '-currentStep', 'makeNextStepAfterValidation'],
+    allSteps: ['skipSame', [a => a.size, ['closure', set, '*/orderWithName']]],
+    validation: ['nested', 
+      getValidationFunc(props), 
+      valPrefix + 'val', ['skipSame', valPrefix + '../val'], '-valids', 'makeNextStep.final'],
+    mayProceed: ['toggle', 'nextStep', 'val'],
+    validSoFar: ['join', ['closure', () => {
+        const state = {};
+        return (valids, orders, currentStep, mayProceed) => {
+          if(!orders) return skip;
+          const key = orders[currentStep];
+          const ok = (state[key] === 'checking') && (valids[key] === true) && mayProceed;
+          state[key] = valids[key];
+          return ok;
+        }
+      }, 'valids', '-orders', '-currentStep', '-mayProceed'], 
+      [(valids, orders, currentStep) => {
+        if(!orders) return skip;
+        if(!valids) return skip;
+        const key = orders[currentStep];
+        return (valids[key] === true) || (valids[key] === undefined);
+      }, 
+      '-valids', '-orders', '-currentStep', 'nextStep'],
+    ],
+    submit: ['merge', '../submit', 'nextStep'],
+    makeNextStepAfterValidation: ['skipIf', not, 'validSoFar'],
+    //reset: ['skipSame', 'currentStep'],
+    orders: ['skipSame', [objFlip, ['closure', state, '*/orderWithName']]],
+  }
+
+}, null, Form);
