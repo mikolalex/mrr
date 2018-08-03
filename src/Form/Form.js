@@ -1,7 +1,9 @@
 import React from 'react';
-import Input from './Input';
-import { withMrr, skip } from '../';
+
+import { withMrr, skip } from './myMrr';
+
 import Element from './Element';
+import Input from './Input';
 
 const not = a => !a;
 const incr = a => a + 1;
@@ -73,20 +75,20 @@ const Form = withMrr(props => {
         $meta: {
 
         },
-        val: ['skipSame', ['closure', state, ['join', '*/valWithName', 'initVal']]],
-        valids: ['skipSame', ['closure', state, '*/validWithName']],
-        focusedChildren: ['skipSame', ['closure', state, '*/focusedWithName']],
-        focused: [findFirst, 'focusedChildren'],
-        checkings: ['skipSame', ['closure', state, '*/beingCheckedWithName']],
-        beingChecked: ['skipSame', [(a, status) => {
+        "=val": ['closure', state, ['join', '*/valWithName', 'initVal']],
+        "=valids": ['closure', state, '*/validWithName'],
+        "=focusedChildren": ['closure', state, '*/focusedWithName'],
+        "=focused": [findFirst, 'focusedChildren'],
+        "=checkings": ['closure', state, '*/beingCheckedWithName'],
+        "=beingChecked": [(a, status) => {
           //console.log('BC', a, status);
           if(status === 'checking'){
             return true;
           }
           return isChecked(a);
-        }, 'checkings', 'status']],
-        controlsDisabled: ['||', 'disabled', props.disableControlsWhenValidated ? 'somethingIsChecked' : skip],
-        inputsDisabled: ['||', 'disabled', props.disableInputsWhenValidated ? 'somethingIsChecked' : skip],
+        }, 'checkings', 'status'],
+        "=controlsDisabled": ['||', 'disabled', props.disableControlsWhenValidated ? 'somethingIsChecked' : skip],
+        "=inputsDisabled": ['||', 'disabled', props.disableInputsWhenValidated ? 'somethingIsChecked' : skip],
     };
     return struct;
 }, (state, props, $, connectAs) => {

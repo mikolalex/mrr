@@ -1,7 +1,8 @@
 import React from 'react';
-import { withMrr, skip } from '../';
+import { withMrr, skip } from './myMrr';
 import Element, { getValidationFunc } from './Element';
 import Form from './Form';
+
 
 const arrState = (a, prev) => {
   let state = prev ? prev.slice() : [];
@@ -19,7 +20,7 @@ export default withMrr(props => ({
         initVal: vals => vals ? vals.length : skip,
     }, '^'],
     '+hideErrors': 'length',
-    val: ['closure.funnel', (init) => {
+    "=val": ['closure.funnel', (init) => {
       let prev = init || [];
       return (cell, val) => {
         if(cell === 'initVal'){
@@ -28,11 +29,12 @@ export default withMrr(props => ({
           let state = prev.slice();
           state[val[1]] = val[0];
           prev = state;
+
         }
         return prev;
       }
     }, '*/valWithName', 'initVal'],
-    valids: ['skipSame', [arrState, '*/validWithName', '^']],
+    "=valids": ['skipSame', [arrState, '*/validWithName', '^']],
     validation: ['nested', getValidationFunc(props), 'val', '../val', 'valids', 'length', 'submit', '$start'],
 }), (state, props, $, connectAs) => {
     const arr = new Array(state.length).fill(true);
@@ -43,7 +45,7 @@ export default withMrr(props => ({
       if(props.defaultValue && props.defaultValue[i] !== undefined){
         childProps.defaultValue = props.defaultValue[i];
       }
-      return ( <div key={ i }>
+      return ( <div>
         <Child { ...childProps }/>
       </div>);
     }) }

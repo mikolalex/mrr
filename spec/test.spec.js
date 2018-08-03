@@ -130,7 +130,7 @@ describe('Mrr Forms', () => {
         done();
     })
     .catch(e => {
-        console.log("E", e);
+        console.log("Error:", e);
     });
   });
   it('Test Form1', done => {
@@ -160,10 +160,7 @@ describe('Mrr Forms', () => {
     .then(wwait(200))
     .then(() => {
         expect(wrapper.find('.error').first().html()).to.equal('<div class="error">Empty</div>');
-//        const err = wrapper.find('.error').forEach((node) => {
-//            console.log('ERRFFF', node.html());
-//        });
-        //console.log('ERRFFF', wrapper.html());
+        //console.log('Html', wrapper.html());
         done();
         return;
     })
@@ -174,7 +171,7 @@ describe('Mrr Forms', () => {
 //        done();
 //    })
     .catch(e => {
-        console.log("E", e);
+        console.log("Error:", e);
         done();
     });
   })

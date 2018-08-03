@@ -28,7 +28,15 @@ const shallow_equal = (a, b) => {
             if(!(a.hasOwnProperty(k))){
                 continue;
             }
-            if(a[k] != b[k]){
+            if(a[k] !== b[k]){
+                return false;
+            }
+        }
+        for(let k in b){
+            if(!(b.hasOwnProperty(k))){
+                continue;
+            }
+            if(a[k] !== b[k]){
                 return false;
             }
         }
@@ -280,6 +288,15 @@ const mrrJoin = (child_struct = {}, parent_struct = {}) => {
     return struct;
 }
 
+const objMap = (obj, func) => {
+    const res = {};
+    for(let i in obj){
+        const [val, key] = func(obj[i], i);
+        res[key] = val;
+    }
+    return res;
+}
+
 export const withMrr = (mrrStructure, render = null, parentClass = null) => {
     let mrrParentClass = mrrStructure;
     const parent = parentClass || React.Component;
@@ -309,12 +326,24 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
                 childrenCounter: 0,
                 anonCellsCounter: 0,
                 linksNeeded: {},
-                realComputed: Object.assign({}, this.__mrrGetComputed()),
                 constructing: true,
                 thunks: {},
                 skip,
                 expose: {},
+                signalCells: {},
+                valueCells: {},
             };
+            this.__mrr.realComputed = Object.assign({}, objMap(this.__mrrGetComputed(), (val, key) => {
+                if(key[0] === '~'){
+                    key = key.substr(1);
+                    this.__mrr.signalCells[key] = true;
+                }
+                if(key[0] === '='){
+                    key = key.substr(1);
+                    this.__mrr.valueCells[key] = true;
+                }
+                return [val, key];
+            }));
             this.parseMrr();
             if(GG && this.__mrr.linksNeeded['^']){
                 GG.__mrr.subscribers.push(this);
@@ -646,9 +675,9 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
                 return;
             }
             const current_val = this.mrrState[cell];
-            if(current_val == val){
-                //console.log('DUPLICATE!', val);
-                //return;
+            if(this.__mrr.valueCells[cell] && shallow_equal(current_val, val)){
+                //console.log('Duplicate', cell, val, current_val);
+                return;
             }
             if(isPromise(val)){
                 val.then(updateFunc)
@@ -687,7 +716,7 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
                         //+ '(' + parent_cell +') '
                         , styles
                         , val
-                        , JSON.stringify(parent_stack)
+                        //, JSON.stringify(parent_stack)
                         //, this
                         );
                       //if(!parent_stack) debugger;

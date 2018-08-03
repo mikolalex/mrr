@@ -1,5 +1,6 @@
 import React from 'react';
-import { withMrr, skip } from '../';
+
+import { withMrr, skip } from './myMrr';
 import Element from './Element';
 
 const not = a => !a;
