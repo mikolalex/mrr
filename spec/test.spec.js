@@ -17,6 +17,7 @@ import TestGG from './testComponents/TestGG';
 
 import { CardForm } from './testComponents/CardForm';
 import Form1 from './testComponents/Form1';
+import CascadeForm from './testComponents/CascadeForm';
 
 import { initGlobalGrid } from '../src';
 
@@ -132,6 +133,34 @@ describe('Mrr Forms', () => {
     .catch(e => {
         console.log("Error:", e);
     });
+  });
+  it('Test CascadeForm', done => {
+    const wrapper = mount(<CascadeForm/>);
+    new Promise(wait(0))
+    .then(() => {
+        expect(wrapper.find('select').length).to.equal(2);
+        wrapper.find('select').first().simulate('change', {target: {value: '', type: 'select'}});
+    })
+    .then(wwait(300))
+    .then(() => {
+        expect(wrapper.find('select').length).to.equal(1);
+        wrapper.find('select').first().simulate('change', {target: {value: 'Ukraine', type: 'select'}});
+    })
+    .then(wwait(300))
+    .then(() => {
+        expect(wrapper.find('select').length).to.equal(2);
+        wrapper.find('select').at(1).simulate('change', {target: {value: 'Kyiv', type: 'select'}});
+    })
+    .then(wwait(300))
+    .then(() => {
+        expect(wrapper.find('select').length).to.equal(3);
+        wrapper.find('select').first().simulate('change', {target: {value: '', type: 'select'}});
+    })
+    .then(wwait(300))
+    .then(() => {
+        expect(wrapper.find('select').length).to.equal(1);
+        done();
+    })
   });
   it('Test Form1', done => {
     const initVals = {

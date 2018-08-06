@@ -221,6 +221,16 @@ const defMacros = {
         return !res ? true : skip;
       }, ...fields]
     },
+    when: ([func, ...fields]) => {
+      if(!fields.length) {
+        fields = [func];
+        func = a => a;
+      }
+      return [function(){
+        const res = func.apply(null, arguments);
+        return !!res ? true : skip;
+      }, ...fields]
+    },
     turnsFromTo: ([from, to, cell]) => ['closure', () => {
         let prev_val;
         return (val) => {
@@ -331,8 +341,10 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
                 skip,
                 expose: {},
                 signalCells: {},
-                valueCells: {},
             };
+            if(!this.__mrr.valueCells){
+                this.__mrr.valueCells = {};
+            }
             this.__mrr.realComputed = Object.assign({}, objMap(this.__mrrGetComputed(), (val, key) => {
                 if(key[0] === '~'){
                     key = key.substr(1);
@@ -444,6 +456,7 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
             for(let key in mrr){
                 let fexpr = mrr[key];
                 if(key === '$log') continue;
+                if(fexpr === skip) continue;
                 if(key === '$meta') continue;
                 if(key === '$init'){
                     let init_vals = mrr[key] instanceof Function ? mrr[key](this.props) : mrr[key];
@@ -676,7 +689,7 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
             }
             const current_val = this.mrrState[cell];
             if(this.__mrr.valueCells[cell] && shallow_equal(current_val, val)){
-                //console.log('Duplicate', cell, val, current_val);
+                //console.log('Duplicate', cell, val, this.__mrr.valueCells);
                 return;
             }
             if(isPromise(val)){
@@ -719,58 +732,56 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
                         //, JSON.stringify(parent_stack)
                         //, this
                         );
-                      //if(!parent_stack) debugger;
                     }
                 }
             }
-            if(key === 'val' && this.$name === undefined && !val){
-                debugger;
-            }
+            this.mrrState[key] = val;
+            
             if(GG && GG === this){
                 for(let sub of this.__mrr.subscribers){
                     if(sub && sub.__mrr.linksNeeded['^'][key]){
-                        updateOtherGrid(sub, '^', key, val);
+                        updateOtherGrid(sub, '^', key, this.mrrState[key]);
                     }
                 }
             } else {
                 for(let as in this.__mrr.children){
                     if(    this.__mrr.children[as].__mrr.linksNeeded['..']
                         && this.__mrr.children[as].__mrr.linksNeeded['..'][key]
+                        && (val === this.mrrState[key])
                     ){
-                        updateOtherGrid(this.__mrr.children[as], '..', key, val);
+                        updateOtherGrid(this.__mrr.children[as], '..', key, this.mrrState[key]);
                     }
                 }
                 let as  = this.__mrrLinkedAs;
                 if(    this.__mrrParent
                     && this.__mrrParent.__mrr.linksNeeded[as]
                     && this.__mrrParent.__mrr.linksNeeded[as][key]
+                    && (val === this.mrrState[key])
                 ){
-                    updateOtherGrid(this.__mrrParent, as, key, val);
+                    updateOtherGrid(this.__mrrParent, as, key, this.mrrState[key]);
                 }
                 if(    this.__mrrParent
                     && this.__mrrParent.__mrr.linksNeeded['*']
                     && this.__mrrParent.__mrr.linksNeeded['*'][key]
+                    && (val === this.mrrState[key])
                 ){
-                    updateOtherGrid(this.__mrrParent, '*', key, val);
+                    updateOtherGrid(this.__mrrParent, '*', key, this.mrrState[key]);
                 }
                 if(    this.__mrr.expose
                     && this.__mrr.expose[key]
                     && GG
                     && GG.__mrr.linksNeeded['*']
                     && GG.__mrr.linksNeeded['*'][this.__mrr.expose[key]]
+                    && (val === this.mrrState[key])
                 ){
-                    updateOtherGrid(GG, '*', this.__mrr.expose[key], val);
+                    updateOtherGrid(GG, '*', this.__mrr.expose[key], this.mrrState[key]);
                 }
             }
-            this.mrrState[key] = val;
         }
         getUpdateQueue(cell){
 
         }
         setState(ns, cb, alreadyRun, topLevel){
-            if(topLevel){
-                //console.log('SSSSS', ns);
-            }
             if(!(ns instanceof Object)) {
                 ns = ns.call(null, this.state, this.props);
             }

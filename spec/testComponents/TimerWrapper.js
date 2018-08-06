@@ -7,7 +7,7 @@ const set = (cb, val) => {
 }
 
 export default withMrr({
-  $log: 'no-colour',
+  //$log: 'no-colour',
   $expose: [],
   $init: {
     timerShown: false,

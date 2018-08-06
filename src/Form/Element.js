@@ -132,11 +132,11 @@ export default withMrr((props) => {
     hideErrors: [Boolean, 'val'],
     "=errorsDisplayed": ['toggle', 'validation.error', ['transist', '-submit', 'hideErrors']],
     "=errorShown": ['&&', 'canShowErrors', 'errorsDisplayed'],
-    "=disabled": [Boolean, ['||', 
+    "=disabled": (props.disabled || props.disableWhenValidated ) ? [Boolean, ['||', 
       // disable when beingChecked after submit
       '../disabled',
       props.disabled ? [props.disabled, '../val', '../valids'] : skip,
-      props.disableWhenValidated ? 'somethingIsChecked' : skip]],
+      props.disableWhenValidated ? 'somethingIsChecked' : skip]] : skip,
     "=hidden": [(currentStep, vals, valids, val, valid) => {
       if(currentStep) {
         return currentStep != props.order;

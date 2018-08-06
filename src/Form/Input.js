@@ -23,11 +23,8 @@ export default withMrr((props) => {
     $init: {},
     '+val': ['merge', {
       setVal: props.filter ? (val => props.filter(val) ? val : skip ) : id,
-      '~../clear': always(''),
+      'clear': always(''),
     }],
-  }
-  if(props.getOptions){
-    struct.getOptions = props.getOptions;
   }
   return struct;
 }, (state, props, $) => {
@@ -45,8 +42,8 @@ export default withMrr((props) => {
     if(props.options){
       options = props.options;
     } else {
-      if(props.getOptions){
-        options = state.getOptions;
+      if(state.options){
+        options = state.options;
       }
     }
     if(!options) options = [];
@@ -58,8 +55,8 @@ export default withMrr((props) => {
     { !props.hideInput && <div className="input" style={ { display: 'inline-block' } }>
       { props.type === 'select' && 
         <select {...elProps}>
-        <option></option>
-        { options.map(a => <option key={ a }>{ a }</option>) }
+        <option key=""></option>
+        { (options instanceof Array) && options.map((a, i) => <option key={ i }>{ a }</option>) }
         </select> }
       {
         props.type !== 'select' && 
