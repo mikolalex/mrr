@@ -1,5 +1,6 @@
 import React from 'react';
-import { withMrr, skip } from '../';
+import { withMrr, skip } from './myMrr';
+
 
 const not = a => !a;
 const incr = a => a + 1;
@@ -51,6 +52,7 @@ const getValidationFunc = props => (cb, val, vals, valids, num) => {
     }
   }
   if(promises.length){
+    cb('clearErrors', true);
     cb('checking', true);
     Promise.all(promises.map(p => p[0])).then(results => {
       for(let k in results){
@@ -74,30 +76,30 @@ export { getValidationFunc }
 export default withMrr((props) => {
   const valPrefix = props.validateOnlyAfterSubmit ? '-' : '';
   const struct = {
-    $init: {
-      val: props.defaultValue,
-      initVal: props.defaultValue,
-    },
+    $init: {},
     'initVal': [(parent, name) => {
-      if(props.defaultValue){
-        return props.defaultValue;
+      if(parent && (parent[name] !== undefined)){
+        return props.disassemble ? props.disassemble(parent[name]) : parent[name];
       } else {
-        if(parent){
-          return props.disassemble ? props.disassemble(parent[name]) : parent[name];
+        if(props.defaultValue){
+          return props.defaultValue;
         } else {
           return skip;
         }
       }
-    }, '../initVal', '$name', '$start'],
-    val: 'initVal',
-    clear: '../clear',
-    'focusedWithName': [(val, name) => [val, name], 'focused', '$name'], 
-    'valWithName': [(val, name) => [props.assemble ? props.assemble(val) : val, name], 'val', '$name'],
-    'beingCheckedWithName': [(beingChecked, name) => [beingChecked, name], 'beingChecked', '$name'],
-    'beingChecked': ['skipSame', [status => status === 'checking', 'status']],
-    'somethingIsChecked': ['||', ['skipSame', '../somethingIsChecked'], 'beingChecked'],
+    }, '-../val', '$name', '$start'],
+    'val': 'initVal',
+    'clear': '../clear',
+    '=focusedWithName': [(val, name) => [val, name], 'focused', '$name'], 
+    '=valWithName': [(val, name) => [props.assemble ? props.assemble(val) : val, name], 'val', '$name'],
+    '=beingCheckedWithName': [(beingChecked, name) => [beingChecked, name], 'beingChecked', '$name'],
+    '=beingChecked': [status => status === 'checking', 'status'],
+    '=somethingIsChecked': ['||', '../somethingIsChecked', 'beingChecked'],
     //'validWithName': [(status, name) => [status === 'valid', name]
     'validWithName': [(status, name) => {
+      if(status === 'checking'){
+        return ['checking', name];
+      }
       if(status === 'valid'){
         return [true, name];
       }
@@ -107,35 +109,44 @@ export default withMrr((props) => {
       return skip;
     }, 'status', '$name'],
     'orderWithName': [(props, name) => [props.order, name], '-$props', '$name', '$start'],
+    otherVals: '../val',
     validation: ['nested', 
       getValidationFunc(props), 
-      valPrefix + 'val', ['skipSame', valPrefix + '../val'], '-valids', 'submit', valPrefix + '$start'],
-    submit: '../submit',
-    status: ['skipSame', ['merge', {
+      valPrefix + 'val', '-otherVals', valPrefix + 'valids', 'submit', valPrefix + '$start'
+      //, props.validateOnlyAfterSubmit ? skip : ['skipIf', not, '-submit', ['join', '../vals', 'val']]
+    ],
+    "submit": ['skipIf', a => a, '-hidden', '../submit'],
+    "=status": ['merge', {
         'validation.checking': a => a ? 'checking' : skip,
         'validation.error': 'invalid',
         'validation.success': 'valid',
       }
-    ]],
-    currentError: ['merge', {
+    ],
+    "=currentError": ['merge', {
       'validation.error': id,
       'validation.success': '',
+      'validation.clearErrors': '',
+      'val': '',
     }],
-    canShowErrors: ['skipSame', ['toggle', 'submit', ['join', 'val', ['turnsFromTo', true, false, 'hidden']]]],
-    hideErrors: ['skipSame', [Boolean, 'val']],
-    errorsDisplayed: ['toggle', 'validation.error', ['transist', '-submit', 'hideErrors']],
-    errorShown: ['skipSame', ['&&', 'canShowErrors', 'errorsDisplayed']],
-    disabled: ['skipSame', [Boolean, ['||', 
+    "=canShowErrors": ['toggle', 'submit', ['join', 'val', ['turnsFromTo', true, false, 'hidden']]],
+    hideErrors: [Boolean, 'val'],
+    "=errorsDisplayed": ['toggle', 'validation.error', ['transist', '-submit', 'hideErrors']],
+    "=errorShown": ['&&', 'canShowErrors', 'errorsDisplayed'],
+    "=disabled": (props.disabled || props.disableWhenValidated ) ? [Boolean, ['||', 
       // disable when beingChecked after submit
       '../disabled',
       props.disabled ? [props.disabled, '../val', '../valids'] : skip,
-      props.disableWhenValidated ? 'somethingIsChecked' : skip]]],
-    hidden: ['skipSame', [(currentStep, vals, valids, val, valid) => {
+      props.disableWhenValidated ? 'somethingIsChecked' : skip]] : skip,
+    "=hidden": [(currentStep, vals, valids, val, valid) => {
       if(currentStep) {
         return currentStep != props.order;
       }
       return props.hidden ? (props.hidden(vals, valids, val, valid)) : false;
-    }, '../currentStep', '../val', '../valids', 'val', 'valid']],
+    }, '../currentStep', '../val', '../valids', 'val', 'valid', '$start'],
+  }
+  if(props.defaultValue !== undefined) {
+    struct.$init.val = props.defaultValue;
+    struct.$init.initVal = props.defaultValue;
   }
   return struct;  
 }, (state, props, $) => {

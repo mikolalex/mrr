@@ -15,7 +15,9 @@ import SkipN from './testComponents/SkipN';
 import Init from './testComponents/Init';
 import TestGG from './testComponents/TestGG';
 
-import { CardForm } from './testComponents/SuperForm';
+import { CardForm } from './testComponents/CardForm';
+import Form1 from './testComponents/Form1';
+import CascadeForm from './testComponents/CascadeForm';
 
 import { initGlobalGrid } from '../src';
 
@@ -132,9 +134,79 @@ describe('Mrr Forms', () => {
         done();
     })
     .catch(e => {
-        console.log("E", e);
+        console.log("Error:", e);
     });
   });
+  it('Test CascadeForm', done => {
+    const wrapper = mount(<CascadeForm/>);
+    new Promise(wait(0))
+    .then(() => {
+        expect(wrapper.find('select').length).to.equal(2);
+        wrapper.find('select').first().simulate('change', {target: {value: '', type: 'select'}});
+    })
+    .then(wwait(300))
+    .then(() => {
+        expect(wrapper.find('select').length).to.equal(1);
+        wrapper.find('select').first().simulate('change', {target: {value: 'Ukraine', type: 'select'}});
+    })
+    .then(wwait(300))
+    .then(() => {
+        expect(wrapper.find('select').length).to.equal(2);
+        wrapper.find('select').at(1).simulate('change', {target: {value: 'Kyiv', type: 'select'}});
+    })
+    .then(wwait(300))
+    .then(() => {
+        expect(wrapper.find('select').length).to.equal(3);
+        wrapper.find('select').first().simulate('change', {target: {value: '', type: 'select'}});
+    })
+    .then(wwait(300))
+    .then(() => {
+        expect(wrapper.find('select').length).to.equal(1);
+        done();
+    })
+  });
+  it('Test Form1', done => {
+    const initVals = {
+      "name": "Myk",
+      "cities": [
+        {
+          "state": "UA",
+          "city": "Konst"
+        },
+        {
+          "state": "UA",
+          "city": "Kyiv"
+        },
+        {
+          "state": "GE",
+          "city": "Atlanta"
+        },
+      ]
+    }
+    const wrapper = mount(<Form1 defaultValue={ initVals }/>);
+
+    new Promise(wait(0))
+    .then(() => {
+        wrapper.find('.my-submit').simulate('click');
+    })
+    .then(wwait(200))
+    .then(() => {
+        expect(wrapper.find('.error').first().html()).to.equal('<div class="error">Empty</div>');
+        //console.log('Html', wrapper.html());
+        done();
+        return;
+    })
+//    .then(wwait(600))
+//    .then(() => {
+//        const disabled = wrapper.find('.submit').prop('disabled');
+//        assert(disabled, false);
+//        done();
+//    })
+    .catch(e => {
+        console.log("Error:", e);
+        done();
+    });
+  })
 });
 
 describe('Macros', () => {
