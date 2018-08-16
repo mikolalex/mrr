@@ -125,6 +125,65 @@ const defMacros = {
     toggle: ([setTrue, setFalse]) => {
             return ['funnel', (a,b) => b, [always(true), setTrue], [always(false), setFalse]]
     },
+    debounce: ([time, arg]) => {
+        return ['async.closure', () => {
+            let val, isTimeOut = false;
+            return (cb, value) => {
+                if(!isTimeOut){
+                    isTimeOut = setTimeout(() => {
+                        isTimeOut = false;
+                        cb(val);
+                    }, time);
+                } else {
+                    //console.log('throttled', value);
+                }
+                val = value;
+            }
+        }, arg]
+    },
+    promiseLatest: ([func, ...argCells]) => {
+        if(!func instanceof Function){
+            argCells = [func, ...argCells];
+            func = a => a;
+        }
+        return ['nested.closure', () => {
+            let latest_num;
+            let c = 0;
+            let load_count = 0;
+            return (cb, ...args) => {
+                ++load_count;
+                cb('status', 'pending');
+                const res = func.apply(null, args);
+                if(!isPromise(res)){
+                    // some error
+                    return;
+                } else {
+                    latest_num = ++c;
+                    res.then((function(i, data){
+                        if(!(--load_count)){
+                            cb('status', 'resolved');
+                        }
+                        if(i !== latest_num){
+                            return;
+                        } else {
+                            cb('data', data);
+                            cb('error', null);
+                        }
+                    }).bind(null, c)).catch((function(i, e){
+                        if(!(--load_count)){
+                            cb('status', 'error');
+                        }
+                        if(i !== latest_num){
+                            return;
+                        } else {
+                            cb('data', null);
+                            cb('error', e);
+                        }
+                    }).bind(null, c))
+                }
+            };
+        }, ...argCells]
+    },
     split: ([map, ...argCells]) => {
         return ['nested', (cb, ...args) => {
             for(let k in map){
@@ -296,7 +355,7 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
             return render.call(this, this.state, this.props, this.toState.bind(this), as => ({ mrrConnect: this.mrrConnect(as)}));
         }
     }
-    return class Mrr extends mrrParentClass {
+    const cls = class Mrr extends mrrParentClass {
         constructor(props, context, already_inited) {
             super(props, context, true);
             if(already_inited) {
@@ -315,6 +374,11 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
                 skip,
                 expose: {},
             };
+            if(props && props.extractDebugMethodsTo){
+                props.extractDebugMethodsTo.getState = () => {
+                    return this.mrrState;
+                }
+            }
             this.parseMrr();
             if(GG && this.__mrr.linksNeeded['^']){
                 GG.__mrr.subscribers.push(this);
@@ -759,6 +823,7 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
         }
 
     }
+    return cls;
 }
 
 const def = withMrr({}, null, React.Component);

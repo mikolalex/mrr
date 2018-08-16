@@ -111,7 +111,10 @@ describe('Ticks', () => {
 
 describe('Mrr Forms', () => {
   it('Test validation', (done) => {
-    const wrapper = mount(<CardForm />);
+    const getStateObj_1 = {};
+    const getStateObj_2 = {};
+    const wrapper = mount(<CardForm dbg1={ getStateObj_1 } dbg2={ getStateObj_2 } />);
+
 
     new Promise(wait(0))
     .then(() => {
@@ -120,12 +123,12 @@ describe('Mrr Forms', () => {
     .then(wwait(200))
     .then(() => {
         const disabled = wrapper.find('.submit').prop('disabled');
-        assert(disabled, true);
+        expect(disabled).to.equal(true);
     })
-    .then(wwait(600))
+    .then(wwait(800))
     .then(() => {
-        const disabled = wrapper.find('.submit').prop('disabled');
-        assert(disabled, false);
+        expect(getStateObj_1.getState().controlsDisabled).to.equal(false);
+        expect(getStateObj_2.getState().currentError).to.equal('Please enter card number');
         done();
     })
     .catch(e => {
