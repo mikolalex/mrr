@@ -67,7 +67,15 @@ var shallow_equal = function shallow_equal(a, b) {
             if (!a.hasOwnProperty(k)) {
                 continue;
             }
-            if (a[k] != b[k]) {
+            if (a[k] !== b[k]) {
+                return false;
+            }
+        }
+        for (var _k in b) {
+            if (!b.hasOwnProperty(_k)) {
+                continue;
+            }
+            if (a[_k] !== b[_k]) {
                 return false;
             }
         }
@@ -239,14 +247,88 @@ var defMacros = {
             return b;
         }, [always(true), setTrue], [always(false), setFalse]];
     },
-    split: function split(_ref13) {
-        var _ref14 = _toArray(_ref13),
-            map = _ref14[0],
-            argCells = _ref14.slice(1);
+    debounce: function debounce(_ref13) {
+        var _ref14 = _slicedToArray(_ref13, 2),
+            time = _ref14[0],
+            arg = _ref14[1];
+
+        return ['async.closure', function () {
+            var val = void 0,
+                isTimeOut = false;
+            return function (cb, value) {
+                if (!isTimeOut) {
+                    isTimeOut = setTimeout(function () {
+                        isTimeOut = false;
+                        cb(val);
+                    }, time);
+                } else {
+                    //console.log('throttled', value);
+                }
+                val = value;
+            };
+        }, arg];
+    },
+    promiseLatest: function promiseLatest(_ref15) {
+        var _ref16 = _toArray(_ref15),
+            func = _ref16[0],
+            argCells = _ref16.slice(1);
+
+        if (!func instanceof Function) {
+            argCells = [func].concat(_toConsumableArray(argCells));
+            func = function func(a) {
+                return a;
+            };
+        }
+        return ['nested.closure', function () {
+            var latest_num = void 0;
+            var c = 0;
+            var load_count = 0;
+            return function (cb) {
+                for (var _len3 = arguments.length, args = Array(_len3 > 1 ? _len3 - 1 : 0), _key3 = 1; _key3 < _len3; _key3++) {
+                    args[_key3 - 1] = arguments[_key3];
+                }
+
+                ++load_count;
+                cb('status', 'pending');
+                var res = func.apply(null, args);
+                if (!isPromise(res)) {
+                    // some error
+                    return;
+                } else {
+                    latest_num = ++c;
+                    res.then(function (i, data) {
+                        if (! --load_count) {
+                            cb('status', 'resolved');
+                        }
+                        if (i !== latest_num) {
+                            return;
+                        } else {
+                            cb('data', data);
+                            cb('error', null);
+                        }
+                    }.bind(null, c)).catch(function (i, e) {
+                        if (! --load_count) {
+                            cb('status', 'error');
+                        }
+                        if (i !== latest_num) {
+                            return;
+                        } else {
+                            cb('data', null);
+                            cb('error', e);
+                        }
+                    }.bind(null, c));
+                }
+            };
+        }].concat(_toConsumableArray(argCells));
+    },
+    split: function split(_ref17) {
+        var _ref18 = _toArray(_ref17),
+            map = _ref18[0],
+            argCells = _ref18.slice(1);
 
         return ['nested', function (cb) {
-            for (var _len3 = arguments.length, args = Array(_len3 > 1 ? _len3 - 1 : 0), _key3 = 1; _key3 < _len3; _key3++) {
-                args[_key3 - 1] = arguments[_key3];
+            for (var _len4 = arguments.length, args = Array(_len4 > 1 ? _len4 - 1 : 0), _key4 = 1; _key4 < _len4; _key4++) {
+                args[_key4 - 1] = arguments[_key4];
             }
 
             for (var k in map) {
@@ -262,10 +344,10 @@ var defMacros = {
             return a ? b : skip;
         }].concat(_toConsumableArray(cells));
     },
-    closureMerge: function closureMerge(_ref15) {
-        var _ref16 = _slicedToArray(_ref15, 2),
-            initVal = _ref16[0],
-            map = _ref16[1];
+    closureMerge: function closureMerge(_ref19) {
+        var _ref20 = _slicedToArray(_ref19, 2),
+            initVal = _ref20[0],
+            map = _ref20[1];
 
         var cells = Object.keys(map);
         return ['closure.funnel', function () {
@@ -278,10 +360,10 @@ var defMacros = {
             };
         }].concat(_toConsumableArray(cells));
     },
-    closureMap: function closureMap(_ref17) {
-        var _ref18 = _slicedToArray(_ref17, 2),
-            initVal = _ref18[0],
-            map = _ref18[1];
+    closureMap: function closureMap(_ref21) {
+        var _ref22 = _slicedToArray(_ref21, 2),
+            initVal = _ref22[0],
+            map = _ref22[1];
 
         var cells = Object.keys(map);
         return ['closure.funnel', function () {
@@ -294,9 +376,9 @@ var defMacros = {
             };
         }].concat(_toConsumableArray(cells));
     },
-    mapPrev: function mapPrev(_ref19) {
-        var _ref20 = _slicedToArray(_ref19, 1),
-            map = _ref20[0];
+    mapPrev: function mapPrev(_ref23) {
+        var _ref24 = _slicedToArray(_ref23, 1),
+            map = _ref24[0];
 
         var res = ['closure.funnel', function (prev) {
             return function (cell, val) {
@@ -309,44 +391,65 @@ var defMacros = {
         }
         return res;
     },
-    join: function join(_ref21) {
-        var _ref22 = _toArray(_ref21),
-            fields = _ref22.slice(0);
+    join: function join(_ref25) {
+        var _ref26 = _toArray(_ref25),
+            fields = _ref26.slice(0);
 
         return ['funnel', function (cell, val) {
             return val;
         }].concat(_toConsumableArray(fields));
     },
-    '&&': function _(_ref23) {
-        var _ref24 = _slicedToArray(_ref23, 2),
-            a = _ref24[0],
-            b = _ref24[1];
+    '&&': function _(_ref27) {
+        var _ref28 = _toArray(_ref27),
+            cells = _ref28.slice(0);
 
-        return [function (a, b) {
-            return a && b;
-        }, a, b];
+        return [function () {
+            var res = true;
+            for (var i in arguments) {
+                res = res && arguments[i];
+                if (!res) {
+                    return res;
+                }
+            }
+            return res;
+        }].concat(_toConsumableArray(cells));
     },
-    trigger: function trigger(_ref25) {
-        var _ref26 = _slicedToArray(_ref25, 2),
-            field = _ref26[0],
-            val = _ref26[1];
+    '||': function _(_ref29) {
+        var _ref30 = _toArray(_ref29),
+            cells = _ref30.slice(0);
+
+        return [function () {
+            var res = false;
+            for (var i in arguments) {
+                res = res || arguments[i];
+                if (res) {
+                    return res;
+                }
+            }
+            return res;
+        }].concat(_toConsumableArray(cells));
+    },
+    trigger: function trigger(_ref31) {
+        var _ref32 = _slicedToArray(_ref31, 2),
+            field = _ref32[0],
+            val = _ref32[1];
 
         return [function (a) {
             return a === val ? true : skip;
         }, field];
     },
-    skipSame: function skipSame(_ref27) {
-        var _ref28 = _slicedToArray(_ref27, 1),
-            field = _ref28[0];
+    skipSame: function skipSame(_ref33) {
+        var _ref34 = _slicedToArray(_ref33, 1),
+            field = _ref34[0];
 
         return [function (z, x) {
             return shallow_equal(z, x) ? skip : z;
         }, field, '^'];
     },
-    skipIf: function skipIf(_ref29) {
-        var _ref30 = _toArray(_ref29),
-            func = _ref30[0],
-            fields = _ref30.slice(1);
+    skipIf: function skipIf(_ref35) {
+        var _ref36 = _toArray(_ref35),
+            func = _ref36[0],
+            fields = _ref36.slice(1);
 
         if (!fields.length) {
             fields = [func];
@@ -359,11 +462,27 @@ var defMacros = {
             return !res ? true : skip;
         }].concat(_toConsumableArray(fields));
     },
-    turnsFromTo: function turnsFromTo(_ref31) {
-        var _ref32 = _slicedToArray(_ref31, 3),
-            from = _ref32[0],
-            to = _ref32[1],
-            cell = _ref32[2];
+    when: function when(_ref37) {
+        var _ref38 = _toArray(_ref37),
+            func = _ref38[0],
+            fields = _ref38.slice(1);
+
+        if (!fields.length) {
+            fields = [func];
+            func = function func(a) {
+                return a;
+            };
+        }
+        return [function () {
+            var res = func.apply(null, arguments);
+            return !!res ? true : skip;
+        }].concat(_toConsumableArray(fields));
+    },
+    turnsFromTo: function turnsFromTo(_ref39) {
+        var _ref40 = _slicedToArray(_ref39, 3),
+            from = _ref40[0],
+            to = _ref40[1],
+            cell = _ref40[2];
 
         return ['closure', function () {
             var prev_val = void 0;
@@ -378,10 +497,10 @@ var defMacros = {
             };
         }, cell];
     },
-    skipN: function skipN(_ref33) {
-        var _ref34 = _slicedToArray(_ref33, 2),
-            field = _ref34[0],
-            n = _ref34[1];
+    skipN: function skipN(_ref41) {
+        var _ref42 = _slicedToArray(_ref41, 2),
+            field = _ref42[0],
+            n = _ref42[1];
 
         return ['closure', function () {
             var count = 0;
@@ -395,10 +514,10 @@ var defMacros = {
             };
         }, field];
     },
-    accum: function accum(_ref35) {
-        var _ref36 = _slicedToArray(_ref35, 2),
-            cell = _ref36[0],
-            time = _ref36[1];
+    accum: function accum(_ref43) {
+        var _ref44 = _slicedToArray(_ref43, 2),
+            cell = _ref44[0],
+            time = _ref44[1];
 
         var res = time ? ['async.closure', function () {
             var vals = {};
@@ -444,6 +563,19 @@ var mrrJoin = function mrrJoin() {
     return struct;
 };
 
+var objMap = function objMap(obj, func) {
+    var res = {};
+    for (var i in obj) {
+        var _func = func(obj[i], i),
+            _func2 = _slicedToArray(_func, 2),
+            val = _func2[0],
+            key = _func2[1];
+
+        res[key] = val;
+    }
+    return res;
+};
+
 var withMrr = exports.withMrr = function withMrr(mrrStructure) {
     var _render = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
 
@@ -483,7 +615,7 @@ var withMrr = exports.withMrr = function withMrr(mrrStructure) {
 
         return MyMrrComponent;
     }(parent);
-    return function (_mrrParentClass) {
+    var cls = function (_mrrParentClass) {
         _inherits(Mrr, _mrrParentClass);
 
         function Mrr(props, context, already_inited) {
@@ -501,12 +633,31 @@ var withMrr = exports.withMrr = function withMrr(mrrStructure) {
                 childrenCounter: 0,
                 anonCellsCounter: 0,
                 linksNeeded: {},
-                realComputed: Object.assign({}, _this3.__mrrGetComputed()),
                 constructing: true,
                 thunks: {},
                 skip: skip,
-                expose: {}
+                expose: {},
+                signalCells: {}
             };
+            if (props && props.extractDebugMethodsTo) {
+                props.extractDebugMethodsTo.getState = function () {
+                    return _this3.mrrState;
+                };
+            }
+            if (!_this3.__mrr.valueCells) {
+                _this3.__mrr.valueCells = {};
+            }
+            _this3.__mrr.realComputed = Object.assign({}, objMap(_this3.__mrrGetComputed(), function (val, key) {
+                if (key[0] === '~') {
+                    key = key.substr(1);
+                    _this3.__mrr.signalCells[key] = true;
+                }
+                if (key[0] === '=') {
+                    key = key.substr(1);
+                    _this3.__mrr.valueCells[key] = true;
+                }
+                return [val, key];
+            }));
             _this3.parseMrr();
             if (GG && _this3.__mrr.linksNeeded['^']) {
                 GG.__mrr.subscribers.push(_this3);
@@ -550,6 +701,10 @@ var withMrr = exports.withMrr = function withMrr(mrrStructure) {
                 if (key === "$log") return;
                 for (var k in row) {
                     var cell = row[k];
+                    if (cell === '^' || cell === skip) {
+                        // prev val of cell or "no cell"
+                        continue;
+                    }
                     if (k === '0') {
                         if (!(cell instanceof Function) && (!cell.indexOf || cell.indexOf('.') === -1 && cell_types.indexOf(cell) === -1)) {
                             // it's macro
@@ -593,10 +748,6 @@ var withMrr = exports.withMrr = function withMrr(mrrStructure) {
                             this.__mrr.linksNeeded[from][parent_cell].push(cell);
                         }
                     }
-                    if (cell === '^') {
-                        // prev val of cell
-                        continue;
-                    }
                     if (cell[0] === '-') {
                         // passive listening
                         continue;
@@ -616,6 +767,9 @@ var withMrr = exports.withMrr = function withMrr(mrrStructure) {
                 var updateOnInit = {};
                 for (var key in mrr) {
                     var fexpr = mrr[key];
+                    if (key === '$log') continue;
+                    if (fexpr === skip) continue;
+                    if (key === '$meta') continue;
                     if (key === '$init') {
                         var init_vals = mrr[key] instanceof Function ? mrr[key](this.props) : mrr[key];
                         for (var cell in init_vals) {
@@ -685,6 +839,7 @@ var withMrr = exports.withMrr = function withMrr(mrrStructure) {
                 return {
                     subscribe: function subscribe(child) {
                         child.$name = as;
+                        child.state.$name = as;
                         _this4.__mrr.children[as] = child;
                         child.__mrrParent = self;
                         child.__mrrLinkedAs = as;
@@ -777,7 +932,10 @@ var withMrr = exports.withMrr = function withMrr(mrrStructure) {
             value: function __getCellArgs(cell) {
                 var _this6 = this;
 
-                var res = this.__mrr.realComputed[cell].slice(this.__mrr.realComputed[cell][0] instanceof Function ? 1 : 2).map(function (arg_cell) {
+                var arg_cells = this.__mrr.realComputed[cell].slice(this.__mrr.realComputed[cell][0] instanceof Function ? 1 : 2).filter(function (a) {
+                    return a !== skip;
+                });
+                var res = arg_cells.map(function (arg_cell) {
                     if (arg_cell === '^') {
                         //console.log('looking for prev val of', cell, this.mrrState, this.state);
                         return _this6.mrrState[cell];
@@ -788,7 +946,7 @@ var withMrr = exports.withMrr = function withMrr(mrrStructure) {
                         if (arg_cell === '$name') {
                             return _this6.$name;
                         }
-                        return _this6.mrrState[arg_cell] === undefined && _this6.state ? _this6.__mrr.constructing ? _this6.initialState[arg_cell] : _this6.state[arg_cell] : _this6.mrrState[arg_cell];
+                        return _this6.mrrState[arg_cell] === undefined && _this6.state && _this6.__mrr.constructing ? _this6.initialState[arg_cell] : _this6.mrrState[arg_cell];
                     }
                 });
                 return res;
@@ -887,9 +1045,9 @@ var withMrr = exports.withMrr = function withMrr(mrrStructure) {
                     return;
                 }
                 var current_val = this.mrrState[cell];
-                if (current_val == val) {
-                    //console.log('DUPLICATE!', val);
-                    //return;
+                if (this.__mrr.valueCells[cell] && shallow_equal(current_val, val)) {
+                    //console.log('Duplicate', cell, val, this.__mrr.valueCells);
+                    return;
                 }
                 if (isPromise(val)) {
                     val.then(updateFunc);
@@ -940,18 +1098,23 @@ var withMrr = exports.withMrr = function withMrr(mrrStructure) {
             key: '__mrrSetState',
             value: function __mrrSetState(key, val, parent_cell, parent_stack) {
                 var styles = 'background: #898cec; color: white; padding: 1px;';
-                if (this.__mrr.realComputed.$log || 0) {
+                //@ todo: omit @@anon cells
+                if (this.__mrr.realComputed.$log && key[0] !== '@') {
                     if (this.__mrr.realComputed.$log && !(this.__mrr.realComputed.$log instanceof Array) || this.__mrr.realComputed.$log instanceof Array && this.__mrr.realComputed.$log.indexOf(key) !== -1) {
                         if (this.__mrr.realComputed.$log === 'no-colour') {
                             console.log(key, val);
                         } else {
                             console.log('%c ' + this.__mrrPath + '::' + key
                             //+ '(' + parent_cell +') '
-                            , styles, val, parent_stack);
-                            //if(!parent_stack) debugger;
+                            , styles, val
+                            //, JSON.stringify(parent_stack)
+                            //, this
+                            );
                         }
                     }
                 }
+                this.mrrState[key] = val;
+
                 if (GG && GG === this) {
                     var _iteratorNormalCompletion4 = true;
                     var _didIteratorError4 = false;
@@ -962,7 +1125,7 @@ var withMrr = exports.withMrr = function withMrr(mrrStructure) {
                             var sub = _step4.value;
 
                             if (sub && sub.__mrr.linksNeeded['^'][key]) {
-                                updateOtherGrid(sub, '^', key, val);
+                                updateOtherGrid(sub, '^', key, this.mrrState[key]);
                             }
                         }
                     } catch (err) {
@@ -981,22 +1144,21 @@ var withMrr = exports.withMrr = function withMrr(mrrStructure) {
                     }
                 } else {
                     for (var _as in this.__mrr.children) {
-                        if (this.__mrr.children[_as].__mrr.linksNeeded['..'] && this.__mrr.children[_as].__mrr.linksNeeded['..'][key]) {
-                            updateOtherGrid(this.__mrr.children[_as], '..', key, val);
+                        if (this.__mrr.children[_as].__mrr.linksNeeded['..'] && this.__mrr.children[_as].__mrr.linksNeeded['..'][key] && val === this.mrrState[key]) {
+                            updateOtherGrid(this.__mrr.children[_as], '..', key, this.mrrState[key]);
                         }
                     }
                     var as = this.__mrrLinkedAs;
-                    if (this.__mrrParent && this.__mrrParent.__mrr.linksNeeded[as] && this.__mrrParent.__mrr.linksNeeded[as][key]) {
-                        updateOtherGrid(this.__mrrParent, as, key, val);
+                    if (this.__mrrParent && this.__mrrParent.__mrr.linksNeeded[as] && this.__mrrParent.__mrr.linksNeeded[as][key] && val === this.mrrState[key]) {
+                        updateOtherGrid(this.__mrrParent, as, key, this.mrrState[key]);
                     }
-                    if (this.__mrrParent && this.__mrrParent.__mrr.linksNeeded['*'] && this.__mrrParent.__mrr.linksNeeded['*'][key]) {
-                        updateOtherGrid(this.__mrrParent, '*', key, val);
+                    if (this.__mrrParent && this.__mrrParent.__mrr.linksNeeded['*'] && this.__mrrParent.__mrr.linksNeeded['*'][key] && val === this.mrrState[key]) {
+                        updateOtherGrid(this.__mrrParent, '*', key, this.mrrState[key]);
                     }
-                    if (this.__mrr.expose && this.__mrr.expose[key] && GG && GG.__mrr.linksNeeded['*'] && GG.__mrr.linksNeeded['*'][this.__mrr.expose[key]]) {
-                        updateOtherGrid(GG, '*', this.__mrr.expose[key], val);
+                    if (this.__mrr.expose && this.__mrr.expose[key] && GG && GG.__mrr.linksNeeded['*'] && GG.__mrr.linksNeeded['*'][this.__mrr.expose[key]] && val === this.mrrState[key]) {
+                        updateOtherGrid(GG, '*', this.__mrr.expose[key], this.mrrState[key]);
                     }
                 }
-                this.mrrState[key] = val;
             }
         }, {
             key: 'getUpdateQueue',
@@ -1004,9 +1166,6 @@ var withMrr = exports.withMrr = function withMrr(mrrStructure) {
         }, {
             key: 'setState',
             value: function setState(ns, cb, alreadyRun, topLevel) {
-                if (topLevel) {
-                    //console.log('SSSSS', ns);
-                }
                 if (!(ns instanceof Object)) {
                     ns = ns.call(null, this.state, this.props);
                 }
@@ -1041,6 +1200,7 @@ var withMrr = exports.withMrr = function withMrr(mrrStructure) {
 
         return Mrr;
     }(mrrParentClass);
+    return cls;
 };
 
 var def = withMrr({}, null, _react2.default.Component);
