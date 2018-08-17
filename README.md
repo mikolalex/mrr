@@ -374,6 +374,116 @@ slightly more beautiful
 
 ```
 
+## Built-in macros
+
+#### toggle
+Set the value to ***true*** when the first argument is fired, and **false** when the second is fired.
+```js
+ene: ['toggle', 'bene', 'raba'],
+```
+```
+bene:  --"1"--------------false-------------
+raba:  ----------"bar"--------------false---
+ene:   --true----false----true------false---
+```
+
+#### debounce
+```js
+foo: ['debounce', 300, 'str'],
+```
+```
+(ms): 0====100====200====300====400====500====600=====700=====
+str:  ==="a"==="ab"==="aba"======"abab"==="ababa"==="ababag"==
+foo:  =================="aba"========================"ababag"=
+```
+#### transist
+Returns the value of the second argument if the first is truthy and skips if falsy.
+```js
+make_coffee: ['transist', 'power_enabled', 'start_making_coffee'],
+```
+```
+start_making_coffee:======="1"====="2"====="3"====="4"====="5"====
+power_enabled:      =false=============true================false==
+make_coffee:        ==================="2"="3"====="4"============
+```
+
+#### &&
+Equals to
+```js
+(a, b, ...) => a && b && ...,
+```
+Accepts any number of arguments.
+```js
+a: ['&&', 'foo', 'bar', 'baz']
+```
+```
+foo: =1===========false===true=========
+bar: =2===null=====================10===
+baz: =3=================================
+a:   =3===null=====false===null====3====
+```
+
+#### ||
+Similar to "&&"
+
+#### trigger
+Fires **true** when the argument stream receives certain value.
+```js
+isLucky: ['trigger', 'val', 13],
+```
+```
+val:     ====10====11====12====13=====14=====15===
+isLucky: ======================true===============
+```
+
+#### skipSame
+```js
+foo: ['skipSame', 'bar'],
+```
+```
+bar: ==1=====2=====2====3=====2=====1====="1"======0===
+foo: ==1=====2==========3=====2=====1====="1"==========
+```
+
+#### turnsFromTo
+Fires when the value of the argument changes from "a" to "b"
+```js
+foo: ['turnsFromTo', 5, 6, 'val']
+```
+```
+val: ==1===2===3===4===5===6===7===6===5===4===
+foo: ======================true================
+```
+
+#### skipN
+Omit first **n** signals
+```js
+foo: ['skipN', 'bar', 3],
+```
+```
+bar: =="a"==="b"==="c"==="d"==="e"==="f"==="g"===
+foo: ===================="d"==="e"==="f"==="g"===
+```
+
+#### accum
+Accumulates the values of the stream into array
+```js
+foo: ['accum', 'bar'],
+```
+```
+bar: =1======2========3========4===========4=============
+foo: =[1]====[1,2]===[1,2,3]===[1,2,3,4]===[1,2,3,4,4]===
+```
+Possibly accepts the third argument - an interval(in ms) a value will be stored
+```js
+foo: ['accum', 'bar', 200],
+```
+```
+ms:  =0========100========200========300========400=========500====
+bar: =1======2===========================5=========================
+foo: =[1]====[1,2]========[2]======[]====[5]====================[]=
+```
+
 
 ## Author
 
