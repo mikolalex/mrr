@@ -196,7 +196,7 @@ const defMacros = {
         return ['nested', (cb, ...args) => {
             for(let k in map){
                 const res = map[k].apply(null, args);
-                if(res){
+                if((res !== undefined) && (res !== null) && (res !== false)){
                     cb(k, res);
                 }
             }
