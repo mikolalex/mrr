@@ -5,7 +5,6 @@ const isPromise = a => a instanceof Object && a.toString && a.toString().indexOf
 
 const cell_types = ['funnel', 'closure', 'nested', 'async'];
 const isJustObject = a => (a instanceof Object) && !(a instanceof Array) && !(a instanceof Function);
-let GG;
 let global_macros = {};
 
 const log_styles_cell = 'background: #898cec; color: white; padding: 1px;';
@@ -373,7 +372,16 @@ const objMap = (obj, func) => {
     return res;
 }
 
-export const withMrr = (mrrStructure, render = null, parentClass = null) => {
+const dataTypes = {
+    'array': a => a instanceof Array,
+    'object': a => a instanceof Object,
+    'func': a => a instanceof Function,
+    'int': a => typeof a === 'number',
+    'string': a => typeof a === 'string',
+    'pair': a => (a instanceof Array) && (a.length === 2),
+}
+
+const getWithMrr = (GG) => (mrrStructure, render = null, parentClass = null, isGlobal = false) => {
     let mrrParentClass = mrrStructure;
     const parent = parentClass || React.Component;
     render = render || parent.prototype.render || (() => null);
@@ -407,6 +415,7 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
                 skip,
                 expose: {},
                 signalCells: {},
+                dataTypes: {},
             };
             if(props && props.extractDebugMethodsTo){
                 props.extractDebugMethodsTo.getState = () => {
@@ -424,6 +433,11 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
                 if(key[0] === '='){
                     key = key.substr(1);
                     this.__mrr.valueCells[key] = true;
+                }
+                if(key.indexOf('--') !== -1){
+                    let type;
+                    [key, type] = key.split('--');
+                    this.setCellDataType(key, type);
                 }
                 return [val, key];
             }));
@@ -462,6 +476,19 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
         get __mrrPath(){
             return this.__mrrParent ? this.__mrrParent.__mrrPath + '/' + this.$name : 'root';
         }
+        setCellDataType(cell, type){
+            if(!dataTypes[type]){
+                throw new Error('Undeclared type: ' + type);
+            }
+            cell = cell[0] === '-' ? cell.slice(1) : cell;
+            if(!this.__mrr.dataTypes[cell]){
+                this.__mrr.dataTypes[cell] = type;
+            } else {
+                if(this.__mrr.dataTypes[cell] !== type){
+                    throw new Error("Different type annotation for the same cell found: " + this.__mrr.dataTypes[cell] + ', ' + type + ' for cell "' + cell + '"')
+                }
+            }
+        }
         parseRow(row, key, depMap){
             if(key === "$log") return;
             for(let k in row){
@@ -494,6 +521,14 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
                     this.parseRow(cell, anonName, depMap);
                     cell = anonName;
                 }
+                
+                if(cell.indexOf('--') !== -1){
+                    let type;
+                    [cell, type] = cell.split('--');
+                    row[k] = cell;
+                    this.setCellDataType(cell, type);
+                }
+                
                 if(cell.indexOf('/') !== -1){
                     let [from, parent_cell] = cell.split('/');
                     if(from[0] === '~'){
@@ -580,6 +615,18 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
         toStateAs(key, val){
             this.setState({[key]: val}, null, null, true);
         }
+        checkLinkedCellsTypes(a, b, linked_as){
+            for(let v in a.__mrr.linksNeeded[linked_as]){
+                const needed_cells = a.__mrr.linksNeeded[linked_as][v];
+                for(let cell of needed_cells){
+                    if(a.__mrr.dataTypes[cell] && b.__mrr.dataTypes[v] && (
+                        a.__mrr.dataTypes[cell] !== b.__mrr.dataTypes[v]
+                    )) {
+                        throw new Error('Types mismatch! ' + a.__mrr.dataTypes[cell] + ' vs. ' + b.__mrr.dataTypes[v] + ' in ' + cell);
+                    }
+                }
+            }
+        }
         mrrConnect(as){
             const self = this;
             if(isUndef(as)){
@@ -599,6 +646,9 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
                             child.mrrState[cell] = val;
                         }
                     }
+                    this.checkLinkedCellsTypes(child, this, '..');
+                    this.checkLinkedCellsTypes(this, child, as);
+                    this.checkLinkedCellsTypes(this, child, '*');
                     if(this.__mrr.realComputed.$log
                        && ((this.__mrr.realComputed.$log === true) 
                           || (this.__mrr.realComputed.$log.indexOf('$$mount') !== -1))){
@@ -767,6 +817,11 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
                     return;
                 }
             }
+            if(this.__mrr.dataTypes[cell]){
+                if(!(dataTypes[this.__mrr.dataTypes[cell]](val))){
+                    throw new Error('Wrong data type for cell ' + cell + ': ' + val + ', expecting ' + this.__mrr.dataTypes[cell]);
+                }
+            }
             if(types && (types.indexOf('nested') !== -1)){
                 if(val instanceof Object){
                     for(let k in val){
@@ -828,10 +883,12 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
             }
             this.mrrState[key] = val;
             
-            if(GG && GG === this){
-                for(let sub of this.__mrr.subscribers){
-                    if(sub && sub.__mrr.linksNeeded['^'][key]){
-                        updateOtherGrid(sub, '^', key, this.mrrState[key]);
+            if(isGlobal){
+                if(this.__mrr.subscribers){
+                    for(let sub of this.__mrr.subscribers){
+                        if(sub && sub.__mrr.linksNeeded['^'][key]){
+                            updateOtherGrid(sub, '^', key, this.mrrState[key]);
+                        }
                     }
                 }
             } else {
@@ -898,22 +955,31 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
     return cls;
 }
 
+export const withMrr = getWithMrr();
+
 const def = withMrr({}, null, React.Component);
 def.skip = skip;
 
-export const initGlobalGrid = (struct, force = false) => {
-    if(GG && !force){
-        throw new Error('Mrr Error: Global Grid already inited!');
-    }
+const initGlobalGrid = (struct, force = false) => {
     class GlobalGrid {
         __mrrGetComputed(){
             return struct;
         }
     }
-    const GlobalGridClass = withMrr(null, null, GlobalGrid);
-    GG = new GlobalGridClass;
+    const GlobalGridClass = withMrr(null, null, GlobalGrid, true);
+    const GG = new GlobalGridClass;
     GG.__mrr.subscribers = [];
     return GG;
+}
+
+export const createMrrApp = (conf) => {
+    const GG = conf.globalGrid ? initGlobalGrid(conf.globalGrid) : null;
+    const withMrr = getWithMrr(GG);
+    return {
+        withMrr,
+        skip,
+        GG
+    }
 }
 
 export default def;

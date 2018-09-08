@@ -1,5 +1,12 @@
 import React from 'react';
-import { withMrr } from '../../src';
+import { createMrrApp } from '../../src';
+
+export const { withMrr, GG } = createMrrApp({
+    globalGrid: {
+        a: [a => a + 10, '*/bar'],
+        b: [a => a + 10, '*/baz'],
+    },
+});
 
 export default withMrr({
   $expose: {
