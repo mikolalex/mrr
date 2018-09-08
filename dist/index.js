@@ -41,6 +41,9 @@ var isJustObject = function isJustObject(a) {
 var GG = void 0;
 var global_macros = {};
 
+var log_styles_cell = 'background: #898cec; color: white; padding: 1px;';
+var log_styles_mount = 'background: green; color: white; padding: 1px;';
+
 var skip = exports.skip = new function MrrSkip() {}();
 
 var registerMacros = exports.registerMacros = function registerMacros(name, func) {
@@ -198,7 +201,13 @@ var defMacros = {
                     });
                     break;
                 case 'create':
-                    next.push(changes);
+                    if (changes instanceof Array) {
+                        changes.forEach(function (item) {
+                            return next.push(item);
+                        });
+                    } else {
+                        next.push(changes);
+                    }
                     break;
             }
             return next;
@@ -268,7 +277,7 @@ var defMacros = {
             };
         }, arg];
     },
-    promiseLatest: function promiseLatest(_ref15) {
+    promise: function promise(_ref15) {
         var _ref16 = _toArray(_ref15),
             func = _ref16[0],
             argCells = _ref16.slice(1);
@@ -333,7 +342,7 @@ var defMacros = {
 
             for (var k in map) {
                 var res = map[k].apply(null, args);
-                if (res) {
+                if (res !== undefined && res !== null && res !== false) {
                     cb(k, res);
                 }
             }
@@ -871,6 +880,13 @@ var withMrr = exports.withMrr = function withMrr(mrrStructure) {
                                 }
                             }
                         }
+                        if (_this4.__mrr.realComputed.$log && (_this4.__mrr.realComputed.$log === true || _this4.__mrr.realComputed.$log.indexOf('$$mount') !== -1)) {
+                            if (_this4.__mrr.realComputed.$log === 'no-colour') {
+                                console.log('CONNECTED: ' + (_this4.$name || '/') + as);
+                            } else {
+                                console.log('%c CONNECTED: ' + (_this4.$name || '/') + as, log_styles_mount);
+                            }
+                        }
                     }
                 };
             }
@@ -959,7 +975,7 @@ var withMrr = exports.withMrr = function withMrr(mrrStructure) {
                 var val,
                     func,
                     args,
-                    updateNested,
+                    _updateNested,
                     types = [];
                 var superSetState = _get(Mrr.prototype.__proto__ || Object.getPrototypeOf(Mrr.prototype), 'setState', this);
                 var updateFunc = function updateFunc(val) {
@@ -978,13 +994,23 @@ var withMrr = exports.withMrr = function withMrr(mrrStructure) {
                 }
 
                 if (types.indexOf('nested') !== -1) {
-                    updateNested = function updateNested(subcell, val) {
+                    _updateNested = function updateNested(subcell, val) {
+                        if (subcell instanceof Object) {
+                            for (var k in subcell) {
+                                _updateNested(k, subcell[k]);
+                            }
+                            return;
+                        }
                         var subcellname = cell + '.' + subcell;
+                        var stateSetter = mrrParentClass.prototype.setState || function () {};
                         _this7.__mrrSetState(subcellname, val, parent_cell, parent_stack);
                         var update = {};
                         update[subcellname] = val;
                         _this7.checkMrrCellUpdate(subcellname, update, parent_stack, val);
-                        (mrrParentClass.prototype.setState || function () {}).call(_this7, update, null, true);
+                        stateSetter.call(_this7, update, null, true);
+                        var nested_update = _defineProperty({}, cell, _this7.mrrState[cell] instanceof Object ? _this7.mrrState[cell] : {});
+                        nested_update[cell][subcell] = val;
+                        stateSetter.call(_this7, nested_update, null, true);
                     };
                 }
 
@@ -1000,7 +1026,7 @@ var withMrr = exports.withMrr = function withMrr(mrrStructure) {
                         args = this.__getCellArgs(cell);
                     }
                     if (types.indexOf('nested') !== -1) {
-                        args.unshift(updateNested);
+                        args.unshift(_updateNested);
                     }
                     if (types.indexOf('async') !== -1) {
                         args.unshift(updateFunc);
@@ -1035,7 +1061,7 @@ var withMrr = exports.withMrr = function withMrr(mrrStructure) {
                 if (types && types.indexOf('nested') !== -1) {
                     if (val instanceof Object) {
                         for (var k in val) {
-                            updateNested(k, val[k]);
+                            _updateNested(k, val[k]);
                         }
                     }
                     return;
@@ -1097,7 +1123,6 @@ var withMrr = exports.withMrr = function withMrr(mrrStructure) {
         }, {
             key: '__mrrSetState',
             value: function __mrrSetState(key, val, parent_cell, parent_stack) {
-                var styles = 'background: #898cec; color: white; padding: 1px;';
                 //@ todo: omit @@anon cells
                 if (this.__mrr.realComputed.$log && key[0] !== '@') {
                     if (this.__mrr.realComputed.$log && !(this.__mrr.realComputed.$log instanceof Array) || this.__mrr.realComputed.$log instanceof Array && this.__mrr.realComputed.$log.indexOf(key) !== -1) {
@@ -1106,7 +1131,7 @@ var withMrr = exports.withMrr = function withMrr(mrrStructure) {
                         } else {
                             console.log('%c ' + this.__mrrPath + '::' + key
                             //+ '(' + parent_cell +') '
-                            , styles, val
+                            , log_styles_cell, val
                             //, JSON.stringify(parent_stack)
                             //, this
                             );

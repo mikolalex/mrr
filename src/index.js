@@ -8,6 +8,9 @@ const isJustObject = a => (a instanceof Object) && !(a instanceof Array) && !(a 
 let GG;
 let global_macros = {};
 
+const log_styles_cell = 'background: #898cec; color: white; padding: 1px;';
+const log_styles_mount = 'background: green; color: white; padding: 1px;';
+
 export const skip = new function MrrSkip(){};
 
 export const registerMacros = (name, func) => {
@@ -108,7 +111,11 @@ const defMacros = {
                     });
                 break;
                 case 'create':
-                    next.push(changes);
+                    if(changes instanceof Array){
+                        changes.forEach(item => next.push(item))
+                    } else {
+                        next.push(changes);
+                    }
                 break;
             }
             return next;
@@ -149,7 +156,7 @@ const defMacros = {
             }
         }, arg]
     },
-    promiseLatest: ([func, ...argCells]) => {
+    promise: ([func, ...argCells]) => {
         if(!func instanceof Function){
             argCells = [func, ...argCells];
             func = a => a;
@@ -592,6 +599,15 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
                             child.mrrState[cell] = val;
                         }
                     }
+                    if(this.__mrr.realComputed.$log
+                       && ((this.__mrr.realComputed.$log === true) 
+                          || (this.__mrr.realComputed.$log.indexOf('$$mount') !== -1))){
+                        if(this.__mrr.realComputed.$log === 'no-colour'){
+                          console.log('CONNECTED: ' + (this.$name || '/') + as);
+                        } else {
+                          console.log('%c CONNECTED: ' + (this.$name || '/') + as, log_styles_mount);
+                        }
+                    }   
                 }
             }
         }
@@ -686,12 +702,24 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
 
             if(types.indexOf('nested') !== -1){
                 updateNested = (subcell, val) => {
+                    if(subcell instanceof Object){
+                        for(let k in subcell){
+                            updateNested(k, subcell[k]);
+                        }
+                        return;
+                    }
                     const subcellname = cell + '.' + subcell;
+                    const stateSetter = mrrParentClass.prototype.setState || (() => {});
                     this.__mrrSetState(subcellname, val, parent_cell, parent_stack);
                     const update = {};
                     update[subcellname] = val;
                     this.checkMrrCellUpdate(subcellname, update, parent_stack, val);
-                    (mrrParentClass.prototype.setState || (() => {})).call(this, update, null, true);
+                    stateSetter.call(this, update, null, true);
+                    const nested_update = {
+                        [cell]: this.mrrState[cell] instanceof Object ? this.mrrState[cell] : {}
+                    }
+                    nested_update[cell][subcell] = val;
+                    stateSetter.call(this, nested_update, null, true);
                 }
             }
 
@@ -776,7 +804,6 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
             }
         }
         __mrrSetState(key, val, parent_cell, parent_stack){
-            const styles = 'background: #898cec; color: white; padding: 1px;';
             //@ todo: omit @@anon cells
             if(this.__mrr.realComputed.$log 
                 && (key[0] !== '@')
@@ -791,7 +818,7 @@ export const withMrr = (mrrStructure, render = null, parentClass = null) => {
                     } else {
                       console.log('%c ' + this.__mrrPath + '::' + key
                         //+ '(' + parent_cell +') '
-                        , styles
+                        , log_styles_cell
                         , val
                         //, JSON.stringify(parent_stack)
                         //, this
