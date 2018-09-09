@@ -3,7 +3,7 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-exports.createMrrApp = exports.withMrr = exports.registerMacros = exports.skip = undefined;
+exports.createMrrApp = exports.withMrr = exports.shallow_equal = exports.registerMacros = exports.skip = undefined;
 
 var _get = function get(object, property, receiver) { if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { return get(parent, property, receiver); } } else if ("value" in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } };
 
@@ -15,6 +15,10 @@ var _react = require('react');
 
 var _react2 = _interopRequireDefault(_react);
 
+var _defMacros = require('./defMacros');
+
+var _defMacros2 = _interopRequireDefault(_defMacros);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -22,8 +26,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
 
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-function _toArray(arr) { return Array.isArray(arr) ? arr : Array.from(arr); }
 
 function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
@@ -35,9 +37,6 @@ var isPromise = function isPromise(a) {
 };
 
 var cell_types = ['funnel', 'closure', 'nested', 'async'];
-var isJustObject = function isJustObject(a) {
-    return a instanceof Object && !(a instanceof Array) && !(a instanceof Function);
-};
 var global_macros = {};
 
 var log_styles_cell = 'background: #898cec; color: white; padding: 1px;';
@@ -53,13 +52,7 @@ var isUndef = function isUndef(a) {
     return a === null || a === undefined;
 };
 
-var always = function always(a) {
-    return function (_) {
-        return a;
-    };
-};
-
-var shallow_equal = function shallow_equal(a, b) {
+var shallow_equal = exports.shallow_equal = function shallow_equal(a, b) {
     if (a instanceof Object) {
         if (!b) return false;
         if (a instanceof Function) {
@@ -84,15 +77,6 @@ var shallow_equal = function shallow_equal(a, b) {
         return true;
     }
     return a == b;
-};
-
-var matches = function matches(obj, subset) {
-    for (var k in subset) {
-        if (!shallow_equal(obj[k], subset[k])) {
-            return false;
-        }
-    }
-    return true;
 };
 
 var updateOtherGrid = function updateOtherGrid(grid, as, key, val) {
@@ -123,429 +107,14 @@ var updateOtherGrid = function updateOtherGrid(grid, as, key, val) {
     }
 };
 
-var defMacros = {
-    map: function map(_ref) {
-        var _ref2 = _slicedToArray(_ref, 1),
-            _map = _ref2[0];
-
-        var res = ['funnel', function (cell, val) {
-            return _map[cell] instanceof Function ? _map[cell](val) : _map[cell];
-        }];
-        for (var cell in _map) {
-            res.push(cell);
-        }
-        return res;
-    },
-    list: function list(_ref3) {
-        var _ref4 = _slicedToArray(_ref3, 1),
-            map = _ref4[0];
-
-        var res = ['funnel', function (cell, val) {
-            return val;
-        }];
-
-        var _loop = function _loop(type) {
-            if (type !== 'custom') {
-                res.push([function () {
-                    for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-                        args[_key] = arguments[_key];
-                    }
-
-                    return [type].concat(args);
-                }, map[type]]);
-            }
-        };
-
-        for (var type in map) {
-            _loop(type);
-        }
-        return [function (_ref5, prev) {
-            var _ref6 = _slicedToArray(_ref5, 2),
-                type = _ref6[0],
-                changes = _ref6[1];
-
-            var next = [].concat(_toConsumableArray(prev));
-            switch (type) {
-                case 'update':
-                    var _changes = _slicedToArray(changes, 2),
-                        newProps = _changes[0],
-                        predicate = _changes[1];
-
-                    if (!(predicate instanceof Object)) {
-                        // it's index
-                        prev.map(function (item, i) {
-                            return [i, item];
-                        }).filter(function (pair) {
-                            return Number(pair[0]) === Number(predicate);
-                        }).forEach(function (i) {
-                            next[i[0]] = Object.assign({}, next[i[0]], newProps);
-                        });
-                    } else {
-                        prev.map(function (item, i) {
-                            return [i, item];
-                        }).filter(function (pair) {
-                            return matches(pair[1], predicate);
-                        }).forEach(function (i) {
-                            next[i[0]] = Object.assign({}, next[i[0]], newProps);
-                        });
-                    }
-                    break;
-                case 'delete':
-                    next = next.filter(function (item, i) {
-                        if (changes instanceof Object) {
-                            return !matches(item, changes);
-                        } else {
-                            return Number(i) !== changes;
-                        }
-                    });
-                    break;
-                case 'create':
-                    if (changes instanceof Array) {
-                        changes.forEach(function (item) {
-                            return next.push(item);
-                        });
-                    } else {
-                        next.push(changes);
-                    }
-                    break;
-            }
-            return next;
-        }, res, '^'];
-    },
-    merge: function merge(_ref7) {
-        var _ref8 = _toArray(_ref7),
-            map = _ref8[0],
-            others = _ref8.slice(1);
-
-        if (isJustObject(map)) {
-            var res = ['funnel', function (cell, val) {
-                return [cell, val];
-            }].concat(_toConsumableArray(Object.keys(map)));
-            return [function (_ref9) {
-                for (var _len2 = arguments.length, otherArgs = Array(_len2 > 1 ? _len2 - 1 : 0), _key2 = 1; _key2 < _len2; _key2++) {
-                    otherArgs[_key2 - 1] = arguments[_key2];
-                }
-
-                var _ref10 = _slicedToArray(_ref9, 2),
-                    cell = _ref10[0],
-                    val = _ref10[1];
-
-                return map[cell] instanceof Function ? map[cell].apply(map, [val].concat(otherArgs)) : map[cell];
-            }, res].concat(_toConsumableArray(others));
-        } else {
-            var f = function f(a) {
-                return a;
-            };
-            var args = [map].concat(_toConsumableArray(others));
-            if (map instanceof Function) {
-                f = map;
-                args = others;
-            }
-            return ['funnel', function (cell, val) {
-                return f(val);
-            }].concat(_toConsumableArray(args));
-        }
-    },
-    toggle: function toggle(_ref11) {
-        var _ref12 = _slicedToArray(_ref11, 2),
-            setTrue = _ref12[0],
-            setFalse = _ref12[1];
-
-        return ['funnel', function (a, b) {
-            return b;
-        }, [always(true), setTrue], [always(false), setFalse]];
-    },
-    debounce: function debounce(_ref13) {
-        var _ref14 = _slicedToArray(_ref13, 2),
-            time = _ref14[0],
-            arg = _ref14[1];
-
-        return ['async.closure', function () {
-            var val = void 0,
-                isTimeOut = false;
-            return function (cb, value) {
-                if (!isTimeOut) {
-                    isTimeOut = setTimeout(function () {
-                        isTimeOut = false;
-                        cb(val);
-                    }, time);
-                } else {
-                    //console.log('throttled', value);
-                }
-                val = value;
-            };
-        }, arg];
-    },
-    promise: function promise(_ref15) {
-        var _ref16 = _toArray(_ref15),
-            func = _ref16[0],
-            argCells = _ref16.slice(1);
-
-        if (!func instanceof Function) {
-            argCells = [func].concat(_toConsumableArray(argCells));
-            func = function func(a) {
-                return a;
-            };
-        }
-        return ['nested.closure', function () {
-            var latest_num = void 0;
-            var c = 0;
-            var load_count = 0;
-            return function (cb) {
-                for (var _len3 = arguments.length, args = Array(_len3 > 1 ? _len3 - 1 : 0), _key3 = 1; _key3 < _len3; _key3++) {
-                    args[_key3 - 1] = arguments[_key3];
-                }
-
-                ++load_count;
-                cb('status', 'pending');
-                var res = func.apply(null, args);
-                if (!isPromise(res)) {
-                    // some error
-                    return;
-                } else {
-                    latest_num = ++c;
-                    res.then(function (i, data) {
-                        if (! --load_count) {
-                            cb('status', 'resolved');
-                        }
-                        if (i !== latest_num) {
-                            return;
-                        } else {
-                            cb('data', data);
-                            cb('error', null);
-                        }
-                    }.bind(null, c)).catch(function (i, e) {
-                        if (! --load_count) {
-                            cb('status', 'error');
-                        }
-                        if (i !== latest_num) {
-                            return;
-                        } else {
-                            cb('data', null);
-                            cb('error', e);
-                        }
-                    }.bind(null, c));
-                }
-            };
-        }].concat(_toConsumableArray(argCells));
-    },
-    split: function split(_ref17) {
-        var _ref18 = _toArray(_ref17),
-            map = _ref18[0],
-            argCells = _ref18.slice(1);
-
-        return ['nested', function (cb) {
-            for (var _len4 = arguments.length, args = Array(_len4 > 1 ? _len4 - 1 : 0), _key4 = 1; _key4 < _len4; _key4++) {
-                args[_key4 - 1] = arguments[_key4];
-            }
-
-            for (var k in map) {
-                var res = map[k].apply(null, args);
-                if (res !== undefined && res !== null && res !== false) {
-                    cb(k, res);
-                }
-            }
-        }].concat(_toConsumableArray(argCells));
-    },
-    transist: function transist(cells) {
-        return [function (a, b) {
-            return a ? b : skip;
-        }].concat(_toConsumableArray(cells));
-    },
-    closureMerge: function closureMerge(_ref19) {
-        var _ref20 = _slicedToArray(_ref19, 2),
-            initVal = _ref20[0],
-            map = _ref20[1];
-
-        var cells = Object.keys(map);
-        return ['closure.funnel', function () {
-            return function (cell, val) {
-                if (map[cell] instanceof Function) {
-                    return initVal = map[cell].call(null, initVal, val);
-                } else {
-                    return initVal = map[cell];
-                }
-            };
-        }].concat(_toConsumableArray(cells));
-    },
-    closureMap: function closureMap(_ref21) {
-        var _ref22 = _slicedToArray(_ref21, 2),
-            initVal = _ref22[0],
-            map = _ref22[1];
-
-        var cells = Object.keys(map);
-        return ['closure.funnel', function () {
-            return function (cell, val) {
-                if (map[cell] instanceof Function) {
-                    return initVal = map[cell].call(null, initVal, val);
-                } else {
-                    return initVal = map[cell];
-                }
-            };
-        }].concat(_toConsumableArray(cells));
-    },
-    mapPrev: function mapPrev(_ref23) {
-        var _ref24 = _slicedToArray(_ref23, 1),
-            map = _ref24[0];
-
-        var res = ['closure.funnel', function (prev) {
-            return function (cell, val) {
-                prev = map[cell] instanceof Function ? map[cell](prev, val) : map[cell];
-                return prev;
-            };
-        }];
-        for (var cell in map) {
-            res.push(cell);
-        }
-        return res;
-    },
-    join: function join(_ref25) {
-        var _ref26 = _toArray(_ref25),
-            fields = _ref26.slice(0);
-
-        return ['funnel', function (cell, val) {
-            return val;
-        }].concat(_toConsumableArray(fields));
-    },
-    '&&': function _(_ref27) {
-        var _ref28 = _toArray(_ref27),
-            cells = _ref28.slice(0);
-
-        return [function () {
-            var res = true;
-            for (var i in arguments) {
-                res = res && arguments[i];
-                if (!res) {
-                    return res;
-                }
-            }
-            return res;
-        }].concat(_toConsumableArray(cells));
-    },
-    '||': function _(_ref29) {
-        var _ref30 = _toArray(_ref29),
-            cells = _ref30.slice(0);
-
-        return [function () {
-            var res = false;
-            for (var i in arguments) {
-                res = res || arguments[i];
-                if (res) {
-                    return res;
-                }
-            }
-            return res;
-        }].concat(_toConsumableArray(cells));
-    },
-    trigger: function trigger(_ref31) {
-        var _ref32 = _slicedToArray(_ref31, 2),
-            field = _ref32[0],
-            val = _ref32[1];
-
-        return [function (a) {
-            return a === val ? true : skip;
-        }, field];
-    },
-    skipSame: function skipSame(_ref33) {
-        var _ref34 = _slicedToArray(_ref33, 1),
-            field = _ref34[0];
-
-        return [function (z, x) {
-            return shallow_equal(z, x) ? skip : z;
-        }, field, '^'];
-    },
-    skipIf: function skipIf(_ref35) {
-        var _ref36 = _toArray(_ref35),
-            func = _ref36[0],
-            fields = _ref36.slice(1);
-
-        if (!fields.length) {
-            fields = [func];
-            func = function func(a) {
-                return a;
-            };
-        }
-        return [function () {
-            var res = func.apply(null, arguments);
-            return !res ? true : skip;
-        }].concat(_toConsumableArray(fields));
-    },
-    when: function when(_ref37) {
-        var _ref38 = _toArray(_ref37),
-            func = _ref38[0],
-            fields = _ref38.slice(1);
-
-        if (!fields.length) {
-            fields = [func];
-            func = function func(a) {
-                return a;
-            };
-        }
-        return [function () {
-            var res = func.apply(null, arguments);
-            return !!res ? true : skip;
-        }].concat(_toConsumableArray(fields));
-    },
-    turnsFromTo: function turnsFromTo(_ref39) {
-        var _ref40 = _slicedToArray(_ref39, 3),
-            from = _ref40[0],
-            to = _ref40[1],
-            cell = _ref40[2];
-
-        return ['closure', function () {
-            var prev_val = void 0;
-            return function (val) {
-                if (val === to && prev_val === from) {
-                    prev_val = val;
-                    return true;
-                } else {
-                    prev_val = val;
-                    return skip;
-                }
-            };
-        }, cell];
-    },
-    skipN: function skipN(_ref41) {
-        var _ref42 = _slicedToArray(_ref41, 2),
-            field = _ref42[0],
-            n = _ref42[1];
-
-        return ['closure', function () {
-            var count = 0;
-            n = n || 1;
-            return function (val) {
-                if (++count > n) {
-                    return val;
-                } else {
-                    return skip;
-                }
-            };
-        }, field];
-    },
-    accum: function accum(_ref43) {
-        var _ref44 = _slicedToArray(_ref43, 2),
-            cell = _ref44[0],
-            time = _ref44[1];
-
-        var res = time ? ['async.closure', function () {
-            var vals = {};
-            var c = 0;
-            return function (cb, val) {
-                vals[++c] = val;
-                setTimeout(function (i) {
-                    delete vals[i];
-                    cb(Object.values(vals));
-                }.bind(null, c), time);
-                cb(Object.values(vals));
-            };
-        }, cell] : ['closure', function () {
-            var vals = [];
-            return function (val) {
-                vals.push(val);
-                return vals;
-            };
-        }, cell];
-        return res;
+var joinAsObject = function joinAsObject(target_struct, parent, child, key) {
+    if (parent && child && parent[key] && child[key]) {
+        target_struct[key] = Object.assign({}, parent[key], child[key]);
+    }
+};
+var joinAsArray = function joinAsArray(target_struct, parent, child, key) {
+    if (parent && child && parent[key] && child[key]) {
+        target_struct[key] = [].concat(_toConsumableArray(parent[key]), _toConsumableArray(child[key]));
     }
 };
 
@@ -554,9 +123,9 @@ var mrrJoin = function mrrJoin() {
     var parent_struct = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
     var struct = Object.assign({}, parent_struct, child_struct);
-    if (parent_struct && child_struct && parent_struct.$init && child_struct.$init) {
-        struct.$init = Object.assign({}, parent_struct.$init || {}, child_struct.$init || {});
-    }
+    joinAsObject(struct, parent_struct, child_struct, '$init');
+    joinAsArray(struct, parent_struct, child_struct, '$readFromDOM');
+    joinAsArray(struct, parent_struct, child_struct, '$expose');
     for (var k in struct) {
         if (k[0] === '+') {
             var real_k = k.substr(1);
@@ -584,28 +153,151 @@ var objMap = function objMap(obj, func) {
     return res;
 };
 
-var dataTypes = {
-    'array': function array(a) {
-        return a instanceof Array;
+var getIsOfType = function getIsOfType(dataTypes) {
+    return function (val, type) {
+        return dataTypes[type] ? dataTypes[type](val) : false;
+    };
+};
+
+var defDataTypes = {
+    'array': {
+        check: function check(a) {
+            return a instanceof Array;
+        }
     },
-    'object': function object(a) {
-        return a instanceof Object;
+    'object': {
+        check: function check(a) {
+            return a instanceof Object;
+        }
     },
-    'func': function func(a) {
-        return a instanceof Function;
+    'func': {
+        check: function check(a) {
+            return a instanceof Function;
+        }
     },
-    'int': function int(a) {
-        return typeof a === 'number';
+    'int': {
+        check: function check(a) {
+            return typeof a === 'number';
+        }
     },
-    'string': function string(a) {
-        return typeof a === 'string';
+    'string': {
+        check: function check(a) {
+            return typeof a === 'string';
+        }
     },
-    'pair': function pair(a) {
-        return a instanceof Array && a.length === 2;
+    'pair': {
+        check: function check(a) {
+            return a instanceof Array && a.length === 2;
+        },
+        extends: ['array']
+    },
+    'coll_update': {
+        check: function check(a) {
+            return a instanceof Array && a.length === 2 && isOfType(a[0], 'object') && isOfType(a[1], 'object_or_int');
+        }
+    },
+    'array_or_object': {
+        check: function check(a) {
+            return a instanceof Object;
+        },
+        extends: ['array', 'object']
+    },
+    'object_or_int': {
+        check: function check(a) {
+            return a instanceof Object || typeof a === 'number';
+        },
+        extends: ['int', 'object']
     }
 };
 
-var getWithMrr = function getWithMrr(GG) {
+var isOfType = getIsOfType(defDataTypes);
+
+var isMatchingType = function isMatchingType(master_type, slave_type, types, actions) {
+    if (master_type === slave_type) {
+        actions.matches ? actions.matches() : null;
+        return;
+    }
+    if (!types[slave_type]) {
+        debugger;
+    }
+    var _matches = false;
+    if (types[master_type].extends) {
+        var _iteratorNormalCompletion2 = true;
+        var _didIteratorError2 = false;
+        var _iteratorError2 = undefined;
+
+        try {
+            for (var _iterator2 = types[master_type].extends[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+                var parent_type = _step2.value;
+
+                isMatchingType(parent_type, slave_type, types, {
+                    matches: function matches() {
+                        actions.matches();
+                        _matches = true;
+                    }
+                });
+            }
+        } catch (err) {
+            _didIteratorError2 = true;
+            _iteratorError2 = err;
+        } finally {
+            try {
+                if (!_iteratorNormalCompletion2 && _iterator2.return) {
+                    _iterator2.return();
+                }
+            } finally {
+                if (_didIteratorError2) {
+                    throw _iteratorError2;
+                }
+            }
+        }
+    }
+    if (_matches) return;
+    var _maybe = false;
+    if (types[slave_type].extends) {
+        var _iteratorNormalCompletion3 = true;
+        var _didIteratorError3 = false;
+        var _iteratorError3 = undefined;
+
+        try {
+            for (var _iterator3 = types[slave_type].extends[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+                var _parent_type = _step3.value;
+
+                isMatchingType(master_type, _parent_type, types, {
+                    matches: function matches() {
+                        if (types[slave_type].extends.length > 1) {
+                            actions.matches ? actions.matches() : null;
+                        } else {
+                            actions.maybe ? actions.maybe() : null;
+                        }
+                        _maybe = true;
+                    },
+                    maybe: function maybe() {
+                        actions.maybe ? actions.maybe() : null;
+                        _maybe = true;
+                    }
+                });
+            }
+        } catch (err) {
+            _didIteratorError3 = true;
+            _iteratorError3 = err;
+        } finally {
+            try {
+                if (!_iteratorNormalCompletion3 && _iterator3.return) {
+                    _iterator3.return();
+                }
+            } finally {
+                if (_didIteratorError3) {
+                    throw _iteratorError3;
+                }
+            }
+        }
+    }
+    if (_maybe) return;
+    actions.not ? actions.not() : null;
+};
+
+var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
     return function (mrrStructure) {
         var _render = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
 
@@ -703,8 +395,12 @@ var getWithMrr = function getWithMrr(GG) {
                     return [val, key];
                 }));
                 _this3.parseMrr();
-                if (GG && _this3.__mrr.linksNeeded['^']) {
-                    GG.__mrr.subscribers.push(_this3);
+                if (GG) {
+                    if (_this3.__mrr.linksNeeded['^']) {
+                        GG.__mrr.subscribers.push(_this3);
+                        _this3.checkLinkedCellsTypes(_this3, GG, '^');
+                    }
+                    _this3.checkLinkedCellsTypes(GG, _this3, '*');
                 }
                 _this3.state = _this3.initialState;
                 if (_this3.props.mrrConnect) {
@@ -821,6 +517,8 @@ var getWithMrr = function getWithMrr(GG) {
                             if (this.__mrr.linksNeeded[from][parent_cell].indexOf(cell) === -1) {
                                 this.__mrr.linksNeeded[from][parent_cell].push(cell);
                             }
+                        } else {
+                            this.mentionedCells[cell[0] === '-' ? cell.slice(1) : cell] = true;
                         }
                         if (cell[0] === '-') {
                             // passive listening
@@ -836,6 +534,7 @@ var getWithMrr = function getWithMrr(GG) {
                 key: 'parseMrr',
                 value: function parseMrr() {
                     var depMap = {};
+                    this.mentionedCells = {};
                     var mrr = this.__mrr.realComputed;
                     this.mrrState = Object.assign({}, this.state);
                     var updateOnInit = {};
@@ -863,6 +562,35 @@ var getWithMrr = function getWithMrr(GG) {
                             this.__mrr.expose = fexpr;
                             continue;
                         };
+                        if (key === "$readFromDOM") {
+                            this.__mrr.readFromDOM = {};
+                            var _iteratorNormalCompletion4 = true;
+                            var _didIteratorError4 = false;
+                            var _iteratorError4 = undefined;
+
+                            try {
+                                for (var _iterator4 = fexpr[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+                                    var item = _step4.value;
+
+                                    this.__mrr.readFromDOM[item] = true;
+                                }
+                            } catch (err) {
+                                _didIteratorError4 = true;
+                                _iteratorError4 = err;
+                            } finally {
+                                try {
+                                    if (!_iteratorNormalCompletion4 && _iterator4.return) {
+                                        _iterator4.return();
+                                    }
+                                } finally {
+                                    if (_didIteratorError4) {
+                                        throw _iteratorError4;
+                                    }
+                                }
+                            }
+
+                            continue;
+                        };
                         if (!(fexpr instanceof Array)) {
                             if (typeof fexpr === 'string') {
                                 // another cell
@@ -880,7 +608,13 @@ var getWithMrr = function getWithMrr(GG) {
                     }
                     this.initialState = updateOnInit;
                     this.mrrDepMap = depMap;
-                    //console.log('parsed depMap', this.mrrDepMap);
+                    if (this.__mrr.readFromDOM) {
+                        for (var cn in this.mentionedCells) {
+                            if (!this.__mrr.realComputed[cn] && !this.__mrr.readFromDOM[cn] && cn.indexOf('.') === -1) {
+                                throw new Error('Linking to undescribed cell: ' + cn);
+                            }
+                        }
+                    }
                 }
             }, {
                 key: 'setStateFromEvent',
@@ -904,34 +638,47 @@ var getWithMrr = function getWithMrr(GG) {
             }, {
                 key: 'checkLinkedCellsTypes',
                 value: function checkLinkedCellsTypes(a, b, linked_as) {
-                    for (var v in a.__mrr.linksNeeded[linked_as]) {
+                    var _loop = function _loop(v) {
                         var needed_cells = a.__mrr.linksNeeded[linked_as][v];
-                        var _iteratorNormalCompletion2 = true;
-                        var _didIteratorError2 = false;
-                        var _iteratorError2 = undefined;
+                        var _iteratorNormalCompletion5 = true;
+                        var _didIteratorError5 = false;
+                        var _iteratorError5 = undefined;
 
                         try {
-                            for (var _iterator2 = needed_cells[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-                                var cell = _step2.value;
+                            var _loop2 = function _loop2() {
+                                var cell = _step5.value;
 
-                                if (a.__mrr.dataTypes[cell] && b.__mrr.dataTypes[v] && a.__mrr.dataTypes[cell] !== b.__mrr.dataTypes[v]) {
-                                    throw new Error('Types mismatch! ' + a.__mrr.dataTypes[cell] + ' vs. ' + b.__mrr.dataTypes[v] + ' in ' + cell);
-                                }
+                                if (a.__mrr.dataTypes[cell] && b.__mrr.dataTypes[v] && isMatchingType(b.__mrr.dataTypes[v], a.__mrr.dataTypes[cell], dataTypes, {
+                                    not: function not() {
+                                        throw new Error('Types mismatch! ' + a.__mrr.dataTypes[cell] + ' vs. ' + b.__mrr.dataTypes[v] + ' in ' + cell);
+                                    },
+                                    maybe: function maybe() {
+                                        console.warn('Not fully compliant types: expecting ' + a.__mrr.dataTypes[cell] + ', got ' + b.__mrr.dataTypes[v]);
+                                    }
+                                })) {}
+                            };
+
+                            for (var _iterator5 = needed_cells[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
+                                _loop2();
                             }
                         } catch (err) {
-                            _didIteratorError2 = true;
-                            _iteratorError2 = err;
+                            _didIteratorError5 = true;
+                            _iteratorError5 = err;
                         } finally {
                             try {
-                                if (!_iteratorNormalCompletion2 && _iterator2.return) {
-                                    _iterator2.return();
+                                if (!_iteratorNormalCompletion5 && _iterator5.return) {
+                                    _iterator5.return();
                                 }
                             } finally {
-                                if (_didIteratorError2) {
-                                    throw _iteratorError2;
+                                if (_didIteratorError5) {
+                                    throw _iteratorError5;
                                 }
                             }
                         }
+                    };
+
+                    for (var v in a.__mrr.linksNeeded[linked_as]) {
+                        _loop(v);
                     }
                 }
             }, {
@@ -953,27 +700,27 @@ var getWithMrr = function getWithMrr(GG) {
                             for (var a in child.__mrr.linksNeeded['..']) {
                                 var child_cells = child.__mrr.linksNeeded['..'][a];
                                 var val = self.mrrState[a];
-                                var _iteratorNormalCompletion3 = true;
-                                var _didIteratorError3 = false;
-                                var _iteratorError3 = undefined;
+                                var _iteratorNormalCompletion6 = true;
+                                var _didIteratorError6 = false;
+                                var _iteratorError6 = undefined;
 
                                 try {
-                                    for (var _iterator3 = child_cells[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
-                                        var cell = _step3.value;
+                                    for (var _iterator6 = child_cells[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
+                                        var _cell = _step6.value;
 
-                                        child.mrrState[cell] = val;
+                                        child.mrrState[_cell] = val;
                                     }
                                 } catch (err) {
-                                    _didIteratorError3 = true;
-                                    _iteratorError3 = err;
+                                    _didIteratorError6 = true;
+                                    _iteratorError6 = err;
                                 } finally {
                                     try {
-                                        if (!_iteratorNormalCompletion3 && _iterator3.return) {
-                                            _iterator3.return();
+                                        if (!_iteratorNormalCompletion6 && _iterator6.return) {
+                                            _iterator6.return();
                                         }
                                     } finally {
-                                        if (_didIteratorError3) {
-                                            throw _iteratorError3;
+                                        if (_didIteratorError6) {
+                                            throw _iteratorError6;
                                         }
                                     }
                                 }
@@ -996,6 +743,9 @@ var getWithMrr = function getWithMrr(GG) {
                 value: function toState(key, val) {
                     var _this5 = this;
 
+                    if (this.__mrr.readFromDOM && !this.__mrr.readFromDOM[key]) {
+                        throw new Error('MRERR_101: trying to create undescribed stream: ' + key, this.__mrr.readFromDOM);
+                    }
                     if (val === undefined && this.__mrr.thunks[key]) {
                         //console.log('=== skip');
                         return this.__mrr.thunks[key];
@@ -1160,7 +910,10 @@ var getWithMrr = function getWithMrr(GG) {
                         }
                     }
                     if (this.__mrr.dataTypes[cell]) {
-                        if (!dataTypes[this.__mrr.dataTypes[cell]](val)) {
+                        if (!dataTypes[this.__mrr.dataTypes[cell]]) {
+                            throw new Error('Undeclared type: ' + this.__mrr.dataTypes[cell] + " for cell " + cell);
+                        }
+                        if (!dataTypes[this.__mrr.dataTypes[cell]].check(val)) {
                             throw new Error('Wrong data type for cell ' + cell + ': ' + val + ', expecting ' + this.__mrr.dataTypes[cell]);
                         }
                     }
@@ -1199,28 +952,28 @@ var getWithMrr = function getWithMrr(GG) {
                     var val = arguments[3];
 
                     if (this.mrrDepMap[parent_cell]) {
-                        var _iteratorNormalCompletion4 = true;
-                        var _didIteratorError4 = false;
-                        var _iteratorError4 = undefined;
+                        var _iteratorNormalCompletion7 = true;
+                        var _didIteratorError7 = false;
+                        var _iteratorError7 = undefined;
 
                         try {
-                            for (var _iterator4 = this.mrrDepMap[parent_cell][Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
-                                var cell = _step4.value;
+                            for (var _iterator7 = this.mrrDepMap[parent_cell][Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
+                                var _cell2 = _step7.value;
 
                                 var next_parent_stack = this.__mrr.realComputed.$log ? [].concat(_toConsumableArray(parent_stack), [[parent_cell, val]]) : parent_stack;
-                                this.__mrrUpdateCell(cell, parent_cell, update, next_parent_stack);
+                                this.__mrrUpdateCell(_cell2, parent_cell, update, next_parent_stack);
                             }
                         } catch (err) {
-                            _didIteratorError4 = true;
-                            _iteratorError4 = err;
+                            _didIteratorError7 = true;
+                            _iteratorError7 = err;
                         } finally {
                             try {
-                                if (!_iteratorNormalCompletion4 && _iterator4.return) {
-                                    _iterator4.return();
+                                if (!_iteratorNormalCompletion7 && _iterator7.return) {
+                                    _iterator7.return();
                                 }
                             } finally {
-                                if (_didIteratorError4) {
-                                    throw _iteratorError4;
+                                if (_didIteratorError7) {
+                                    throw _iteratorError7;
                                 }
                             }
                         }
@@ -1248,29 +1001,29 @@ var getWithMrr = function getWithMrr(GG) {
 
                     if (isGlobal) {
                         if (this.__mrr.subscribers) {
-                            var _iteratorNormalCompletion5 = true;
-                            var _didIteratorError5 = false;
-                            var _iteratorError5 = undefined;
+                            var _iteratorNormalCompletion8 = true;
+                            var _didIteratorError8 = false;
+                            var _iteratorError8 = undefined;
 
                             try {
-                                for (var _iterator5 = this.__mrr.subscribers[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
-                                    var sub = _step5.value;
+                                for (var _iterator8 = this.__mrr.subscribers[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
+                                    var sub = _step8.value;
 
                                     if (sub && sub.__mrr.linksNeeded['^'][key]) {
                                         updateOtherGrid(sub, '^', key, this.mrrState[key]);
                                     }
                                 }
                             } catch (err) {
-                                _didIteratorError5 = true;
-                                _iteratorError5 = err;
+                                _didIteratorError8 = true;
+                                _iteratorError8 = err;
                             } finally {
                                 try {
-                                    if (!_iteratorNormalCompletion5 && _iterator5.return) {
-                                        _iterator5.return();
+                                    if (!_iteratorNormalCompletion8 && _iterator8.return) {
+                                        _iterator8.return();
                                     }
                                 } finally {
-                                    if (_didIteratorError5) {
-                                        throw _iteratorError5;
+                                    if (_didIteratorError8) {
+                                        throw _iteratorError8;
                                     }
                                 }
                             }
@@ -1304,8 +1057,8 @@ var getWithMrr = function getWithMrr(GG) {
                     }
                     var update = Object.assign({}, ns);
                     if (!alreadyRun) {
-                        for (var cell in update) {
-                            this.__mrrSetState(cell, update[cell], null, []);
+                        for (var _cell3 in update) {
+                            this.__mrrSetState(_cell3, update[_cell3], null, []);
                         }
                         for (var parent_cell in update) {
                             this.checkMrrCellUpdate(parent_cell, update);
@@ -1314,15 +1067,15 @@ var getWithMrr = function getWithMrr(GG) {
                     if (!this.__mrr.constructing) {
                         return (mrrParentClass.prototype.setState || function () {}).call(this, update, cb, true);
                     } else {
-                        for (var _cell in update) {
-                            this.initialState[_cell] = update[_cell];
+                        for (var _cell4 in update) {
+                            this.initialState[_cell4] = update[_cell4];
                         }
                     }
                 }
             }, {
                 key: '__mrrMacros',
                 get: function get() {
-                    return Object.assign({}, defMacros, global_macros);
+                    return Object.assign({}, macros, global_macros);
                 }
             }, {
                 key: '__mrrPath',
@@ -1337,14 +1090,12 @@ var getWithMrr = function getWithMrr(GG) {
     };
 };
 
-var withMrr = exports.withMrr = getWithMrr();
+var withMrr = exports.withMrr = getWithMrr(null, _defMacros2.default, defDataTypes);
 
 var def = withMrr({}, null, _react2.default.Component);
 def.skip = skip;
 
-var initGlobalGrid = function initGlobalGrid(struct) {
-    var force = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
-
+var initGlobalGrid = function initGlobalGrid(struct, availableMacros, availableDataTypes) {
     var GlobalGrid = function () {
         function GlobalGrid() {
             _classCallCheck(this, GlobalGrid);
@@ -1360,15 +1111,18 @@ var initGlobalGrid = function initGlobalGrid(struct) {
         return GlobalGrid;
     }();
 
-    var GlobalGridClass = withMrr(null, null, GlobalGrid, true);
+    var GwithMrr = getWithMrr(null, availableMacros, availableDataTypes);
+    var GlobalGridClass = GwithMrr(null, null, GlobalGrid, true);
     var GG = new GlobalGridClass();
     GG.__mrr.subscribers = [];
     return GG;
 };
 
 var createMrrApp = exports.createMrrApp = function createMrrApp(conf) {
-    var GG = conf.globalGrid ? initGlobalGrid(conf.globalGrid) : null;
-    var withMrr = getWithMrr(GG);
+    var availableMacros = Object.assign({}, _defMacros2.default, conf.macros || {});
+    var availableDataTypes = Object.assign({}, defDataTypes, conf.dataTypes || {});
+    var GG = conf.globalGrid ? initGlobalGrid(conf.globalGrid, availableMacros, availableDataTypes) : null;
+    var withMrr = getWithMrr(GG, availableMacros, availableDataTypes);
     return {
         withMrr: withMrr,
         skip: skip,

@@ -123,7 +123,7 @@ const Todos = withMrr({
     ['merge', '*/add', 'newTodoItem'],
     '-lastId'
   ],
-  todos: ['list', {
+  todos: ['coll', {
     add: 'addTodo',
     edit: ['merge',
       '*/changes',

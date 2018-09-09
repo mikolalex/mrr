@@ -17,7 +17,7 @@ const Todos = withMrr({
   },
   newTodoItem: [assoc('text', __, { completed: false }), '-newInput', 'addNewTodo'],
   newInput: [always(''), 'newTodoItem'],
-  todos: ['list', {
+  todos: ['coll', {
 	create: 'newTodoItem',
 	update: ['merge',
 	  'setCompleted',

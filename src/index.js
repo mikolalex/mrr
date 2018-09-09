@@ -1,10 +1,11 @@
 import React from 'react';
 
+import defMacros from './defMacros';
+
 // if polyfill used
 const isPromise = a => a instanceof Object && a.toString && a.toString().indexOf('Promise') !== -1;
 
 const cell_types = ['funnel', 'closure', 'nested', 'async'];
-const isJustObject = a => (a instanceof Object) && !(a instanceof Array) && !(a instanceof Function);
 let global_macros = {};
 
 const log_styles_cell = 'background: #898cec; color: white; padding: 1px;';
@@ -18,9 +19,7 @@ export const registerMacros = (name, func) => {
 
 const isUndef = a => (a === null || a === undefined);
 
-const always = a => _ => a;
-
-const shallow_equal = (a, b) => {
+export const shallow_equal = (a, b) => {
     if(a instanceof Object){
         if(!b) return false;
         if(a instanceof Function){
@@ -47,15 +46,6 @@ const shallow_equal = (a, b) => {
     return a == b;
 }
 
-const matches = (obj, subset) => {
-    for(let k in subset){
-        if(!shallow_equal(obj[k], subset[k])){
-            return false;
-        }
-    }
-    return true;
-}
-
 const updateOtherGrid = (grid, as, key, val) => {
     const his_cells = grid.__mrr.linksNeeded[as][key];
     for(let cell of his_cells){
@@ -63,292 +53,24 @@ const updateOtherGrid = (grid, as, key, val) => {
     }
 }
 
-const defMacros = {
-    map: ([map]) => {
-        var res = ['funnel', (cell, val) => {
-            return map[cell] instanceof Function ? map[cell](val) : map[cell];
-        }];
-        for(let cell in map){
-            res.push(cell);
-        }
-        return res;
-    },
-    list: ([map]) => {
-        const res = ['funnel', (cell, val) => val];
-        for(let type in map){
-            if(type !== 'custom'){
-                res.push([(...args) => [type, ...args], map[type]]);
-            }
-        }
-        return [([type, changes], prev) => {
-            let next = [...prev];
-            switch(type){
-                case 'update':
-                    const [newProps, predicate] = changes;
-                    if(!(predicate instanceof Object)){
-                        // it's index
-                        prev.map((item, i) => [i, item])
-                        .filter(pair => Number(pair[0]) === Number(predicate))
-                        .forEach(i => {
-                            next[i[0]] = Object.assign({}, next[i[0]], newProps);
-                        });
-                    } else {
-                        prev.map((item, i) => [i, item])
-                        .filter(pair => matches(pair[1], predicate))
-                        .forEach(i => {
-                            next[i[0]] = Object.assign({}, next[i[0]], newProps);
-                        });
-                    }
-                break;
-                case 'delete':
-                    next = next.filter((item, i) => {
-                        if(changes instanceof Object){
-                            return !matches(item, changes)
-                        } else {
-                            return Number(i) !== changes;
-                        }
-                    });
-                break;
-                case 'create':
-                    if(changes instanceof Array){
-                        changes.forEach(item => next.push(item))
-                    } else {
-                        next.push(changes);
-                    }
-                break;
-            }
-            return next;
-        }, res, '^'];
-    },
-    merge: ([map, ...others]) => {
-        if(isJustObject(map)){
-            var res = ['funnel', (cell, val) => [cell, val], ...Object.keys(map)];
-            return [([cell, val], ...otherArgs) => {
-                return map[cell] instanceof Function ? map[cell](val, ...otherArgs) : map[cell];
-            }, res, ...others];
-        } else {
-            let f = a => a;
-            let args = [map, ...others]
-            if(map instanceof Function){
-                f = map;
-                args = others;
-            }
-            return ['funnel', (cell, val) => f(val), ...args];
-        }
-    },
-    toggle: ([setTrue, setFalse]) => {
-            return ['funnel', (a,b) => b, [always(true), setTrue], [always(false), setFalse]]
-    },
-    debounce: ([time, arg]) => {
-        return ['async.closure', () => {
-            let val, isTimeOut = false;
-            return (cb, value) => {
-                if(!isTimeOut){
-                    isTimeOut = setTimeout(() => {
-                        isTimeOut = false;
-                        cb(val);
-                    }, time);
-                } else {
-                    //console.log('throttled', value);
-                }
-                val = value;
-            }
-        }, arg]
-    },
-    promise: ([func, ...argCells]) => {
-        if(!func instanceof Function){
-            argCells = [func, ...argCells];
-            func = a => a;
-        }
-        return ['nested.closure', () => {
-            let latest_num;
-            let c = 0;
-            let load_count = 0;
-            return (cb, ...args) => {
-                ++load_count;
-                cb('status', 'pending');
-                const res = func.apply(null, args);
-                if(!isPromise(res)){
-                    // some error
-                    return;
-                } else {
-                    latest_num = ++c;
-                    res.then((function(i, data){
-                        if(!(--load_count)){
-                            cb('status', 'resolved');
-                        }
-                        if(i !== latest_num){
-                            return;
-                        } else {
-                            cb('data', data);
-                            cb('error', null);
-                        }
-                    }).bind(null, c)).catch((function(i, e){
-                        if(!(--load_count)){
-                            cb('status', 'error');
-                        }
-                        if(i !== latest_num){
-                            return;
-                        } else {
-                            cb('data', null);
-                            cb('error', e);
-                        }
-                    }).bind(null, c))
-                }
-            };
-        }, ...argCells]
-    },
-    split: ([map, ...argCells]) => {
-        return ['nested', (cb, ...args) => {
-            for(let k in map){
-                const res = map[k].apply(null, args);
-                if((res !== undefined) && (res !== null) && (res !== false)){
-                    cb(k, res);
-                }
-            }
-        }, ...argCells];
-    },
-  transist: (cells) => {
-    return [(a, b) => {
-        return a ? b : skip;
-    }, ...cells];
-  },
-  closureMerge: ([initVal, map]) => {
-    const cells = Object.keys(map);
-    return ['closure.funnel', () => {
-        return (cell, val) => {
-          if(map[cell] instanceof Function){
-            return initVal = map[cell].call(null, initVal, val);
-          } else {
-            return initVal= map[cell];
-          }
-        }
-    }, ...cells];
-  },
-  closureMap: ([initVal, map]) => {
-    const cells = Object.keys(map);
-    return ['closure.funnel', () => {
-        return (cell, val) => {
-          if(map[cell] instanceof Function){
-            return initVal = map[cell].call(null, initVal, val);
-          } else {
-            return initVal= map[cell];
-          }
-        }
-    }, ...cells];
-  },
-    mapPrev: ([map]) => {
-        var res = ['closure.funnel', (prev) => {
-            return (cell, val) => {
-                prev = map[cell] instanceof Function ? map[cell](prev, val) : map[cell];
-                return prev;
-            }
-        }];
-        for(let cell in map){
-            res.push(cell);
-        }
-        return res;
-    },
-    join: ([...fields]) => ['funnel', (cell, val) => val, ...fields],
-    '&&': ([...cells]) => {
-        return [function(){
-            let res = true;
-            for(let i in arguments){
-                res = res && arguments[i];
-                if(!res){
-                    return res;
-                }
-            }
-            return res;
-        }, ...cells];
-    },
-    '||': ([...cells]) => {
-        return [function(){
-            let res = false;
-            for(let i in arguments){
-                res = res || arguments[i];
-                if(res){
-                    return res;
-                }
-            }
-            return res;
-        }, ...cells];
-    },
-    trigger: ([field, val]) => [a => a === val ? true : skip, field],
-    skipSame: ([field]) => [(z, x) => shallow_equal(z, x) ? skip : z, field, '^'],
-    skipIf: ([func, ...fields]) => {
-      if(!fields.length) {
-        fields = [func];
-        func = a => a;
-      }
-      return [function(){
-        const res = func.apply(null, arguments);
-        return !res ? true : skip;
-      }, ...fields]
-    },
-    when: ([func, ...fields]) => {
-      if(!fields.length) {
-        fields = [func];
-        func = a => a;
-      }
-      return [function(){
-        const res = func.apply(null, arguments);
-        return !!res ? true : skip;
-      }, ...fields]
-    },
-    turnsFromTo: ([from, to, cell]) => ['closure', () => {
-        let prev_val;
-        return (val) => {
-            if((val === to) && (prev_val === from)){
-                prev_val = val;
-                return true;
-            } else {
-                prev_val = val;
-                return skip;
-            }
-        }
-    }, cell],
-    skipN: ([field, n]) => ['closure', () => {
-        let count = 0;
-        n = n || 1;
-        return (val) => {
-            if(++count > n){
-                return val;
-            } else {
-                return skip;
-            }
-        }
-    }, field],
-    accum: ([cell, time]) => {
-        var res = time
-        ? ['async.closure', () => {
-            const vals = {};
-            let c = 0;
-            return (cb, val) => {
-                vals[++c] = val;
-                setTimeout(function(i){
-                    delete vals[i];
-                    cb(Object.values(vals));
-                }.bind(null, c), time);
-                cb(Object.values(vals));
-            }
-        }, cell]
-        : ['closure', () => {
-            const vals = [];
-            return (val) => {
-                vals.push(val);
-                return vals;
-            }
-        }, cell];
-        return res;
+
+
+const joinAsObject = (target_struct, parent, child, key) => {
+    if(parent && child && parent[key] && child[key]) {
+        target_struct[key] = Object.assign({}, parent[key], child[key]);
+    }
+}
+const joinAsArray = (target_struct, parent, child, key) => {
+    if(parent && child && parent[key] && child[key]) {
+        target_struct[key] = [...parent[key], ...child[key]];
     }
 }
 
 const mrrJoin = (child_struct = {}, parent_struct = {}) => {
     const struct = Object.assign({}, parent_struct, child_struct);
-    if(parent_struct && child_struct && parent_struct.$init && child_struct.$init) {
-      struct.$init = Object.assign({}, parent_struct.$init || {}, child_struct.$init || {});
-    }
+    joinAsObject(struct, parent_struct, child_struct, '$init');
+    joinAsArray(struct, parent_struct, child_struct, '$readFromDOM');
+    joinAsArray(struct, parent_struct, child_struct, '$expose');
     for(let k in struct){
         if(k[0] === '+'){
             const real_k = k.substr(1);
@@ -372,16 +94,92 @@ const objMap = (obj, func) => {
     return res;
 }
 
-const dataTypes = {
-    'array': a => a instanceof Array,
-    'object': a => a instanceof Object,
-    'func': a => a instanceof Function,
-    'int': a => typeof a === 'number',
-    'string': a => typeof a === 'string',
-    'pair': a => (a instanceof Array) && (a.length === 2),
+const getIsOfType = dataTypes => (val, type) => dataTypes[type] ? dataTypes[type](val) : false;
+
+const defDataTypes = {
+    'array': {
+        check: a => a instanceof Array,
+    },
+    'object': {
+        check: a => a instanceof Object,
+    },
+    'func': {
+        check: a => a instanceof Function,
+    },
+    'int': {
+        check: a => typeof a === 'number',
+    },
+    'string': {
+        check: a => typeof a === 'string',
+    },
+    'pair': {
+        check: a => (a instanceof Array) && (a.length === 2),
+        extends: ['array'],
+    },
+    'coll_update': {
+        check: a => (
+            a instanceof Array 
+            && (a.length === 2) 
+            && isOfType(a[0], 'object')
+            && isOfType(a[1], 'object_or_int')
+        )
+    },
+    'array_or_object': {
+        check: a => a instanceof Object,
+        extends: ['array', 'object'],
+    },
+    'object_or_int': {
+        check: a => (a instanceof Object) || (typeof a === 'number'),
+        extends: ['int', 'object'],
+    },
 }
 
-const getWithMrr = (GG) => (mrrStructure, render = null, parentClass = null, isGlobal = false) => {
+var isOfType = getIsOfType(defDataTypes);
+
+const isMatchingType = (master_type, slave_type, types, actions) => {
+    if(master_type === slave_type) {
+        actions.matches ? actions.matches() : null;
+        return;
+    }
+    if(!types[slave_type]){
+        debugger;
+    }
+    let matches = false;
+    if(types[master_type].extends){
+        for(let parent_type of types[master_type].extends){
+            isMatchingType(parent_type, slave_type, types, {
+                matches: () => {
+                    actions.matches();
+                    matches = true;
+                },
+            });
+        }
+    }
+    if(matches) return;
+    let maybe = false;
+    if(types[slave_type].extends){
+        for(let parent_type of types[slave_type].extends){
+            isMatchingType(master_type, parent_type, types, {
+                matches: () => {
+                    if(types[slave_type].extends.length > 1){
+                        actions.matches ? actions.matches() : null;
+                    } else {
+                        actions.maybe ? actions.maybe() : null;
+                    }
+                    maybe = true;
+                },
+                maybe: () => {
+                    actions.maybe ? actions.maybe() : null;
+                    maybe = true;
+                }
+            })
+        }
+    }
+    if(maybe) return;
+    actions.not ? actions.not() : null;
+}
+
+const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, parentClass = null, isGlobal = false) => {
     let mrrParentClass = mrrStructure;
     const parent = parentClass || React.Component;
     render = render || parent.prototype.render || (() => null);
@@ -442,8 +240,12 @@ const getWithMrr = (GG) => (mrrStructure, render = null, parentClass = null, isG
                 return [val, key];
             }));
             this.parseMrr();
-            if(GG && this.__mrr.linksNeeded['^']){
-                GG.__mrr.subscribers.push(this);
+            if(GG){
+                if(this.__mrr.linksNeeded['^']){
+                    GG.__mrr.subscribers.push(this);
+                    this.checkLinkedCellsTypes(this, GG, '^');
+                }
+                this.checkLinkedCellsTypes(GG, this, '*');
             }
             this.state = this.initialState;
             if(this.props.mrrConnect){
@@ -471,7 +273,7 @@ const getWithMrr = (GG) => (mrrStructure, render = null, parentClass = null, isG
             }
         }
         get __mrrMacros(){
-            return Object.assign({}, defMacros, global_macros);
+            return Object.assign({}, macros, global_macros);
         }
         get __mrrPath(){
             return this.__mrrParent ? this.__mrrParent.__mrrPath + '/' + this.$name : 'root';
@@ -543,6 +345,8 @@ const getWithMrr = (GG) => (mrrStructure, render = null, parentClass = null, isG
                     if(this.__mrr.linksNeeded[from][parent_cell].indexOf(cell) === -1){
                         this.__mrr.linksNeeded[from][parent_cell].push(cell);
                     }
+                } else {
+                    this.mentionedCells[cell[0] === '-' ? cell.slice(1) : cell] = true;
                 }
                 if(cell[0] === '-'){
                     // passive listening
@@ -556,6 +360,7 @@ const getWithMrr = (GG) => (mrrStructure, render = null, parentClass = null, isG
         }
         parseMrr(){
             const depMap = {};
+            this.mentionedCells = {};
             const mrr = this.__mrr.realComputed;
             this.mrrState = Object.assign({}, this.state);
             const updateOnInit = {};
@@ -583,6 +388,13 @@ const getWithMrr = (GG) => (mrrStructure, render = null, parentClass = null, isG
                     this.__mrr.expose = fexpr;
                     continue;
                 };
+                if(key === "$readFromDOM") {
+                    this.__mrr.readFromDOM = {};
+                    for(let item of fexpr){
+                        this.__mrr.readFromDOM[item] = true;
+                    }
+                    continue;
+                };
                 if(!(fexpr instanceof Array)){
                     if(typeof fexpr === 'string'){
                         // another cell
@@ -598,7 +410,13 @@ const getWithMrr = (GG) => (mrrStructure, render = null, parentClass = null, isG
             }
             this.initialState = updateOnInit;
             this.mrrDepMap = depMap;
-            //console.log('parsed depMap', this.mrrDepMap);
+            if(this.__mrr.readFromDOM){
+                for(let cn in this.mentionedCells){
+                    if(!this.__mrr.realComputed[cn] && !this.__mrr.readFromDOM[cn] && (cn.indexOf('.') === -1)){
+                        throw new Error('Linking to undescribed cell: ' + cn);
+                    }
+                }
+            }
         }
         setStateFromEvent(key, e){
             var val;
@@ -620,9 +438,15 @@ const getWithMrr = (GG) => (mrrStructure, render = null, parentClass = null, isG
                 const needed_cells = a.__mrr.linksNeeded[linked_as][v];
                 for(let cell of needed_cells){
                     if(a.__mrr.dataTypes[cell] && b.__mrr.dataTypes[v] && (
-                        a.__mrr.dataTypes[cell] !== b.__mrr.dataTypes[v]
+                        isMatchingType(b.__mrr.dataTypes[v], a.__mrr.dataTypes[cell], dataTypes, {
+                            not: () => {
+                                throw new Error('Types mismatch! ' + a.__mrr.dataTypes[cell] + ' vs. ' + b.__mrr.dataTypes[v] + ' in ' + cell);
+                            },
+                            maybe: () => {
+                                console.warn('Not fully compliant types: expecting ' + a.__mrr.dataTypes[cell] + ', got ' + b.__mrr.dataTypes[v]);
+                            },
+                        })
                     )) {
-                        throw new Error('Types mismatch! ' + a.__mrr.dataTypes[cell] + ' vs. ' + b.__mrr.dataTypes[v] + ' in ' + cell);
                     }
                 }
             }
@@ -662,6 +486,9 @@ const getWithMrr = (GG) => (mrrStructure, render = null, parentClass = null, isG
             }
         }
         toState(key, val){
+            if(this.__mrr.readFromDOM && !this.__mrr.readFromDOM[key]){
+                throw new Error('MRERR_101: trying to create undescribed stream: ' + key, this.__mrr.readFromDOM);
+            }
             if(val === undefined && this.__mrr.thunks[key]){
                 //console.log('=== skip');
                 return this.__mrr.thunks[key];
@@ -818,7 +645,10 @@ const getWithMrr = (GG) => (mrrStructure, render = null, parentClass = null, isG
                 }
             }
             if(this.__mrr.dataTypes[cell]){
-                if(!(dataTypes[this.__mrr.dataTypes[cell]](val))){
+                if(!dataTypes[this.__mrr.dataTypes[cell]]){
+                    throw new Error('Undeclared type: ' + this.__mrr.dataTypes[cell] + " for cell " + cell);
+                }
+                if(!(dataTypes[this.__mrr.dataTypes[cell]].check(val))){
                     throw new Error('Wrong data type for cell ' + cell + ': ' + val + ', expecting ' + this.__mrr.dataTypes[cell]);
                 }
             }
@@ -955,30 +785,33 @@ const getWithMrr = (GG) => (mrrStructure, render = null, parentClass = null, isG
     return cls;
 }
 
-export const withMrr = getWithMrr();
+export const withMrr = getWithMrr(null, defMacros, defDataTypes);
 
 const def = withMrr({}, null, React.Component);
 def.skip = skip;
 
-const initGlobalGrid = (struct, force = false) => {
+const initGlobalGrid = (struct, availableMacros, availableDataTypes) => {
     class GlobalGrid {
         __mrrGetComputed(){
             return struct;
         }
     }
-    const GlobalGridClass = withMrr(null, null, GlobalGrid, true);
+    const GwithMrr = getWithMrr(null, availableMacros, availableDataTypes);
+    const GlobalGridClass = GwithMrr(null, null, GlobalGrid, true);
     const GG = new GlobalGridClass;
     GG.__mrr.subscribers = [];
     return GG;
 }
 
 export const createMrrApp = (conf) => {
-    const GG = conf.globalGrid ? initGlobalGrid(conf.globalGrid) : null;
-    const withMrr = getWithMrr(GG);
+    const availableMacros = Object.assign({}, defMacros, conf.macros || {});
+    const availableDataTypes = Object.assign({}, defDataTypes, conf.dataTypes || {});
+    const GG = conf.globalGrid ? initGlobalGrid(conf.globalGrid, availableMacros, availableDataTypes) : null;
+    const withMrr = getWithMrr(GG, availableMacros, availableDataTypes);
     return {
         withMrr,
         skip,
-        GG
+        GG,
     }
 }
 

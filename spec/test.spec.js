@@ -19,6 +19,9 @@ import { CardForm } from './testComponents/CardForm';
 import Form1 from './testComponents/Form1';
 import CascadeForm from './testComponents/CascadeForm';
 
+import UndescribedCellError from './testComponents/UndescribedCellError';
+import WrongStreamError from './testComponents/WrongStreamError';
+
 configure({ adapter: new Adapter() });
 
 const wait = ms => resolve => {
@@ -318,6 +321,21 @@ describe('Testing global grid', () => {
     assert.strictEqual(GG.mrrState['a'], 20);
     assert.strictEqual(GG.mrrState['*/baz'], undefined);
     assert.strictEqual(GG.mrrState['b'], undefined);
+  });
+});
+
+describe('Testing readFromDOM', () => {
+  it('Should throw an exception when linking to undescribed cell', () => {
+    //const component = mount(<UndescribedCellError />);
+    expect(() => { 
+        const a = mount(<UndescribedCellError />); 
+    }).to.throw(Error);
+  });
+  it('Should throw an exception for trying to set an undescribed stream', () => {
+    //const component = mount(<UndescribedCellError />);
+    expect(() => { 
+        const a = mount(<WrongStreamError />); 
+    }).to.throw(Error);
   });
 });
 
