@@ -186,134 +186,122 @@ process.umask = function() { return 0; };
 
 },{}],2:[function(require,module,exports){
 window.mrr = require("./index");
-},{"./index":3}],3:[function(require,module,exports){
+},{"./index":4}],3:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-exports.initGlobalGrid = exports.withMrr = exports.registerMacros = exports.skip = undefined;
-
-var _get = function get(object, property, receiver) { if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { return get(parent, property, receiver); } } else if ("value" in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } };
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
 
-var _react = require('react');
-
-var _react2 = _interopRequireDefault(_react);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+var _2 = require('./');
 
 function _toArray(arr) { return Array.isArray(arr) ? arr : Array.from(arr); }
 
 function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
-function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
-
-// if polyfill used
-var isPromise = function isPromise(a) {
-    return a instanceof Object && a.toString && a.toString().indexOf('Promise') !== -1;
-};
-
-var cell_types = ['funnel', 'closure', 'nested', 'async'];
 var isJustObject = function isJustObject(a) {
     return a instanceof Object && !(a instanceof Array) && !(a instanceof Function);
 };
-var GG = void 0;
-var global_macros = {};
-
-var skip = exports.skip = new function MrrSkip() {}();
-
-var registerMacros = exports.registerMacros = function registerMacros(name, func) {
-    global_macros[name] = func;
-};
-
-var isUndef = function isUndef(a) {
-    return a === null || a === undefined;
-};
-
 var always = function always(a) {
     return function (_) {
         return a;
     };
 };
-
-var shallow_equal = function shallow_equal(a, b) {
-    if (a instanceof Object) {
-        if (!b) return false;
-        if (a instanceof Function) {
-            return a.toString() === b.toString();
-        }
-        for (var k in a) {
-            if (!a.hasOwnProperty(k)) {
-                continue;
-            }
-            if (a[k] !== b[k]) {
-                return false;
-            }
-        }
-        for (var _k in b) {
-            if (!b.hasOwnProperty(_k)) {
-                continue;
-            }
-            if (a[_k] !== b[_k]) {
-                return false;
-            }
-        }
-        return true;
-    }
-    return a == b;
+var isPromise = function isPromise(a) {
+    return a instanceof Object && a.toString && a.toString().indexOf('Promise') !== -1;
 };
-
 var matches = function matches(obj, subset) {
     for (var k in subset) {
-        if (!shallow_equal(obj[k], subset[k])) {
+        if (!(0, _2.shallow_equal)(obj[k], subset[k])) {
             return false;
         }
     }
     return true;
 };
 
-var updateOtherGrid = function updateOtherGrid(grid, as, key, val) {
-    var his_cells = grid.__mrr.linksNeeded[as][key];
-    var _iteratorNormalCompletion = true;
-    var _didIteratorError = false;
-    var _iteratorError = undefined;
+var collMacros = function collMacros(_ref) {
+    var _ref2 = _slicedToArray(_ref, 1),
+        map = _ref2[0];
 
-    try {
-        for (var _iterator = his_cells[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-            var cell = _step.value;
+    var res = ['funnel', function (cell, val) {
+        return val;
+    }];
 
-            grid.setState(_defineProperty({}, cell, val));
+    var _loop = function _loop(type) {
+        if (type !== 'custom') {
+            res.push([function () {
+                for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+                    args[_key] = arguments[_key];
+                }
+
+                return [type].concat(args);
+            }, map[type]]);
         }
-    } catch (err) {
-        _didIteratorError = true;
-        _iteratorError = err;
-    } finally {
-        try {
-            if (!_iteratorNormalCompletion && _iterator.return) {
-                _iterator.return();
-            }
-        } finally {
-            if (_didIteratorError) {
-                throw _iteratorError;
-            }
-        }
+    };
+
+    for (var type in map) {
+        _loop(type);
     }
+    return [function (_ref3, prev) {
+        var _ref4 = _slicedToArray(_ref3, 2),
+            type = _ref4[0],
+            changes = _ref4[1];
+
+        var next = [].concat(_toConsumableArray(prev));
+        switch (type) {
+            case 'update':
+                var _changes = _slicedToArray(changes, 2),
+                    newProps = _changes[0],
+                    predicate = _changes[1];
+
+                if (!(predicate instanceof Object)) {
+                    // it's index
+                    prev.map(function (item, i) {
+                        return [i, item];
+                    }).filter(function (pair) {
+                        return Number(pair[0]) === Number(predicate);
+                    }).forEach(function (i) {
+                        next[i[0]] = Object.assign({}, next[i[0]], newProps);
+                    });
+                } else {
+                    prev.map(function (item, i) {
+                        return [i, item];
+                    }).filter(function (pair) {
+                        return matches(pair[1], predicate);
+                    }).forEach(function (i) {
+                        next[i[0]] = Object.assign({}, next[i[0]], newProps);
+                    });
+                }
+                break;
+            case 'delete':
+                next = next.filter(function (item, i) {
+                    if (changes instanceof Object) {
+                        return !matches(item, changes);
+                    } else {
+                        return Number(i) !== changes;
+                    }
+                });
+                break;
+            case 'create':
+                if (changes instanceof Array) {
+                    changes.forEach(function (item) {
+                        return next.push(item);
+                    });
+                } else {
+                    next.push(changes);
+                }
+                break;
+        }
+        return next;
+    }, res, '^'];
 };
 
 var defMacros = {
-    map: function map(_ref) {
-        var _ref2 = _slicedToArray(_ref, 1),
-            _map = _ref2[0];
+    map: function map(_ref5) {
+        var _ref6 = _slicedToArray(_ref5, 1),
+            _map = _ref6[0];
 
         var res = ['funnel', function (cell, val) {
             return _map[cell] instanceof Function ? _map[cell](val) : _map[cell];
@@ -323,76 +311,8 @@ var defMacros = {
         }
         return res;
     },
-    list: function list(_ref3) {
-        var _ref4 = _slicedToArray(_ref3, 1),
-            map = _ref4[0];
-
-        var res = ['funnel', function (cell, val) {
-            return val;
-        }];
-
-        var _loop = function _loop(type) {
-            if (type !== 'custom') {
-                res.push([function () {
-                    for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-                        args[_key] = arguments[_key];
-                    }
-
-                    return [type].concat(args);
-                }, map[type]]);
-            }
-        };
-
-        for (var type in map) {
-            _loop(type);
-        }
-        return [function (_ref5, prev) {
-            var _ref6 = _slicedToArray(_ref5, 2),
-                type = _ref6[0],
-                changes = _ref6[1];
-
-            var next = [].concat(_toConsumableArray(prev));
-            switch (type) {
-                case 'update':
-                    var _changes = _slicedToArray(changes, 2),
-                        newProps = _changes[0],
-                        predicate = _changes[1];
-
-                    if (!(predicate instanceof Object)) {
-                        // it's index
-                        prev.map(function (item, i) {
-                            return [i, item];
-                        }).filter(function (pair) {
-                            return Number(pair[0]) === Number(predicate);
-                        }).forEach(function (i) {
-                            next[i[0]] = Object.assign({}, next[i[0]], newProps);
-                        });
-                    } else {
-                        prev.map(function (item, i) {
-                            return [i, item];
-                        }).filter(function (pair) {
-                            return matches(pair[1], predicate);
-                        }).forEach(function (i) {
-                            next[i[0]] = Object.assign({}, next[i[0]], newProps);
-                        });
-                    }
-                    break;
-                case 'delete':
-                    next = next.filter(function (item, i) {
-                        if (changes instanceof Object) {
-                            return !matches(item, changes);
-                        } else {
-                            return Number(i) !== changes;
-                        }
-                    });
-                    break;
-                case 'create':
-                    next.push(changes);
-                    break;
-            }
-            return next;
-        }, res, '^'];
-    },
+    coll: collMacros,
+    list: collMacros,
     merge: function merge(_ref7) {
         var _ref8 = _toArray(_ref7),
             map = _ref8[0],
@@ -457,7 +377,7 @@ var defMacros = {
             };
         }, arg];
     },
-    promiseLatest: function promiseLatest(_ref15) {
+    promise: function promise(_ref15) {
         var _ref16 = _toArray(_ref15),
             func = _ref16[0],
             argCells = _ref16.slice(1);
@@ -522,7 +442,7 @@ var defMacros = {
 
             for (var k in map) {
                 var res = map[k].apply(null, args);
-                if (res) {
+                if (res !== undefined && res !== null && res !== false) {
                     cb(k, res);
                 }
             }
@@ -530,7 +450,7 @@ var defMacros = {
     },
     transist: function transist(cells) {
         return [function (a, b) {
-            return a ? b : skip;
+            return a ? b : _2.skip;
         }].concat(_toConsumableArray(cells));
     },
     closureMerge: function closureMerge(_ref19) {
@@ -624,7 +544,7 @@ var defMacros = {
             val = _ref32[1];
 
         return [function (a) {
-            return a === val ? true : skip;
+            return a === val ? true : _2.skip;
         }, field];
     },
     skipSame: function skipSame(_ref33) {
@@ -632,7 +552,7 @@ var defMacros = {
             field = _ref34[0];
 
         return [function (z, x) {
-            return shallow_equal(z, x) ? skip : z;
+            return (0, _2.shallow_equal)(z, x) ? _2.skip : z;
         }, field, '^'];
     },
     skipIf: function skipIf(_ref35) {
@@ -648,7 +568,7 @@ var defMacros = {
         }
         return [function () {
             var res = func.apply(null, arguments);
-            return !res ? true : skip;
+            return !res ? true : _2.skip;
         }].concat(_toConsumableArray(fields));
     },
     when: function when(_ref37) {
@@ -664,7 +584,7 @@ var defMacros = {
         }
         return [function () {
             var res = func.apply(null, arguments);
-            return !!res ? true : skip;
+            return !!res ? true : _2.skip;
         }].concat(_toConsumableArray(fields));
     },
     turnsFromTo: function turnsFromTo(_ref39) {
@@ -681,7 +601,7 @@ var defMacros = {
                     return true;
                 } else {
                     prev_val = val;
-                    return skip;
+                    return _2.skip;
                 }
             };
         }, cell];
@@ -698,7 +618,7 @@ var defMacros = {
                 if (++count > n) {
                     return val;
                 } else {
-                    return skip;
+                    return _2.skip;
                 }
             };
         }, field];
@@ -730,14 +650,136 @@ var defMacros = {
     }
 };
 
+exports.default = defMacros;
+},{"./":4}],4:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports.createMrrApp = exports.withMrr = exports.isOfType = exports.shallow_equal = exports.registerMacros = exports.skip = undefined;
+
+var _get = function get(object, property, receiver) { if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { return get(parent, property, receiver); } } else if ("value" in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } };
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
+
+var _react = require('react');
+
+var _react2 = _interopRequireDefault(_react);
+
+var _defMacros = require('./defMacros');
+
+var _defMacros2 = _interopRequireDefault(_defMacros);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
+// if polyfill used
+var isPromise = function isPromise(a) {
+    return a instanceof Object && a.toString && a.toString().indexOf('Promise') !== -1;
+};
+
+var cell_types = ['funnel', 'closure', 'nested', 'async'];
+var global_macros = {};
+
+var log_styles_cell = 'background: #898cec; color: white; padding: 1px;';
+var log_styles_mount = 'background: green; color: white; padding: 1px;';
+
+var skip = exports.skip = new function MrrSkip() {}();
+
+var registerMacros = exports.registerMacros = function registerMacros(name, func) {
+    global_macros[name] = func;
+};
+
+var isUndef = function isUndef(a) {
+    return a === null || a === undefined;
+};
+
+var shallow_equal = exports.shallow_equal = function shallow_equal(a, b) {
+    if (a instanceof Object) {
+        if (!b) return false;
+        if (a instanceof Function) {
+            return a.toString() === b.toString();
+        }
+        for (var k in a) {
+            if (!a.hasOwnProperty(k)) {
+                continue;
+            }
+            if (a[k] !== b[k]) {
+                return false;
+            }
+        }
+        for (var _k in b) {
+            if (!b.hasOwnProperty(_k)) {
+                continue;
+            }
+            if (a[_k] !== b[_k]) {
+                return false;
+            }
+        }
+        return true;
+    }
+    return a == b;
+};
+
+var updateOtherGrid = function updateOtherGrid(grid, as, key, val) {
+    var his_cells = grid.__mrr.linksNeeded[as][key];
+    var _iteratorNormalCompletion = true;
+    var _didIteratorError = false;
+    var _iteratorError = undefined;
+
+    try {
+        for (var _iterator = his_cells[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+            var cell = _step.value;
+
+            grid.setState(_defineProperty({}, cell, val));
+        }
+    } catch (err) {
+        _didIteratorError = true;
+        _iteratorError = err;
+    } finally {
+        try {
+            if (!_iteratorNormalCompletion && _iterator.return) {
+                _iterator.return();
+            }
+        } finally {
+            if (_didIteratorError) {
+                throw _iteratorError;
+            }
+        }
+    }
+};
+
+var joinAsObject = function joinAsObject(target_struct, parent, child, key) {
+    if (parent && child && parent[key] && child[key]) {
+        target_struct[key] = Object.assign({}, parent[key], child[key]);
+    }
+};
+var joinAsArray = function joinAsArray(target_struct, parent, child, key) {
+    if (parent && child && parent[key] && child[key]) {
+        target_struct[key] = [].concat(_toConsumableArray(parent[key]), _toConsumableArray(child[key]));
+    }
+};
+
 var mrrJoin = function mrrJoin() {
     var child_struct = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
     var parent_struct = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
     var struct = Object.assign({}, parent_struct, child_struct);
-    if (parent_struct && child_struct && parent_struct.$init && child_struct.$init) {
-        struct.$init = Object.assign({}, parent_struct.$init || {}, child_struct.$init || {});
-    }
+    joinAsObject(struct, parent_struct, child_struct, '$init');
+    joinAsArray(struct, parent_struct, child_struct, '$readFromDOM');
+    joinAsArray(struct, parent_struct, child_struct, '$expose');
     for (var k in struct) {
         if (k[0] === '+') {
             var real_k = k.substr(1);
@@ -765,643 +807,947 @@ var objMap = function objMap(obj, func) {
     return res;
 };
 
-var withMrr = exports.withMrr = function withMrr(mrrStructure) {
-    var _render = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
+var isOfType = exports.isOfType = function isOfType(val, type, dataTypes) {
+    return dataTypes[type] ? dataTypes[type](val) : false;
+};
 
-    var parentClass = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : null;
-
-    var mrrParentClass = mrrStructure;
-    var parent = parentClass || _react2.default.Component;
-    _render = _render || parent.prototype.render || function () {
-        return null;
-    };
-    mrrParentClass = function (_parent) {
-        _inherits(MyMrrComponent, _parent);
-
-        function MyMrrComponent() {
-            _classCallCheck(this, MyMrrComponent);
-
-            return _possibleConstructorReturn(this, (MyMrrComponent.__proto__ || Object.getPrototypeOf(MyMrrComponent)).apply(this, arguments));
+var defDataTypes = {
+    'array': {
+        check: function check(a) {
+            return a instanceof Array;
         }
+    },
+    'object': {
+        check: function check(a) {
+            return a instanceof Object;
+        }
+    },
+    'func': {
+        check: function check(a) {
+            return a instanceof Function;
+        }
+    },
+    'int': {
+        check: function check(a) {
+            return typeof a === 'number';
+        }
+    },
+    'string': {
+        check: function check(a) {
+            return typeof a === 'string';
+        }
+    },
+    'pair': {
+        check: function check(a) {
+            return a instanceof Array && a.length === 2;
+        },
+        extends: ['array']
+    },
+    'coll_update': {
+        check: function check(a, types) {
+            return a instanceof Array && a.length === 2 && isOfType(a[0], 'object', types) && isOfType(a[1], 'object_or_int', types);
+        }
+    },
+    'array_or_object': {
+        check: function check(a) {
+            return a instanceof Object;
+        },
+        extends: ['array', 'object']
+    },
+    'object_or_int': {
+        check: function check(a) {
+            return a instanceof Object || typeof a === 'number';
+        },
+        extends: ['int', 'object']
+    }
+};
 
-        _createClass(MyMrrComponent, [{
-            key: '__mrrGetComputed',
-            value: function __mrrGetComputed() {
-                var parent_struct = parent.prototype.__mrrGetComputed ? parent.prototype.__mrrGetComputed.apply(this) : {};
-                return mrrJoin(this.props.__mrr, mrrJoin(mrrStructure instanceof Function ? mrrStructure(this.props || {}) : mrrStructure, parent_struct));
-            }
-        }, {
-            key: 'render',
-            value: function render() {
-                var _this2 = this;
+var isMatchingType = function isMatchingType(master_type, slave_type, types, actions) {
+    if (master_type === slave_type) {
+        actions.matches ? actions.matches() : null;
+        return;
+    }
+    if (!types[slave_type]) {
+        debugger;
+    }
+    var _matches = false;
+    if (types[master_type].extends) {
+        var _iteratorNormalCompletion2 = true;
+        var _didIteratorError2 = false;
+        var _iteratorError2 = undefined;
 
-                var self = this;
-                return _render.call(this, this.state, this.props, this.toState.bind(this), function (as) {
-                    return { mrrConnect: _this2.mrrConnect(as) };
+        try {
+            for (var _iterator2 = types[master_type].extends[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+                var parent_type = _step2.value;
+
+                isMatchingType(parent_type, slave_type, types, {
+                    matches: function matches() {
+                        actions.matches();
+                        _matches = true;
+                    }
                 });
             }
-        }]);
-
-        return MyMrrComponent;
-    }(parent);
-    var cls = function (_mrrParentClass) {
-        _inherits(Mrr, _mrrParentClass);
-
-        function Mrr(props, context, already_inited) {
-            _classCallCheck(this, Mrr);
-
-            var _this3 = _possibleConstructorReturn(this, (Mrr.__proto__ || Object.getPrototypeOf(Mrr)).call(this, props, context, true));
-
-            if (already_inited) {
-                //return;
-            }
-            _this3.props = props || {};
-            _this3.__mrr = {
-                closureFuncs: {},
-                children: {},
-                childrenCounter: 0,
-                anonCellsCounter: 0,
-                linksNeeded: {},
-                constructing: true,
-                thunks: {},
-                skip: skip,
-                expose: {},
-                signalCells: {}
-            };
-            if (props && props.extractDebugMethodsTo) {
-                props.extractDebugMethodsTo.getState = function () {
-                    return _this3.mrrState;
-                };
-            }
-            if (!_this3.__mrr.valueCells) {
-                _this3.__mrr.valueCells = {};
-            }
-            _this3.__mrr.realComputed = Object.assign({}, objMap(_this3.__mrrGetComputed(), function (val, key) {
-                if (key[0] === '~') {
-                    key = key.substr(1);
-                    _this3.__mrr.signalCells[key] = true;
+        } catch (err) {
+            _didIteratorError2 = true;
+            _iteratorError2 = err;
+        } finally {
+            try {
+                if (!_iteratorNormalCompletion2 && _iterator2.return) {
+                    _iterator2.return();
                 }
-                if (key[0] === '=') {
-                    key = key.substr(1);
-                    _this3.__mrr.valueCells[key] = true;
+            } finally {
+                if (_didIteratorError2) {
+                    throw _iteratorError2;
                 }
-                return [val, key];
-            }));
-            _this3.parseMrr();
-            if (GG && _this3.__mrr.linksNeeded['^']) {
-                GG.__mrr.subscribers.push(_this3);
             }
-            _this3.state = _this3.initialState;
-            if (_this3.props.mrrConnect) {
-                _this3.props.mrrConnect.subscribe(_this3);
-            }
-            _this3.__mrr.constructing = false;
-            return _this3;
         }
+    }
+    if (_matches) return;
+    var _maybe = false;
+    if (types[slave_type].extends) {
+        var _iteratorNormalCompletion3 = true;
+        var _didIteratorError3 = false;
+        var _iteratorError3 = undefined;
 
-        _createClass(Mrr, [{
-            key: 'componentDidMount',
-            value: function componentDidMount() {
-                this.setState({
-                    $start: true,
-                    $props: this.props
-                });
-            }
-        }, {
-            key: 'componentWillReceiveProps',
-            value: function componentWillReceiveProps(nextProps) {
-                this.setState({ $props: nextProps });
-            }
-        }, {
-            key: 'componentWillUnmount',
-            value: function componentWillUnmount() {
-                this.setState({ $end: true });
-                if (this.__mrrParent) {
-                    delete this.__mrrParent.__mrr.children[this.__mrrLinkedAs];
-                }
-                if (GG && this.__mrr.linksNeeded['^']) {
-                    var i = GG.__mrr.subscribers.indexOf(this);
-                    delete GG.__mrr.subscribers[i];
-                }
-            }
-        }, {
-            key: 'parseRow',
-            value: function parseRow(row, key, depMap) {
-                if (key === "$log") return;
-                for (var k in row) {
-                    var cell = row[k];
-                    if (cell === '^' || cell === skip) {
-                        // prev val of cell or "no cell"
-                        continue;
-                    }
-                    if (k === '0') {
-                        if (!(cell instanceof Function) && (!cell.indexOf || cell.indexOf('.') === -1 && cell_types.indexOf(cell) === -1)) {
-                            // it's macro
-                            if (!this.__mrrMacros[cell]) {
-                                throw new Error('Macros ' + cell + ' not found!');
-                            }
-                            var new_row = this.__mrrMacros[cell](row.slice(1));
-                            this.__mrr.realComputed[key] = new_row;
-                            this.parseRow(new_row, key, depMap);
-                            return;
-                        }
-                        continue;
-                    }
-                    if (cell instanceof Function) continue;
-                    if (cell instanceof Array) {
-                        // anon cell
-                        var anonName = '@@anon' + ++this.__mrr.anonCellsCounter;
-                        this.__mrr.realComputed[anonName] = cell;
-                        var rowCopy = this.__mrr.realComputed[key].slice();
-                        rowCopy[k] = anonName;
-                        this.__mrr.realComputed[key] = rowCopy;
-                        this.parseRow(cell, anonName, depMap);
-                        cell = anonName;
-                    }
-                    if (cell.indexOf('/') !== -1) {
-                        var _cell$split = cell.split('/'),
-                            _cell$split2 = _slicedToArray(_cell$split, 2),
-                            from = _cell$split2[0],
-                            parent_cell = _cell$split2[1];
+        try {
+            for (var _iterator3 = types[slave_type].extends[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+                var _parent_type = _step3.value;
 
-                        if (from[0] === '~') {
-                            from = from.slice(1);
-                        }
-                        if (!this.__mrr.linksNeeded[from]) {
-                            this.__mrr.linksNeeded[from] = {};
-                        }
-                        if (!this.__mrr.linksNeeded[from][parent_cell]) {
-                            this.__mrr.linksNeeded[from][parent_cell] = [];
-                        }
-                        if (this.__mrr.linksNeeded[from][parent_cell].indexOf(cell) === -1) {
-                            this.__mrr.linksNeeded[from][parent_cell].push(cell);
-                        }
-                    }
-                    if (cell[0] === '-') {
-                        // passive listening
-                        continue;
-                    }
-                    if (!depMap[cell]) {
-                        depMap[cell] = [];
-                    }
-                    depMap[cell].push(key);
-                }
-            }
-        }, {
-            key: 'parseMrr',
-            value: function parseMrr() {
-                var depMap = {};
-                var mrr = this.__mrr.realComputed;
-                this.mrrState = Object.assign({}, this.state);
-                var updateOnInit = {};
-                for (var key in mrr) {
-                    var fexpr = mrr[key];
-                    if (key === '$log') continue;
-                    if (fexpr === skip) continue;
-                    if (key === '$meta') continue;
-                    if (key === '$init') {
-                        var init_vals = mrr[key] instanceof Function ? mrr[key](this.props) : mrr[key];
-                        for (var cell in init_vals) {
-                            this.__mrrSetState(cell, init_vals[cell], []);
-                            updateOnInit[cell] = init_vals[cell];
-                        }
-                        continue;
-                    }
-                    if (key === "$expose") {
-                        if (fexpr instanceof Array) {
-                            var obj = {};
-                            for (var k in fexpr) {
-                                obj[fexpr[k]] = fexpr[k];
-                            }
-                            fexpr = obj;
-                        }
-                        this.__mrr.expose = fexpr;
-                        continue;
-                    };
-                    if (!(fexpr instanceof Array)) {
-                        if (typeof fexpr === 'string') {
-                            // another cell
-                            fexpr = [function (a) {
-                                return a;
-                            }, fexpr];
-                            this.__mrr.realComputed[key] = fexpr;
+                isMatchingType(master_type, _parent_type, types, {
+                    matches: function matches() {
+                        if (types[slave_type].extends.length > 1) {
+                            actions.matches ? actions.matches() : null;
                         } else {
-                            // dunno
-                            console.warn('Strange F-expr:', fexpr);
+                            actions.maybe ? actions.maybe() : null;
+                        }
+                        _maybe = true;
+                    },
+                    maybe: function maybe() {
+                        actions.maybe ? actions.maybe() : null;
+                        _maybe = true;
+                    }
+                });
+            }
+        } catch (err) {
+            _didIteratorError3 = true;
+            _iteratorError3 = err;
+        } finally {
+            try {
+                if (!_iteratorNormalCompletion3 && _iterator3.return) {
+                    _iterator3.return();
+                }
+            } finally {
+                if (_didIteratorError3) {
+                    throw _iteratorError3;
+                }
+            }
+        }
+    }
+    if (_maybe) return;
+    actions.not ? actions.not() : null;
+};
+
+var type_delimiter = ': ';
+
+var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
+    return function (mrrStructure) {
+        var _render = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
+
+        var parentClass = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : null;
+        var isGlobal = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
+
+        var mrrParentClass = mrrStructure;
+        var parent = parentClass || _react2.default.Component;
+        _render = _render || parent.prototype.render || function () {
+            return null;
+        };
+        mrrParentClass = function (_parent) {
+            _inherits(MyMrrComponent, _parent);
+
+            function MyMrrComponent() {
+                _classCallCheck(this, MyMrrComponent);
+
+                return _possibleConstructorReturn(this, (MyMrrComponent.__proto__ || Object.getPrototypeOf(MyMrrComponent)).apply(this, arguments));
+            }
+
+            _createClass(MyMrrComponent, [{
+                key: '__mrrGetComputed',
+                value: function __mrrGetComputed() {
+                    var parent_struct = parent.prototype.__mrrGetComputed ? parent.prototype.__mrrGetComputed.apply(this) : {};
+                    return mrrJoin(this.props.__mrr, mrrJoin(mrrStructure instanceof Function ? mrrStructure(this.props || {}) : mrrStructure, parent_struct));
+                }
+            }, {
+                key: 'render',
+                value: function render() {
+                    var _this2 = this;
+
+                    var self = this;
+                    return _render.call(this, this.state, this.props, this.toState.bind(this), function (as) {
+                        return { mrrConnect: _this2.mrrConnect(as) };
+                    });
+                }
+            }]);
+
+            return MyMrrComponent;
+        }(parent);
+        var cls = function (_mrrParentClass) {
+            _inherits(Mrr, _mrrParentClass);
+
+            function Mrr(props, context, already_inited) {
+                _classCallCheck(this, Mrr);
+
+                var _this3 = _possibleConstructorReturn(this, (Mrr.__proto__ || Object.getPrototypeOf(Mrr)).call(this, props, context, true));
+
+                if (already_inited) {
+                    //return;
+                }
+                _this3.props = props || {};
+                _this3.__mrr = {
+                    closureFuncs: {},
+                    children: {},
+                    childrenCounter: 0,
+                    anonCellsCounter: 0,
+                    linksNeeded: {},
+                    constructing: true,
+                    thunks: {},
+                    skip: skip,
+                    expose: {},
+                    signalCells: {},
+                    dataTypes: {}
+                };
+                if (props && props.extractDebugMethodsTo) {
+                    props.extractDebugMethodsTo.getState = function () {
+                        return _this3.mrrState;
+                    };
+                }
+                if (!_this3.__mrr.valueCells) {
+                    _this3.__mrr.valueCells = {};
+                }
+                _this3.__mrr.realComputed = Object.assign({}, objMap(_this3.__mrrGetComputed(), function (val, key) {
+                    if (key[0] === '~') {
+                        key = key.substr(1);
+                        _this3.__mrr.signalCells[key] = true;
+                    }
+                    if (key[0] === '=') {
+                        key = key.substr(1);
+                        _this3.__mrr.valueCells[key] = true;
+                    }
+                    if (key.indexOf(type_delimiter) !== -1) {
+                        var type = void 0;
+
+                        var _key$split = key.split(type_delimiter);
+
+                        var _key$split2 = _slicedToArray(_key$split, 2);
+
+                        key = _key$split2[0];
+                        type = _key$split2[1];
+
+                        _this3.setCellDataType(key, type);
+                    }
+                    return [val, key];
+                }));
+                _this3.parseMrr();
+                if (GG) {
+                    if (_this3.__mrr.linksNeeded['^']) {
+                        GG.__mrr.subscribers.push(_this3);
+                        _this3.checkLinkedCellsTypes(_this3, GG, '^');
+                    }
+                    _this3.checkLinkedCellsTypes(GG, _this3, '*');
+                }
+                _this3.state = _this3.initialState;
+                if (_this3.props.mrrConnect) {
+                    _this3.props.mrrConnect.subscribe(_this3);
+                }
+                _this3.__mrr.constructing = false;
+                return _this3;
+            }
+
+            _createClass(Mrr, [{
+                key: 'componentDidMount',
+                value: function componentDidMount() {
+                    this.setState({
+                        $start: true,
+                        $props: this.props
+                    });
+                }
+            }, {
+                key: 'componentWillReceiveProps',
+                value: function componentWillReceiveProps(nextProps) {
+                    this.setState({ $props: nextProps });
+                }
+            }, {
+                key: 'componentWillUnmount',
+                value: function componentWillUnmount() {
+                    this.setState({ $end: true });
+                    if (this.__mrrParent) {
+                        delete this.__mrrParent.__mrr.children[this.__mrrLinkedAs];
+                    }
+                    if (GG && this.__mrr.linksNeeded['^']) {
+                        var i = GG.__mrr.subscribers.indexOf(this);
+                        delete GG.__mrr.subscribers[i];
+                    }
+                }
+            }, {
+                key: 'setCellDataType',
+                value: function setCellDataType(cell, type) {
+                    if (!dataTypes[type]) {
+                        throw new Error('Undeclared type: ' + type);
+                    }
+                    cell = cell[0] === '-' ? cell.slice(1) : cell;
+                    if (!this.__mrr.dataTypes[cell]) {
+                        this.__mrr.dataTypes[cell] = type;
+                    } else {
+                        if (this.__mrr.dataTypes[cell] !== type) {
+                            throw new Error("Different type annotation for the same cell found: " + this.__mrr.dataTypes[cell] + ', ' + type + ' for cell "' + cell + '"');
+                        }
+                    }
+                }
+            }, {
+                key: 'parseRow',
+                value: function parseRow(row, key, depMap) {
+                    if (key === "$log") return;
+                    for (var k in row) {
+                        var cell = row[k];
+                        if (cell === '^' || cell === skip) {
+                            // prev val of cell or "no cell"
                             continue;
                         }
-                    }
-                    this.parseRow(fexpr, key, depMap);
-                }
-                this.initialState = updateOnInit;
-                this.mrrDepMap = depMap;
-                //console.log('parsed depMap', this.mrrDepMap);
-            }
-        }, {
-            key: 'setStateFromEvent',
-            value: function setStateFromEvent(key, e) {
-                var val;
-                switch (e.target.type) {
-                    case 'checkbox':
-                        val = e.target.checked;
-                        break;
-                    default:
-                        val = e.target.value;
-                        break;
-                }
-                this.setState(_defineProperty({}, key, val));
-            }
-        }, {
-            key: 'toStateAs',
-            value: function toStateAs(key, val) {
-                this.setState(_defineProperty({}, key, val), null, null, true);
-            }
-        }, {
-            key: 'mrrConnect',
-            value: function mrrConnect(as) {
-                var _this4 = this;
+                        if (k === '0') {
+                            if (!(cell instanceof Function) && (!cell.indexOf || cell.indexOf('.') === -1 && cell_types.indexOf(cell) === -1)) {
+                                // it's macro
+                                if (!this.__mrrMacros[cell]) {
+                                    throw new Error('Macros ' + cell + ' not found!');
+                                }
+                                var new_row = this.__mrrMacros[cell](row.slice(1));
+                                this.__mrr.realComputed[key] = new_row;
+                                this.parseRow(new_row, key, depMap);
+                                return;
+                            }
+                            continue;
+                        }
+                        if (cell instanceof Function) continue;
+                        if (cell instanceof Array) {
+                            // anon cell
+                            var anonName = '@@anon' + ++this.__mrr.anonCellsCounter;
+                            this.__mrr.realComputed[anonName] = cell;
+                            var rowCopy = this.__mrr.realComputed[key].slice();
+                            rowCopy[k] = anonName;
+                            this.__mrr.realComputed[key] = rowCopy;
+                            this.parseRow(cell, anonName, depMap);
+                            cell = anonName;
+                        }
 
-                var self = this;
-                if (isUndef(as)) {
-                    as = '__rand_child_name_' + ++this.__mrr.childrenCounter;
+                        if (cell.indexOf(type_delimiter) !== -1) {
+                            var type = void 0;
+
+                            var _cell$split = cell.split(type_delimiter);
+
+                            var _cell$split2 = _slicedToArray(_cell$split, 2);
+
+                            cell = _cell$split2[0];
+                            type = _cell$split2[1];
+
+                            row[k] = cell;
+                            this.setCellDataType(cell, type);
+                        }
+
+                        if (cell.indexOf('/') !== -1) {
+                            var _cell$split3 = cell.split('/'),
+                                _cell$split4 = _slicedToArray(_cell$split3, 2),
+                                from = _cell$split4[0],
+                                parent_cell = _cell$split4[1];
+
+                            if (from[0] === '~') {
+                                from = from.slice(1);
+                            }
+                            if (!this.__mrr.linksNeeded[from]) {
+                                this.__mrr.linksNeeded[from] = {};
+                            }
+                            if (!this.__mrr.linksNeeded[from][parent_cell]) {
+                                this.__mrr.linksNeeded[from][parent_cell] = [];
+                            }
+                            if (this.__mrr.linksNeeded[from][parent_cell].indexOf(cell) === -1) {
+                                this.__mrr.linksNeeded[from][parent_cell].push(cell);
+                            }
+                        } else {
+                            this.mentionedCells[cell[0] === '-' ? cell.slice(1) : cell] = true;
+                        }
+                        if (cell[0] === '-') {
+                            // passive listening
+                            continue;
+                        }
+                        if (!depMap[cell]) {
+                            depMap[cell] = [];
+                        }
+                        depMap[cell].push(key);
+                    }
                 }
-                return {
-                    subscribe: function subscribe(child) {
-                        child.$name = as;
-                        child.state.$name = as;
-                        _this4.__mrr.children[as] = child;
-                        child.__mrrParent = self;
-                        child.__mrrLinkedAs = as;
-                        for (var a in child.__mrr.linksNeeded['..']) {
-                            var child_cells = child.__mrr.linksNeeded['..'][a];
-                            var val = self.mrrState[a];
-                            var _iteratorNormalCompletion2 = true;
-                            var _didIteratorError2 = false;
-                            var _iteratorError2 = undefined;
+            }, {
+                key: 'parseMrr',
+                value: function parseMrr() {
+                    var depMap = {};
+                    this.mentionedCells = {};
+                    var mrr = this.__mrr.realComputed;
+                    this.mrrState = Object.assign({}, this.state);
+                    var updateOnInit = {};
+                    for (var key in mrr) {
+                        var fexpr = mrr[key];
+                        if (key === '$log') continue;
+                        if (fexpr === skip) continue;
+                        if (key === '$meta') continue;
+                        if (key === '$init') {
+                            var init_vals = mrr[key] instanceof Function ? mrr[key](this.props) : mrr[key];
+                            for (var cell in init_vals) {
+                                this.__mrrSetState(cell, init_vals[cell], []);
+                                updateOnInit[cell] = init_vals[cell];
+                            }
+                            continue;
+                        }
+                        if (key === "$expose") {
+                            if (fexpr instanceof Array) {
+                                var obj = {};
+                                for (var k in fexpr) {
+                                    obj[fexpr[k]] = fexpr[k];
+                                }
+                                fexpr = obj;
+                            }
+                            this.__mrr.expose = fexpr;
+                            continue;
+                        };
+                        if (key === "$readFromDOM") {
+                            this.__mrr.readFromDOM = {};
+                            var _iteratorNormalCompletion4 = true;
+                            var _didIteratorError4 = false;
+                            var _iteratorError4 = undefined;
 
                             try {
-                                for (var _iterator2 = child_cells[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-                                    var cell = _step2.value;
+                                for (var _iterator4 = fexpr[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+                                    var item = _step4.value;
 
-                                    child.mrrState[cell] = val;
+                                    this.__mrr.readFromDOM[item] = true;
                                 }
                             } catch (err) {
-                                _didIteratorError2 = true;
-                                _iteratorError2 = err;
+                                _didIteratorError4 = true;
+                                _iteratorError4 = err;
                             } finally {
                                 try {
-                                    if (!_iteratorNormalCompletion2 && _iterator2.return) {
-                                        _iterator2.return();
+                                    if (!_iteratorNormalCompletion4 && _iterator4.return) {
+                                        _iterator4.return();
                                     }
                                 } finally {
-                                    if (_didIteratorError2) {
-                                        throw _iteratorError2;
+                                    if (_didIteratorError4) {
+                                        throw _iteratorError4;
                                     }
                                 }
+                            }
+
+                            continue;
+                        };
+                        if (!(fexpr instanceof Array)) {
+                            if (typeof fexpr === 'string') {
+                                // another cell
+                                fexpr = [function (a) {
+                                    return a;
+                                }, fexpr];
+                                this.__mrr.realComputed[key] = fexpr;
+                            } else {
+                                // dunno
+                                console.warn('Strange F-expr:', fexpr);
+                                continue;
+                            }
+                        }
+                        this.parseRow(fexpr, key, depMap);
+                    }
+                    this.initialState = updateOnInit;
+                    this.mrrDepMap = depMap;
+                    if (this.__mrr.readFromDOM) {
+                        for (var cn in this.mentionedCells) {
+                            if (!this.__mrr.realComputed[cn] && !this.__mrr.readFromDOM[cn] && cn.indexOf('.') === -1) {
+                                throw new Error('Linking to undescribed cell: ' + cn);
                             }
                         }
                     }
-                };
-            }
-        }, {
-            key: 'toState',
-            value: function toState(key, val) {
-                var _this5 = this;
+                }
+            }, {
+                key: 'setStateFromEvent',
+                value: function setStateFromEvent(key, e) {
+                    var val;
+                    switch (e.target.type) {
+                        case 'checkbox':
+                            val = e.target.checked;
+                            break;
+                        default:
+                            val = e.target.value;
+                            break;
+                    }
+                    this.setState(_defineProperty({}, key, val));
+                }
+            }, {
+                key: 'toStateAs',
+                value: function toStateAs(key, val) {
+                    this.setState(_defineProperty({}, key, val), null, null, true);
+                }
+            }, {
+                key: 'checkLinkedCellsTypes',
+                value: function checkLinkedCellsTypes(a, b, linked_as) {
+                    var _loop = function _loop(v) {
+                        var needed_cells = a.__mrr.linksNeeded[linked_as][v];
+                        var _iteratorNormalCompletion5 = true;
+                        var _didIteratorError5 = false;
+                        var _iteratorError5 = undefined;
 
-                if (val === undefined && this.__mrr.thunks[key]) {
-                    //console.log('=== skip');
-                    return this.__mrr.thunks[key];
-                } else {
-                    //console.log('=== generate');
-                    var func = function func(a) {
-                        var value = void 0;
-                        if (val !== undefined) {
-                            if (val instanceof Function) {
-                                value = val(a);
-                            } else {
-                                value = val;
-                            }
-                        } else {
-                            if (a && a.target && a.target.type) {
-                                if (a.target.type === 'checkbox') {
-                                    value = a.target.checked;
-                                } else {
-                                    a.preventDefault();
-                                    if (a.target.type === 'submit') {
-                                        value = true;
-                                    } else {
-                                        value = a.target.value;
+                        try {
+                            var _loop2 = function _loop2() {
+                                var cell = _step5.value;
+
+                                if (a.__mrr.dataTypes[cell] && b.__mrr.dataTypes[v] && isMatchingType(b.__mrr.dataTypes[v], a.__mrr.dataTypes[cell], dataTypes, {
+                                    not: function not() {
+                                        throw new Error('Types mismatch! ' + a.__mrr.dataTypes[cell] + ' vs. ' + b.__mrr.dataTypes[v] + ' in ' + cell);
+                                    },
+                                    maybe: function maybe() {
+                                        console.warn('Not fully compliant types: expecting ' + a.__mrr.dataTypes[cell] + ', got ' + b.__mrr.dataTypes[v]);
                                     }
+                                })) {}
+                            };
+
+                            for (var _iterator5 = needed_cells[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
+                                _loop2();
+                            }
+                        } catch (err) {
+                            _didIteratorError5 = true;
+                            _iteratorError5 = err;
+                        } finally {
+                            try {
+                                if (!_iteratorNormalCompletion5 && _iterator5.return) {
+                                    _iterator5.return();
                                 }
-                            } else {
-                                value = a;
+                            } finally {
+                                if (_didIteratorError5) {
+                                    throw _iteratorError5;
+                                }
                             }
                         }
-                        if (value === skip) {
+                    };
+
+                    for (var v in a.__mrr.linksNeeded[linked_as]) {
+                        _loop(v);
+                    }
+                }
+            }, {
+                key: 'mrrConnect',
+                value: function mrrConnect(as) {
+                    var _this4 = this;
+
+                    var self = this;
+                    if (isUndef(as)) {
+                        as = '__rand_child_name_' + ++this.__mrr.childrenCounter;
+                    }
+                    return {
+                        subscribe: function subscribe(child) {
+                            child.$name = as;
+                            child.state.$name = as;
+                            _this4.__mrr.children[as] = child;
+                            child.__mrrParent = self;
+                            child.__mrrLinkedAs = as;
+                            for (var a in child.__mrr.linksNeeded['..']) {
+                                var child_cells = child.__mrr.linksNeeded['..'][a];
+                                var val = self.mrrState[a];
+                                var _iteratorNormalCompletion6 = true;
+                                var _didIteratorError6 = false;
+                                var _iteratorError6 = undefined;
+
+                                try {
+                                    for (var _iterator6 = child_cells[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
+                                        var _cell = _step6.value;
+
+                                        child.mrrState[_cell] = val;
+                                    }
+                                } catch (err) {
+                                    _didIteratorError6 = true;
+                                    _iteratorError6 = err;
+                                } finally {
+                                    try {
+                                        if (!_iteratorNormalCompletion6 && _iterator6.return) {
+                                            _iterator6.return();
+                                        }
+                                    } finally {
+                                        if (_didIteratorError6) {
+                                            throw _iteratorError6;
+                                        }
+                                    }
+                                }
+                            }
+                            _this4.checkLinkedCellsTypes(child, _this4, '..');
+                            _this4.checkLinkedCellsTypes(_this4, child, as);
+                            _this4.checkLinkedCellsTypes(_this4, child, '*');
+                            if (_this4.__mrr.realComputed.$log && (_this4.__mrr.realComputed.$log === true || _this4.__mrr.realComputed.$log.indexOf('$$mount') !== -1)) {
+                                if (_this4.__mrr.realComputed.$log === 'no-colour') {
+                                    console.log('CONNECTED: ' + (_this4.$name || '/') + as);
+                                } else {
+                                    console.log('%c CONNECTED: ' + (_this4.$name || '/') + as, log_styles_mount);
+                                }
+                            }
+                        }
+                    };
+                }
+            }, {
+                key: 'toState',
+                value: function toState(key, val) {
+                    var _this5 = this;
+
+                    if (this.__mrr.readFromDOM && !this.__mrr.readFromDOM[key]) {
+                        throw new Error('MRERR_101: trying to create undescribed stream: ' + key, this.__mrr.readFromDOM);
+                    }
+                    if (val === undefined && this.__mrr.thunks[key]) {
+                        //console.log('=== skip');
+                        return this.__mrr.thunks[key];
+                    } else {
+                        //console.log('=== generate');
+                        var func = function func(a) {
+                            var value = void 0;
+                            if (val !== undefined) {
+                                if (val instanceof Function) {
+                                    value = val(a);
+                                } else {
+                                    value = val;
+                                }
+                            } else {
+                                if (a && a.target && a.target.type) {
+                                    if (a.target.type === 'checkbox') {
+                                        value = a.target.checked;
+                                    } else {
+                                        a.preventDefault();
+                                        if (a.target.type === 'submit') {
+                                            value = true;
+                                        } else {
+                                            value = a.target.value;
+                                        }
+                                    }
+                                } else {
+                                    value = a;
+                                }
+                            }
+                            if (value === skip) {
+                                return;
+                            }
+                            if (key instanceof Array) {
+                                var ns = {};
+                                key.forEach(function (k) {
+                                    ns[k] = value;
+                                });
+                                _this5.setState(ns, null, null, true);
+                            } else {
+                                _this5.setState(_defineProperty({}, key, value), null, null, true);
+                            }
+                        };
+                        if (val === undefined) {
+                            this.__mrr.thunks[key] = func;
+                        }
+                        return func;
+                    }
+                }
+            }, {
+                key: '__getCellArgs',
+                value: function __getCellArgs(cell) {
+                    var _this6 = this;
+
+                    var arg_cells = this.__mrr.realComputed[cell].slice(this.__mrr.realComputed[cell][0] instanceof Function ? 1 : 2).filter(function (a) {
+                        return a !== skip;
+                    });
+                    var res = arg_cells.map(function (arg_cell) {
+                        if (arg_cell === '^') {
+                            //console.log('looking for prev val of', cell, this.mrrState, this.state);
+                            return _this6.mrrState[cell];
+                        } else {
+                            if (arg_cell[0] === '-') {
+                                arg_cell = arg_cell.slice(1);
+                            }
+                            if (arg_cell === '$name') {
+                                return _this6.$name;
+                            }
+                            return _this6.mrrState[arg_cell] === undefined && _this6.state && _this6.__mrr.constructing ? _this6.initialState[arg_cell] : _this6.mrrState[arg_cell];
+                        }
+                    });
+                    return res;
+                }
+            }, {
+                key: '__mrrUpdateCell',
+                value: function __mrrUpdateCell(cell, parent_cell, update, parent_stack) {
+                    var _this7 = this;
+
+                    var val,
+                        func,
+                        args,
+                        _updateNested,
+                        types = [];
+                    var superSetState = _get(Mrr.prototype.__proto__ || Object.getPrototypeOf(Mrr.prototype), 'setState', this);
+                    var updateFunc = function updateFunc(val) {
+                        if (val === skip) {
                             return;
                         }
-                        if (key instanceof Array) {
-                            var ns = {};
-                            key.forEach(function (k) {
-                                ns[k] = value;
-                            });
-                            _this5.setState(ns, null, null, true);
-                        } else {
-                            _this5.setState(_defineProperty({}, key, value), null, null, true);
-                        }
-                    };
-                    if (val === undefined) {
-                        this.__mrr.thunks[key] = func;
-                    }
-                    return func;
-                }
-            }
-        }, {
-            key: '__getCellArgs',
-            value: function __getCellArgs(cell) {
-                var _this6 = this;
-
-                var arg_cells = this.__mrr.realComputed[cell].slice(this.__mrr.realComputed[cell][0] instanceof Function ? 1 : 2).filter(function (a) {
-                    return a !== skip;
-                });
-                var res = arg_cells.map(function (arg_cell) {
-                    if (arg_cell === '^') {
-                        //console.log('looking for prev val of', cell, this.mrrState, this.state);
-                        return _this6.mrrState[cell];
-                    } else {
-                        if (arg_cell[0] === '-') {
-                            arg_cell = arg_cell.slice(1);
-                        }
-                        if (arg_cell === '$name') {
-                            return _this6.$name;
-                        }
-                        return _this6.mrrState[arg_cell] === undefined && _this6.state && _this6.__mrr.constructing ? _this6.initialState[arg_cell] : _this6.mrrState[arg_cell];
-                    }
-                });
-                return res;
-            }
-        }, {
-            key: '__mrrUpdateCell',
-            value: function __mrrUpdateCell(cell, parent_cell, update, parent_stack) {
-                var _this7 = this;
-
-                var val,
-                    func,
-                    args,
-                    updateNested,
-                    types = [];
-                var superSetState = _get(Mrr.prototype.__proto__ || Object.getPrototypeOf(Mrr.prototype), 'setState', this);
-                var updateFunc = function updateFunc(val) {
-                    if (val === skip) {
-                        return;
-                    }
-                    _this7.__mrrSetState(cell, val, parent_cell, parent_stack);
-                    var update = {};
-                    update[cell] = val;
-                    _this7.checkMrrCellUpdate(cell, update, parent_stack, val);
-                    superSetState.call(_this7, update, null, true);
-                };
-                var fexpr = this.__mrr.realComputed[cell];
-                if (typeof fexpr[0] === 'string') {
-                    types = fexpr[0].split('.');
-                }
-
-                if (types.indexOf('nested') !== -1) {
-                    updateNested = function updateNested(subcell, val) {
-                        var subcellname = cell + '.' + subcell;
-                        _this7.__mrrSetState(subcellname, val, parent_cell, parent_stack);
+                        _this7.__mrrSetState(cell, val, parent_cell, parent_stack);
                         var update = {};
-                        update[subcellname] = val;
-                        _this7.checkMrrCellUpdate(subcellname, update, parent_stack, val);
-                        (mrrParentClass.prototype.setState || function () {}).call(_this7, update, null, true);
+                        update[cell] = val;
+                        _this7.checkMrrCellUpdate(cell, update, parent_stack, val);
+                        superSetState.call(_this7, update, null, true);
                     };
-                }
-
-                if (fexpr[0] instanceof Function) {
-                    func = this.__mrr.realComputed[cell][0];
-                    args = this.__getCellArgs(cell);
-
-                    val = func.apply(null, args);
-                } else {
-                    if (types.indexOf('funnel') !== -1) {
-                        args = [parent_cell, this.mrrState[parent_cell], this.mrrState[cell]];
-                    } else {
-                        args = this.__getCellArgs(cell);
+                    var fexpr = this.__mrr.realComputed[cell];
+                    if (typeof fexpr[0] === 'string') {
+                        types = fexpr[0].split('.');
                     }
+
                     if (types.indexOf('nested') !== -1) {
-                        args.unshift(updateNested);
+                        _updateNested = function updateNested(subcell, val) {
+                            if (subcell instanceof Object) {
+                                for (var k in subcell) {
+                                    _updateNested(k, subcell[k]);
+                                }
+                                return;
+                            }
+                            var subcellname = cell + '.' + subcell;
+                            var stateSetter = mrrParentClass.prototype.setState || function () {};
+                            _this7.__mrrSetState(subcellname, val, parent_cell, parent_stack);
+                            var update = {};
+                            update[subcellname] = val;
+                            _this7.checkMrrCellUpdate(subcellname, update, parent_stack, val);
+                            stateSetter.call(_this7, update, null, true);
+                            var nested_update = _defineProperty({}, cell, _this7.mrrState[cell] instanceof Object ? _this7.mrrState[cell] : {});
+                            nested_update[cell][subcell] = val;
+                            stateSetter.call(_this7, nested_update, null, true);
+                        };
                     }
-                    if (types.indexOf('async') !== -1) {
-                        args.unshift(updateFunc);
-                    }
-                    if (types.indexOf('closure') !== -1) {
-                        if (!this.__mrr.closureFuncs[cell]) {
-                            var init_val = this.mrrState[cell];
-                            this.__mrr.closureFuncs[cell] = fexpr[1](init_val);
-                        }
-                        func = this.__mrr.closureFuncs[cell];
-                    } else {
-                        func = this.__mrr.realComputed[cell][1];
-                    }
-                    if (!func || !func.apply) {
-                        throw new Error('MRR_ERROR_101: closure type should provide function');
-                    }
-                    try {
+
+                    if (fexpr[0] instanceof Function) {
+                        func = this.__mrr.realComputed[cell][0];
+                        args = this.__getCellArgs(cell);
+
                         val = func.apply(null, args);
-                    } catch (e) {
-                        if (this.__mrr.realComputed['$err.' + cell]) {
-                            this.setState(_defineProperty({}, '$err.' + cell, e));
+                    } else {
+                        if (types.indexOf('funnel') !== -1) {
+                            args = [parent_cell, this.mrrState[parent_cell], this.mrrState[cell]];
                         } else {
-                            if (this.__mrr.realComputed.$err) {
-                                this.setState({ $err: e });
+                            args = this.__getCellArgs(cell);
+                        }
+                        if (types.indexOf('nested') !== -1) {
+                            args.unshift(_updateNested);
+                        }
+                        if (types.indexOf('async') !== -1) {
+                            args.unshift(updateFunc);
+                        }
+                        if (types.indexOf('closure') !== -1) {
+                            if (!this.__mrr.closureFuncs[cell]) {
+                                var init_val = this.mrrState[cell];
+                                this.__mrr.closureFuncs[cell] = fexpr[1](init_val);
+                            }
+                            func = this.__mrr.closureFuncs[cell];
+                        } else {
+                            func = this.__mrr.realComputed[cell][1];
+                        }
+                        if (!func || !func.apply) {
+                            throw new Error('MRR_ERROR_101: closure type should provide function');
+                        }
+                        try {
+                            val = func.apply(null, args);
+                        } catch (e) {
+                            if (this.__mrr.realComputed['$err.' + cell]) {
+                                this.setState(_defineProperty({}, '$err.' + cell, e));
                             } else {
-                                throw e;
+                                if (this.__mrr.realComputed.$err) {
+                                    this.setState({ $err: e });
+                                } else {
+                                    throw e;
+                                }
+                            }
+                            return;
+                        }
+                    }
+                    if (this.__mrr.dataTypes[cell]) {
+                        if (!dataTypes[this.__mrr.dataTypes[cell]]) {
+                            throw new Error('Undeclared type: ' + this.__mrr.dataTypes[cell] + " for cell " + cell);
+                        }
+                        if (!dataTypes[this.__mrr.dataTypes[cell]].check(val, dataTypes)) {
+                            throw new Error('Wrong data type for cell ' + cell + ': ' + val + ', expecting ' + this.__mrr.dataTypes[cell]);
+                        }
+                    }
+                    if (types && types.indexOf('nested') !== -1) {
+                        if (val instanceof Object) {
+                            for (var k in val) {
+                                _updateNested(k, val[k]);
                             }
                         }
                         return;
                     }
-                }
-                if (types && types.indexOf('nested') !== -1) {
-                    if (val instanceof Object) {
-                        for (var k in val) {
-                            updateNested(k, val[k]);
-                        }
-                    }
-                    return;
-                }
-                if (types && types.indexOf('async') !== -1) {
-                    // do nothing!
-                    return;
-                }
-                var current_val = this.mrrState[cell];
-                if (this.__mrr.valueCells[cell] && shallow_equal(current_val, val)) {
-                    //console.log('Duplicate', cell, val, this.__mrr.valueCells);
-                    return;
-                }
-                if (isPromise(val)) {
-                    val.then(updateFunc);
-                } else {
-                    if (val === skip) {
+                    if (types && types.indexOf('async') !== -1) {
+                        // do nothing!
                         return;
                     }
-                    update[cell] = val;
-                    this.__mrrSetState(cell, val, parent_cell, parent_stack);
-                    this.checkMrrCellUpdate(cell, update, parent_stack, val);
-                }
-            }
-        }, {
-            key: 'checkMrrCellUpdate',
-            value: function checkMrrCellUpdate(parent_cell, update) {
-                var parent_stack = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : [];
-                var val = arguments[3];
-
-                if (this.mrrDepMap[parent_cell]) {
-                    var _iteratorNormalCompletion3 = true;
-                    var _didIteratorError3 = false;
-                    var _iteratorError3 = undefined;
-
-                    try {
-                        for (var _iterator3 = this.mrrDepMap[parent_cell][Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
-                            var cell = _step3.value;
-
-                            var next_parent_stack = this.__mrr.realComputed.$log ? [].concat(_toConsumableArray(parent_stack), [[parent_cell, val]]) : parent_stack;
-                            this.__mrrUpdateCell(cell, parent_cell, update, next_parent_stack);
+                    var current_val = this.mrrState[cell];
+                    if (this.__mrr.valueCells[cell] && shallow_equal(current_val, val)) {
+                        //console.log('Duplicate', cell, val, this.__mrr.valueCells);
+                        return;
+                    }
+                    if (isPromise(val)) {
+                        val.then(updateFunc);
+                    } else {
+                        if (val === skip) {
+                            return;
                         }
-                    } catch (err) {
-                        _didIteratorError3 = true;
-                        _iteratorError3 = err;
-                    } finally {
+                        update[cell] = val;
+                        this.__mrrSetState(cell, val, parent_cell, parent_stack);
+                        this.checkMrrCellUpdate(cell, update, parent_stack, val);
+                    }
+                }
+            }, {
+                key: 'checkMrrCellUpdate',
+                value: function checkMrrCellUpdate(parent_cell, update) {
+                    var parent_stack = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : [];
+                    var val = arguments[3];
+
+                    if (this.mrrDepMap[parent_cell]) {
+                        var _iteratorNormalCompletion7 = true;
+                        var _didIteratorError7 = false;
+                        var _iteratorError7 = undefined;
+
                         try {
-                            if (!_iteratorNormalCompletion3 && _iterator3.return) {
-                                _iterator3.return();
+                            for (var _iterator7 = this.mrrDepMap[parent_cell][Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
+                                var _cell2 = _step7.value;
+
+                                var next_parent_stack = this.__mrr.realComputed.$log ? [].concat(_toConsumableArray(parent_stack), [[parent_cell, val]]) : parent_stack;
+                                this.__mrrUpdateCell(_cell2, parent_cell, update, next_parent_stack);
                             }
+                        } catch (err) {
+                            _didIteratorError7 = true;
+                            _iteratorError7 = err;
                         } finally {
-                            if (_didIteratorError3) {
-                                throw _iteratorError3;
+                            try {
+                                if (!_iteratorNormalCompletion7 && _iterator7.return) {
+                                    _iterator7.return();
+                                }
+                            } finally {
+                                if (_didIteratorError7) {
+                                    throw _iteratorError7;
+                                }
                             }
                         }
                     }
                 }
-            }
-        }, {
-            key: '__mrrSetState',
-            value: function __mrrSetState(key, val, parent_cell, parent_stack) {
-                var styles = 'background: #898cec; color: white; padding: 1px;';
-                //@ todo: omit @@anon cells
-                if (this.__mrr.realComputed.$log && key[0] !== '@') {
-                    if (this.__mrr.realComputed.$log && !(this.__mrr.realComputed.$log instanceof Array) || this.__mrr.realComputed.$log instanceof Array && this.__mrr.realComputed.$log.indexOf(key) !== -1) {
-                        if (this.__mrr.realComputed.$log === 'no-colour') {
-                            console.log(key, val);
-                        } else {
-                            console.log('%c ' + this.__mrrPath + '::' + key
-                            //+ '(' + parent_cell +') '
-                            , styles, val
-                            //, JSON.stringify(parent_stack)
-                            //, this
-                            );
-                        }
-                    }
-                }
-                this.mrrState[key] = val;
-
-                if (GG && GG === this) {
-                    var _iteratorNormalCompletion4 = true;
-                    var _didIteratorError4 = false;
-                    var _iteratorError4 = undefined;
-
-                    try {
-                        for (var _iterator4 = this.__mrr.subscribers[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
-                            var sub = _step4.value;
-
-                            if (sub && sub.__mrr.linksNeeded['^'][key]) {
-                                updateOtherGrid(sub, '^', key, this.mrrState[key]);
-                            }
-                        }
-                    } catch (err) {
-                        _didIteratorError4 = true;
-                        _iteratorError4 = err;
-                    } finally {
-                        try {
-                            if (!_iteratorNormalCompletion4 && _iterator4.return) {
-                                _iterator4.return();
-                            }
-                        } finally {
-                            if (_didIteratorError4) {
-                                throw _iteratorError4;
+            }, {
+                key: '__mrrSetState',
+                value: function __mrrSetState(key, val, parent_cell, parent_stack) {
+                    //@ todo: omit @@anon cells
+                    if (this.__mrr.realComputed.$log && key[0] !== '@') {
+                        if (this.__mrr.realComputed.$log && !(this.__mrr.realComputed.$log instanceof Array) || this.__mrr.realComputed.$log instanceof Array && this.__mrr.realComputed.$log.indexOf(key) !== -1) {
+                            if (this.__mrr.realComputed.$log === 'no-colour') {
+                                console.log(key, val);
+                            } else {
+                                console.log('%c ' + this.__mrrPath + '::' + key
+                                //+ '(' + parent_cell +') '
+                                , log_styles_cell, val
+                                //, JSON.stringify(parent_stack)
+                                //, this
+                                );
                             }
                         }
                     }
-                } else {
-                    for (var _as in this.__mrr.children) {
-                        if (this.__mrr.children[_as].__mrr.linksNeeded['..'] && this.__mrr.children[_as].__mrr.linksNeeded['..'][key] && val === this.mrrState[key]) {
-                            updateOtherGrid(this.__mrr.children[_as], '..', key, this.mrrState[key]);
+                    this.mrrState[key] = val;
+
+                    if (isGlobal) {
+                        if (this.__mrr.subscribers) {
+                            var _iteratorNormalCompletion8 = true;
+                            var _didIteratorError8 = false;
+                            var _iteratorError8 = undefined;
+
+                            try {
+                                for (var _iterator8 = this.__mrr.subscribers[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
+                                    var sub = _step8.value;
+
+                                    if (sub && sub.__mrr.linksNeeded['^'][key]) {
+                                        updateOtherGrid(sub, '^', key, this.mrrState[key]);
+                                    }
+                                }
+                            } catch (err) {
+                                _didIteratorError8 = true;
+                                _iteratorError8 = err;
+                            } finally {
+                                try {
+                                    if (!_iteratorNormalCompletion8 && _iterator8.return) {
+                                        _iterator8.return();
+                                    }
+                                } finally {
+                                    if (_didIteratorError8) {
+                                        throw _iteratorError8;
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        for (var _as in this.__mrr.children) {
+                            if (this.__mrr.children[_as].__mrr.linksNeeded['..'] && this.__mrr.children[_as].__mrr.linksNeeded['..'][key] && val === this.mrrState[key]) {
+                                updateOtherGrid(this.__mrr.children[_as], '..', key, this.mrrState[key]);
+                            }
+                        }
+                        var as = this.__mrrLinkedAs;
+                        if (this.__mrrParent && this.__mrrParent.__mrr.linksNeeded[as] && this.__mrrParent.__mrr.linksNeeded[as][key] && val === this.mrrState[key]) {
+                            updateOtherGrid(this.__mrrParent, as, key, this.mrrState[key]);
+                        }
+                        if (this.__mrrParent && this.__mrrParent.__mrr.linksNeeded['*'] && this.__mrrParent.__mrr.linksNeeded['*'][key] && val === this.mrrState[key]) {
+                            updateOtherGrid(this.__mrrParent, '*', key, this.mrrState[key]);
+                        }
+                        if (this.__mrr.expose && this.__mrr.expose[key] && GG && GG.__mrr.linksNeeded['*'] && GG.__mrr.linksNeeded['*'][this.__mrr.expose[key]] && val === this.mrrState[key]) {
+                            updateOtherGrid(GG, '*', this.__mrr.expose[key], this.mrrState[key]);
                         }
                     }
-                    var as = this.__mrrLinkedAs;
-                    if (this.__mrrParent && this.__mrrParent.__mrr.linksNeeded[as] && this.__mrrParent.__mrr.linksNeeded[as][key] && val === this.mrrState[key]) {
-                        updateOtherGrid(this.__mrrParent, as, key, this.mrrState[key]);
+                }
+            }, {
+                key: 'getUpdateQueue',
+                value: function getUpdateQueue(cell) {}
+            }, {
+                key: 'setState',
+                value: function setState(ns, cb, alreadyRun, topLevel) {
+                    if (!(ns instanceof Object)) {
+                        ns = ns.call(null, this.state, this.props);
                     }
-                    if (this.__mrrParent && this.__mrrParent.__mrr.linksNeeded['*'] && this.__mrrParent.__mrr.linksNeeded['*'][key] && val === this.mrrState[key]) {
-                        updateOtherGrid(this.__mrrParent, '*', key, this.mrrState[key]);
+                    var update = Object.assign({}, ns);
+                    if (!alreadyRun) {
+                        for (var _cell3 in update) {
+                            this.__mrrSetState(_cell3, update[_cell3], null, []);
+                        }
+                        for (var parent_cell in update) {
+                            this.checkMrrCellUpdate(parent_cell, update);
+                        }
                     }
-                    if (this.__mrr.expose && this.__mrr.expose[key] && GG && GG.__mrr.linksNeeded['*'] && GG.__mrr.linksNeeded['*'][this.__mrr.expose[key]] && val === this.mrrState[key]) {
-                        updateOtherGrid(GG, '*', this.__mrr.expose[key], this.mrrState[key]);
+                    if (!this.__mrr.constructing) {
+                        return (mrrParentClass.prototype.setState || function () {}).call(this, update, cb, true);
+                    } else {
+                        for (var _cell4 in update) {
+                            this.initialState[_cell4] = update[_cell4];
+                        }
                     }
                 }
-            }
-        }, {
-            key: 'getUpdateQueue',
-            value: function getUpdateQueue(cell) {}
-        }, {
-            key: 'setState',
-            value: function setState(ns, cb, alreadyRun, topLevel) {
-                if (!(ns instanceof Object)) {
-                    ns = ns.call(null, this.state, this.props);
+            }, {
+                key: '__mrrMacros',
+                get: function get() {
+                    return Object.assign({}, macros, global_macros);
                 }
-                var update = Object.assign({}, ns);
-                if (!alreadyRun) {
-                    for (var cell in update) {
-                        this.__mrrSetState(cell, update[cell], null, []);
-                    }
-                    for (var parent_cell in update) {
-                        this.checkMrrCellUpdate(parent_cell, update);
-                    }
+            }, {
+                key: '__mrrPath',
+                get: function get() {
+                    return this.__mrrParent ? this.__mrrParent.__mrrPath + '/' + this.$name : 'root';
                 }
-                if (!this.__mrr.constructing) {
-                    return (mrrParentClass.prototype.setState || function () {}).call(this, update, cb, true);
-                } else {
-                    for (var _cell in update) {
-                        this.initialState[_cell] = update[_cell];
-                    }
-                }
-            }
-        }, {
-            key: '__mrrMacros',
-            get: function get() {
-                return Object.assign({}, defMacros, global_macros);
-            }
-        }, {
-            key: '__mrrPath',
-            get: function get() {
-                return this.__mrrParent ? this.__mrrParent.__mrrPath + '/' + this.$name : 'root';
-            }
-        }]);
+            }]);
 
-        return Mrr;
-    }(mrrParentClass);
-    return cls;
+            return Mrr;
+        }(mrrParentClass);
+        return cls;
+    };
 };
+
+var withMrr = exports.withMrr = getWithMrr(null, _defMacros2.default, defDataTypes);
 
 var def = withMrr({}, null, _react2.default.Component);
 def.skip = skip;
 
-var initGlobalGrid = exports.initGlobalGrid = function initGlobalGrid(struct) {
-    var force = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
-
-    if (GG && !force) {
-        throw new Error('Mrr Error: Global Grid already inited!');
-    }
-
+var initGlobalGrid = function initGlobalGrid(struct, availableMacros, availableDataTypes) {
     var GlobalGrid = function () {
         function GlobalGrid() {
             _classCallCheck(this, GlobalGrid);
@@ -1417,14 +1763,27 @@ var initGlobalGrid = exports.initGlobalGrid = function initGlobalGrid(struct) {
         return GlobalGrid;
     }();
 
-    var GlobalGridClass = withMrr(null, null, GlobalGrid);
-    GG = new GlobalGridClass();
+    var GwithMrr = getWithMrr(null, availableMacros, availableDataTypes);
+    var GlobalGridClass = GwithMrr(null, null, GlobalGrid, true);
+    var GG = new GlobalGridClass();
     GG.__mrr.subscribers = [];
     return GG;
 };
 
+var createMrrApp = exports.createMrrApp = function createMrrApp(conf) {
+    var availableMacros = Object.assign({}, _defMacros2.default, conf.macros || {});
+    var availableDataTypes = Object.assign({}, defDataTypes, conf.dataTypes || {});
+    var GG = conf.globalGrid ? initGlobalGrid(conf.globalGrid, availableMacros, availableDataTypes) : null;
+    var withMrr = getWithMrr(GG, availableMacros, availableDataTypes);
+    return {
+        withMrr: withMrr,
+        skip: skip,
+        GG: GG
+    };
+};
+
 exports.default = def;
-},{"react":13}],4:[function(require,module,exports){
+},{"./defMacros":3,"react":14}],5:[function(require,module,exports){
 "use strict";
 
 /**
@@ -1461,7 +1820,7 @@ emptyFunction.thatReturnsArgument = function (arg) {
 };
 
 module.exports = emptyFunction;
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 (function (process){
 /**
  * Copyright (c) 2013-present, Facebook, Inc.
@@ -1481,7 +1840,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 module.exports = emptyObject;
 }).call(this,require('_process'))
-},{"_process":1}],6:[function(require,module,exports){
+},{"_process":1}],7:[function(require,module,exports){
 (function (process){
 /**
  * Copyright (c) 2013-present, Facebook, Inc.
@@ -1537,7 +1896,7 @@ function invariant(condition, format, a, b, c, d, e, f) {
 
 module.exports = invariant;
 }).call(this,require('_process'))
-},{"_process":1}],7:[function(require,module,exports){
+},{"_process":1}],8:[function(require,module,exports){
 (function (process){
 /**
  * Copyright (c) 2014-present, Facebook, Inc.
@@ -1602,7 +1961,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 module.exports = warning;
 }).call(this,require('_process'))
-},{"./emptyFunction":4,"_process":1}],8:[function(require,module,exports){
+},{"./emptyFunction":5,"_process":1}],9:[function(require,module,exports){
 /*
 object-assign
 (c) Sindre Sorhus
@@ -1694,7 +2053,7 @@ module.exports = shouldUseNative() ? Object.assign : function (target, source) {
 	return to;
 };
 
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 (function (process){
 /**
  * Copyright (c) 2013-present, Facebook, Inc.
@@ -1757,7 +2116,7 @@ function checkPropTypes(typeSpecs, values, location, componentName, getStack) {
 module.exports = checkPropTypes;
 
 }).call(this,require('_process'))
-},{"./lib/ReactPropTypesSecret":10,"_process":1,"fbjs/lib/invariant":6,"fbjs/lib/warning":7}],10:[function(require,module,exports){
+},{"./lib/ReactPropTypesSecret":11,"_process":1,"fbjs/lib/invariant":7,"fbjs/lib/warning":8}],11:[function(require,module,exports){
 /**
  * Copyright (c) 2013-present, Facebook, Inc.
  *
@@ -1771,7 +2130,7 @@ var ReactPropTypesSecret = 'SECRET_DO_NOT_PASS_THIS_OR_YOU_WILL_BE_FIRED';
 
 module.exports = ReactPropTypesSecret;
 
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 (function (process){
 /** @license React v16.2.0
  * react.development.js
@@ -3132,7 +3491,7 @@ module.exports = react;
 }
 
 }).call(this,require('_process'))
-},{"_process":1,"fbjs/lib/emptyFunction":4,"fbjs/lib/emptyObject":5,"fbjs/lib/invariant":6,"fbjs/lib/warning":7,"object-assign":8,"prop-types/checkPropTypes":9}],12:[function(require,module,exports){
+},{"_process":1,"fbjs/lib/emptyFunction":5,"fbjs/lib/emptyObject":6,"fbjs/lib/invariant":7,"fbjs/lib/warning":8,"object-assign":9,"prop-types/checkPropTypes":10}],13:[function(require,module,exports){
 /** @license React v16.2.0
  * react.production.min.js
  *
@@ -3155,7 +3514,7 @@ var U={Children:{map:function(a,b,e){if(null==a)return a;var c=[];T(a,c,null,b,e
 d=a.key,g=a.ref,k=a._owner;if(null!=b){void 0!==b.ref&&(g=b.ref,k=G.current);void 0!==b.key&&(d=""+b.key);if(a.type&&a.type.defaultProps)var f=a.type.defaultProps;for(h in b)H.call(b,h)&&!I.hasOwnProperty(h)&&(c[h]=void 0===b[h]&&void 0!==f?f[h]:b[h])}var h=arguments.length-2;if(1===h)c.children=e;else if(1<h){f=Array(h);for(var l=0;l<h;l++)f[l]=arguments[l+2];c.children=f}return{$$typeof:r,type:a.type,key:d,ref:g,props:c,_owner:k}},createFactory:function(a){var b=J.bind(null,a);b.type=a;return b},
 isValidElement:K,version:"16.2.0",__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED:{ReactCurrentOwner:G,assign:m}},V=Object.freeze({default:U}),W=V&&U||V;module.exports=W["default"]?W["default"]:W;
 
-},{"fbjs/lib/emptyFunction":4,"fbjs/lib/emptyObject":5,"object-assign":8}],13:[function(require,module,exports){
+},{"fbjs/lib/emptyFunction":5,"fbjs/lib/emptyObject":6,"object-assign":9}],14:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -3166,4 +3525,4 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 }).call(this,require('_process'))
-},{"./cjs/react.development.js":11,"./cjs/react.production.min.js":12,"_process":1}]},{},[2]);
+},{"./cjs/react.development.js":12,"./cjs/react.production.min.js":13,"_process":1}]},{},[2]);
