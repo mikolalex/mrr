@@ -3,7 +3,7 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-exports.createMrrApp = exports.withMrr = exports.shallow_equal = exports.registerMacros = exports.skip = undefined;
+exports.createMrrApp = exports.withMrr = exports.isOfType = exports.shallow_equal = exports.registerMacros = exports.skip = undefined;
 
 var _get = function get(object, property, receiver) { if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { return get(parent, property, receiver); } } else if ("value" in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } };
 
@@ -153,10 +153,8 @@ var objMap = function objMap(obj, func) {
     return res;
 };
 
-var getIsOfType = function getIsOfType(dataTypes) {
-    return function (val, type) {
-        return dataTypes[type] ? dataTypes[type](val) : false;
-    };
+var isOfType = exports.isOfType = function isOfType(val, type, dataTypes) {
+    return dataTypes[type] ? dataTypes[type](val) : false;
 };
 
 var defDataTypes = {
@@ -192,8 +190,8 @@ var defDataTypes = {
         extends: ['array']
     },
     'coll_update': {
-        check: function check(a) {
-            return a instanceof Array && a.length === 2 && isOfType(a[0], 'object') && isOfType(a[1], 'object_or_int');
+        check: function check(a, types) {
+            return a instanceof Array && a.length === 2 && isOfType(a[0], 'object', types) && isOfType(a[1], 'object_or_int', types);
         }
     },
     'array_or_object': {
@@ -209,8 +207,6 @@ var defDataTypes = {
         extends: ['int', 'object']
     }
 };
-
-var isOfType = getIsOfType(defDataTypes);
 
 var isMatchingType = function isMatchingType(master_type, slave_type, types, actions) {
     if (master_type === slave_type) {
@@ -297,6 +293,8 @@ var isMatchingType = function isMatchingType(master_type, slave_type, types, act
     actions.not ? actions.not() : null;
 };
 
+var type_delimiter = ': ';
+
 var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
     return function (mrrStructure) {
         var _render = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
@@ -380,10 +378,10 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                         key = key.substr(1);
                         _this3.__mrr.valueCells[key] = true;
                     }
-                    if (key.indexOf('--') !== -1) {
+                    if (key.indexOf(type_delimiter) !== -1) {
                         var type = void 0;
 
-                        var _key$split = key.split('--');
+                        var _key$split = key.split(type_delimiter);
 
                         var _key$split2 = _slicedToArray(_key$split, 2);
 
@@ -485,10 +483,10 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                             cell = anonName;
                         }
 
-                        if (cell.indexOf('--') !== -1) {
+                        if (cell.indexOf(type_delimiter) !== -1) {
                             var type = void 0;
 
-                            var _cell$split = cell.split('--');
+                            var _cell$split = cell.split(type_delimiter);
 
                             var _cell$split2 = _slicedToArray(_cell$split, 2);
 
@@ -913,7 +911,7 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                         if (!dataTypes[this.__mrr.dataTypes[cell]]) {
                             throw new Error('Undeclared type: ' + this.__mrr.dataTypes[cell] + " for cell " + cell);
                         }
-                        if (!dataTypes[this.__mrr.dataTypes[cell]].check(val)) {
+                        if (!dataTypes[this.__mrr.dataTypes[cell]].check(val, dataTypes)) {
                             throw new Error('Wrong data type for cell ' + cell + ': ' + val + ', expecting ' + this.__mrr.dataTypes[cell]);
                         }
                     }

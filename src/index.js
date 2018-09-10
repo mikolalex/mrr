@@ -94,7 +94,7 @@ const objMap = (obj, func) => {
     return res;
 }
 
-const getIsOfType = dataTypes => (val, type) => dataTypes[type] ? dataTypes[type](val) : false;
+export const isOfType = (val, type, dataTypes) => dataTypes[type] ? dataTypes[type](val) : false;
 
 const defDataTypes = {
     'array': {
@@ -117,11 +117,11 @@ const defDataTypes = {
         extends: ['array'],
     },
     'coll_update': {
-        check: a => (
+        check: (a, types) => (
             a instanceof Array 
             && (a.length === 2) 
-            && isOfType(a[0], 'object')
-            && isOfType(a[1], 'object_or_int')
+            && isOfType(a[0], 'object', types)
+            && isOfType(a[1], 'object_or_int', types)
         )
     },
     'array_or_object': {
@@ -133,8 +133,6 @@ const defDataTypes = {
         extends: ['int', 'object'],
     },
 }
-
-var isOfType = getIsOfType(defDataTypes);
 
 const isMatchingType = (master_type, slave_type, types, actions) => {
     if(master_type === slave_type) {
@@ -178,6 +176,8 @@ const isMatchingType = (master_type, slave_type, types, actions) => {
     if(maybe) return;
     actions.not ? actions.not() : null;
 }
+
+const type_delimiter = ': ';
 
 const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, parentClass = null, isGlobal = false) => {
     let mrrParentClass = mrrStructure;
@@ -232,9 +232,9 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
                     key = key.substr(1);
                     this.__mrr.valueCells[key] = true;
                 }
-                if(key.indexOf('--') !== -1){
+                if(key.indexOf(type_delimiter) !== -1){
                     let type;
-                    [key, type] = key.split('--');
+                    [key, type] = key.split(type_delimiter);
                     this.setCellDataType(key, type);
                 }
                 return [val, key];
@@ -324,9 +324,9 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
                     cell = anonName;
                 }
                 
-                if(cell.indexOf('--') !== -1){
+                if(cell.indexOf(type_delimiter) !== -1){
                     let type;
-                    [cell, type] = cell.split('--');
+                    [cell, type] = cell.split(type_delimiter);
                     row[k] = cell;
                     this.setCellDataType(cell, type);
                 }
@@ -648,7 +648,7 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
                 if(!dataTypes[this.__mrr.dataTypes[cell]]){
                     throw new Error('Undeclared type: ' + this.__mrr.dataTypes[cell] + " for cell " + cell);
                 }
-                if(!(dataTypes[this.__mrr.dataTypes[cell]].check(val))){
+                if(!(dataTypes[this.__mrr.dataTypes[cell]].check(val, dataTypes))){
                     throw new Error('Wrong data type for cell ' + cell + ': ' + val + ', expecting ' + this.__mrr.dataTypes[cell]);
                 }
             }
