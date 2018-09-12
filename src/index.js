@@ -179,6 +179,17 @@ const isMatchingType = (master_type, slave_type, types, actions) => {
 
 const type_delimiter = ': ';
 
+let ids = 0;
+
+const html_aspects = {
+    val: () => {
+        return ['Change', e => e.target.value];
+    },
+    click: () => {
+        return ['Click', e => e];
+    },
+}
+
 const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, parentClass = null, isGlobal = false) => {
     let mrrParentClass = mrrStructure;
     const parent = parentClass || React.Component;
@@ -192,7 +203,27 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
         }
         render(){
             const self = this;
-            return render.call(this, this.state, this.props, this.toState.bind(this), as => ({ mrrConnect: this.mrrConnect(as)}));
+            const jsx = render.call(this, this.state, this.props, this.toState.bind(this), as => ({ mrrConnect: this.mrrConnect(as)}), () => {
+                self.__mrr.getRootHandlersCalled = true;
+                const props = {
+                    id: '__mrr_root_node_n' + self.__mrr.id,
+                }
+                for(let event_type in self.__mrr.root_el_handlers){
+                    props['on' + event_type] = e => {
+                        for(let [selector, handler, cell] of self.__mrr.root_el_handlers[event_type]){
+                            if(e.target.matches('#__mrr_root_node_n' + self.__mrr.id + ' ' + selector)){
+                                const value = handler(e);
+                                self.setState({[cell]: value}, null, null, true);
+                            }
+                        }
+                    }
+                }
+                return props;
+            });
+            if(this.__mrr.usesEventDelegation && !this.__mrr.getRootHandlersCalled){
+                console.warn('Looks like you forget to call getRootHandlers when using event delegation');
+            }
+            return jsx;
         }
     }
     const cls = class Mrr extends mrrParentClass {
@@ -203,6 +234,7 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
             }
             this.props = props || {};
             this.__mrr = {
+                id: ++ids,
                 closureFuncs: {},
                 children: {},
                 childrenCounter: 0,
@@ -214,6 +246,8 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
                 expose: {},
                 signalCells: {},
                 dataTypes: {},
+                dom_based_cells: {},
+                root_el_handlers: {},
             };
             if(props && props.extractDebugMethodsTo){
                 props.extractDebugMethodsTo.getState = () => {
@@ -329,6 +363,22 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
                     [cell, type] = cell.split(type_delimiter);
                     row[k] = cell;
                     this.setCellDataType(cell, type);
+                }
+                
+                if(cell.indexOf('|') !== -1){
+                    this.__mrr.usesEventDelegation = true;
+                    const real_cell = cell[0] === '-' ? cell.slice(1) : cell;
+                    if(!this.__mrr.dom_based_cells[real_cell]) {
+                        const [selector, aspect] = real_cell.split('|').map(a => a.trim());
+                        const [event_type, handler] = html_aspects[aspect]();
+                        if(!this.__mrr.root_el_handlers[event_type]){
+                            this.__mrr.root_el_handlers[event_type] = [];
+                        }
+                        this.__mrr.root_el_handlers[event_type].push([selector, handler, real_cell]);
+                        
+                        
+                        this.__mrr.dom_based_cells[real_cell] = true;
+                    }
                 }
                 
                 if(cell.indexOf('/') !== -1){
