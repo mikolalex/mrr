@@ -524,8 +524,12 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
                     this.checkLinkedCellsTypes(this, child, as);
                     this.checkLinkedCellsTypes(this, child, '*');
                     if(this.__mrr.realComputed.$log
-                       && ((this.__mrr.realComputed.$log === true) 
-                          || (this.__mrr.realComputed.$log.indexOf('$$mount') !== -1))){
+                       && (
+                           (this.__mrr.realComputed.$log === true) 
+                           ||
+                           (this.__mrr.realComputed.$log.showMount)
+                          )
+                    ){
                         if(this.__mrr.realComputed.$log === 'no-colour'){
                           console.log('CONNECTED: ' + (this.$name || '/') + as);
                         } else {
@@ -694,7 +698,7 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
                     return;
                 }
             }
-            if(this.__mrr.dataTypes[cell]){
+            if(this.__mrr.dataTypes[cell] && (val !== skip)){
                 if(!dataTypes[this.__mrr.dataTypes[cell]]){
                     throw new Error('Undeclared type: ' + this.__mrr.dataTypes[cell] + " for cell " + cell);
                 }
@@ -744,20 +748,24 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
                 && (key[0] !== '@')
             ) {
                 if(
-                    (this.__mrr.realComputed.$log && !(this.__mrr.realComputed.$log instanceof Array))
+                    (this.__mrr.realComputed.$log === true)
                     ||
                     ((this.__mrr.realComputed.$log instanceof Array) && (this.__mrr.realComputed.$log.indexOf(key) !== -1))
+                    ||
+                    (this.__mrr.realComputed.$log.cells && (this.__mrr.realComputed.$log.cells.indexOf(key) !== -1))
                 ){
                     if(this.__mrr.realComputed.$log === 'no-colour'){
                       console.log(key, val);
                     } else {
-                      console.log('%c ' + this.__mrrPath + '::' + key
-                        //+ '(' + parent_cell +') '
-                        , log_styles_cell
-                        , val
-                        //, JSON.stringify(parent_stack)
-                        //, this
-                        );
+                      const logArgs = ['%c ' + this.__mrrPath + '::' + key,
+                        //+ '(' + parent_cell +') ',
+                        log_styles_cell,
+                        val
+                      ];
+                      if(this.__mrr.realComputed.$log.showStack){
+                          logArgs.push(JSON.stringify(parent_stack))
+                      }
+                      console.log.apply(console, logArgs);
                     }
                 }
             }

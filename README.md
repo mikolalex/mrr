@@ -374,6 +374,33 @@ slightly more beautiful
 
 ```
 
+## Debugging
+
+```js
+{
+    $log: true,
+    $init: { ... },
+    foo: [ ... ],
+    bar: [ ... ],
+}
+
+```
+Simple "$log: true" will make mrr log all cells' changes.
+```js
+{
+    $log: {
+        // only "foo" cell changes will be logged
+        cells: ['foo'],
+        // will show the chain of parent cells' changes for each cell
+        showStack: true,
+    },
+    $init: { ... },
+    foo: [ ... ],
+    bar: [ ... ],
+}
+
+```
+
 ## Built-in macros
 
 #### toggle

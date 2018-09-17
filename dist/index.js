@@ -295,6 +295,21 @@ var isMatchingType = function isMatchingType(master_type, slave_type, types, act
 
 var type_delimiter = ': ';
 
+var ids = 0;
+
+var html_aspects = {
+    val: function val() {
+        return ['Change', function (e) {
+            return e.target.value;
+        }];
+    },
+    click: function click() {
+        return ['Click', function (e) {
+            return e;
+        }];
+    }
+};
+
 var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
     return function (mrrStructure) {
         var _render = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
@@ -328,9 +343,58 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                     var _this2 = this;
 
                     var self = this;
-                    return _render.call(this, this.state, this.props, this.toState.bind(this), function (as) {
+                    var jsx = _render.call(this, this.state, this.props, this.toState.bind(this), function (as) {
                         return { mrrConnect: _this2.mrrConnect(as) };
+                    }, function () {
+                        self.__mrr.getRootHandlersCalled = true;
+                        var props = {
+                            id: '__mrr_root_node_n' + self.__mrr.id
+                        };
+
+                        var _loop = function _loop(event_type) {
+                            props['on' + event_type] = function (e) {
+                                var _iteratorNormalCompletion4 = true;
+                                var _didIteratorError4 = false;
+                                var _iteratorError4 = undefined;
+
+                                try {
+                                    for (var _iterator4 = self.__mrr.root_el_handlers[event_type][Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+                                        var _step4$value = _slicedToArray(_step4.value, 3),
+                                            selector = _step4$value[0],
+                                            handler = _step4$value[1],
+                                            cell = _step4$value[2];
+
+                                        if (e.target.matches('#__mrr_root_node_n' + self.__mrr.id + ' ' + selector)) {
+                                            var value = handler(e);
+                                            self.setState(_defineProperty({}, cell, value), null, null, true);
+                                        }
+                                    }
+                                } catch (err) {
+                                    _didIteratorError4 = true;
+                                    _iteratorError4 = err;
+                                } finally {
+                                    try {
+                                        if (!_iteratorNormalCompletion4 && _iterator4.return) {
+                                            _iterator4.return();
+                                        }
+                                    } finally {
+                                        if (_didIteratorError4) {
+                                            throw _iteratorError4;
+                                        }
+                                    }
+                                }
+                            };
+                        };
+
+                        for (var event_type in self.__mrr.root_el_handlers) {
+                            _loop(event_type);
+                        }
+                        return props;
                     });
+                    if (this.__mrr.usesEventDelegation && !this.__mrr.getRootHandlersCalled) {
+                        console.warn('Looks like you forget to call getRootHandlers when using event delegation');
+                    }
+                    return jsx;
                 }
             }]);
 
@@ -349,6 +413,7 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                 }
                 _this3.props = props || {};
                 _this3.__mrr = {
+                    id: ++ids,
                     closureFuncs: {},
                     children: {},
                     childrenCounter: 0,
@@ -359,7 +424,9 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                     skip: skip,
                     expose: {},
                     signalCells: {},
-                    dataTypes: {}
+                    dataTypes: {},
+                    dom_based_cells: {},
+                    root_el_handlers: {}
                 };
                 if (props && props.extractDebugMethodsTo) {
                     props.extractDebugMethodsTo.getState = function () {
@@ -497,6 +564,31 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                             this.setCellDataType(cell, type);
                         }
 
+                        if (cell.indexOf('|') !== -1) {
+                            this.__mrr.usesEventDelegation = true;
+                            var real_cell = cell[0] === '-' ? cell.slice(1) : cell;
+                            if (!this.__mrr.dom_based_cells[real_cell]) {
+                                var _real_cell$split$map = real_cell.split('|').map(function (a) {
+                                    return a.trim();
+                                }),
+                                    _real_cell$split$map2 = _slicedToArray(_real_cell$split$map, 2),
+                                    selector = _real_cell$split$map2[0],
+                                    aspect = _real_cell$split$map2[1];
+
+                                var _html_aspects$aspect = html_aspects[aspect](),
+                                    _html_aspects$aspect2 = _slicedToArray(_html_aspects$aspect, 2),
+                                    event_type = _html_aspects$aspect2[0],
+                                    handler = _html_aspects$aspect2[1];
+
+                                if (!this.__mrr.root_el_handlers[event_type]) {
+                                    this.__mrr.root_el_handlers[event_type] = [];
+                                }
+                                this.__mrr.root_el_handlers[event_type].push([selector, handler, real_cell]);
+
+                                this.__mrr.dom_based_cells[real_cell] = true;
+                            }
+                        }
+
                         if (cell.indexOf('/') !== -1) {
                             var _cell$split3 = cell.split('/'),
                                 _cell$split4 = _slicedToArray(_cell$split3, 2),
@@ -562,27 +654,27 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                         };
                         if (key === "$readFromDOM") {
                             this.__mrr.readFromDOM = {};
-                            var _iteratorNormalCompletion4 = true;
-                            var _didIteratorError4 = false;
-                            var _iteratorError4 = undefined;
+                            var _iteratorNormalCompletion5 = true;
+                            var _didIteratorError5 = false;
+                            var _iteratorError5 = undefined;
 
                             try {
-                                for (var _iterator4 = fexpr[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
-                                    var item = _step4.value;
+                                for (var _iterator5 = fexpr[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
+                                    var item = _step5.value;
 
                                     this.__mrr.readFromDOM[item] = true;
                                 }
                             } catch (err) {
-                                _didIteratorError4 = true;
-                                _iteratorError4 = err;
+                                _didIteratorError5 = true;
+                                _iteratorError5 = err;
                             } finally {
                                 try {
-                                    if (!_iteratorNormalCompletion4 && _iterator4.return) {
-                                        _iterator4.return();
+                                    if (!_iteratorNormalCompletion5 && _iterator5.return) {
+                                        _iterator5.return();
                                     }
                                 } finally {
-                                    if (_didIteratorError4) {
-                                        throw _iteratorError4;
+                                    if (_didIteratorError5) {
+                                        throw _iteratorError5;
                                     }
                                 }
                             }
@@ -636,15 +728,15 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
             }, {
                 key: 'checkLinkedCellsTypes',
                 value: function checkLinkedCellsTypes(a, b, linked_as) {
-                    var _loop = function _loop(v) {
+                    var _loop2 = function _loop2(v) {
                         var needed_cells = a.__mrr.linksNeeded[linked_as][v];
-                        var _iteratorNormalCompletion5 = true;
-                        var _didIteratorError5 = false;
-                        var _iteratorError5 = undefined;
+                        var _iteratorNormalCompletion6 = true;
+                        var _didIteratorError6 = false;
+                        var _iteratorError6 = undefined;
 
                         try {
-                            var _loop2 = function _loop2() {
-                                var cell = _step5.value;
+                            var _loop3 = function _loop3() {
+                                var cell = _step6.value;
 
                                 if (a.__mrr.dataTypes[cell] && b.__mrr.dataTypes[v] && isMatchingType(b.__mrr.dataTypes[v], a.__mrr.dataTypes[cell], dataTypes, {
                                     not: function not() {
@@ -656,27 +748,27 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                                 })) {}
                             };
 
-                            for (var _iterator5 = needed_cells[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
-                                _loop2();
+                            for (var _iterator6 = needed_cells[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
+                                _loop3();
                             }
                         } catch (err) {
-                            _didIteratorError5 = true;
-                            _iteratorError5 = err;
+                            _didIteratorError6 = true;
+                            _iteratorError6 = err;
                         } finally {
                             try {
-                                if (!_iteratorNormalCompletion5 && _iterator5.return) {
-                                    _iterator5.return();
+                                if (!_iteratorNormalCompletion6 && _iterator6.return) {
+                                    _iterator6.return();
                                 }
                             } finally {
-                                if (_didIteratorError5) {
-                                    throw _iteratorError5;
+                                if (_didIteratorError6) {
+                                    throw _iteratorError6;
                                 }
                             }
                         }
                     };
 
                     for (var v in a.__mrr.linksNeeded[linked_as]) {
-                        _loop(v);
+                        _loop2(v);
                     }
                 }
             }, {
@@ -698,27 +790,27 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                             for (var a in child.__mrr.linksNeeded['..']) {
                                 var child_cells = child.__mrr.linksNeeded['..'][a];
                                 var val = self.mrrState[a];
-                                var _iteratorNormalCompletion6 = true;
-                                var _didIteratorError6 = false;
-                                var _iteratorError6 = undefined;
+                                var _iteratorNormalCompletion7 = true;
+                                var _didIteratorError7 = false;
+                                var _iteratorError7 = undefined;
 
                                 try {
-                                    for (var _iterator6 = child_cells[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
-                                        var _cell = _step6.value;
+                                    for (var _iterator7 = child_cells[Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
+                                        var _cell = _step7.value;
 
                                         child.mrrState[_cell] = val;
                                     }
                                 } catch (err) {
-                                    _didIteratorError6 = true;
-                                    _iteratorError6 = err;
+                                    _didIteratorError7 = true;
+                                    _iteratorError7 = err;
                                 } finally {
                                     try {
-                                        if (!_iteratorNormalCompletion6 && _iterator6.return) {
-                                            _iterator6.return();
+                                        if (!_iteratorNormalCompletion7 && _iterator7.return) {
+                                            _iterator7.return();
                                         }
                                     } finally {
-                                        if (_didIteratorError6) {
-                                            throw _iteratorError6;
+                                        if (_didIteratorError7) {
+                                            throw _iteratorError7;
                                         }
                                     }
                                 }
@@ -726,7 +818,7 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                             _this4.checkLinkedCellsTypes(child, _this4, '..');
                             _this4.checkLinkedCellsTypes(_this4, child, as);
                             _this4.checkLinkedCellsTypes(_this4, child, '*');
-                            if (_this4.__mrr.realComputed.$log && (_this4.__mrr.realComputed.$log === true || _this4.__mrr.realComputed.$log.indexOf('$$mount') !== -1)) {
+                            if (_this4.__mrr.realComputed.$log && (_this4.__mrr.realComputed.$log === true || _this4.__mrr.realComputed.$log.showMount)) {
                                 if (_this4.__mrr.realComputed.$log === 'no-colour') {
                                     console.log('CONNECTED: ' + (_this4.$name || '/') + as);
                                 } else {
@@ -907,7 +999,7 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                             return;
                         }
                     }
-                    if (this.__mrr.dataTypes[cell]) {
+                    if (this.__mrr.dataTypes[cell] && val !== skip) {
                         if (!dataTypes[this.__mrr.dataTypes[cell]]) {
                             throw new Error('Undeclared type: ' + this.__mrr.dataTypes[cell] + " for cell " + cell);
                         }
@@ -950,28 +1042,28 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                     var val = arguments[3];
 
                     if (this.mrrDepMap[parent_cell]) {
-                        var _iteratorNormalCompletion7 = true;
-                        var _didIteratorError7 = false;
-                        var _iteratorError7 = undefined;
+                        var _iteratorNormalCompletion8 = true;
+                        var _didIteratorError8 = false;
+                        var _iteratorError8 = undefined;
 
                         try {
-                            for (var _iterator7 = this.mrrDepMap[parent_cell][Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
-                                var _cell2 = _step7.value;
+                            for (var _iterator8 = this.mrrDepMap[parent_cell][Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
+                                var _cell2 = _step8.value;
 
                                 var next_parent_stack = this.__mrr.realComputed.$log ? [].concat(_toConsumableArray(parent_stack), [[parent_cell, val]]) : parent_stack;
                                 this.__mrrUpdateCell(_cell2, parent_cell, update, next_parent_stack);
                             }
                         } catch (err) {
-                            _didIteratorError7 = true;
-                            _iteratorError7 = err;
+                            _didIteratorError8 = true;
+                            _iteratorError8 = err;
                         } finally {
                             try {
-                                if (!_iteratorNormalCompletion7 && _iterator7.return) {
-                                    _iterator7.return();
+                                if (!_iteratorNormalCompletion8 && _iterator8.return) {
+                                    _iterator8.return();
                                 }
                             } finally {
-                                if (_didIteratorError7) {
-                                    throw _iteratorError7;
+                                if (_didIteratorError8) {
+                                    throw _iteratorError8;
                                 }
                             }
                         }
@@ -982,16 +1074,17 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                 value: function __mrrSetState(key, val, parent_cell, parent_stack) {
                     //@ todo: omit @@anon cells
                     if (this.__mrr.realComputed.$log && key[0] !== '@') {
-                        if (this.__mrr.realComputed.$log && !(this.__mrr.realComputed.$log instanceof Array) || this.__mrr.realComputed.$log instanceof Array && this.__mrr.realComputed.$log.indexOf(key) !== -1) {
+                        if (this.__mrr.realComputed.$log === true || this.__mrr.realComputed.$log instanceof Array && this.__mrr.realComputed.$log.indexOf(key) !== -1 || this.__mrr.realComputed.$log.cells && this.__mrr.realComputed.$log.cells.indexOf(key) !== -1) {
                             if (this.__mrr.realComputed.$log === 'no-colour') {
                                 console.log(key, val);
                             } else {
-                                console.log('%c ' + this.__mrrPath + '::' + key
-                                //+ '(' + parent_cell +') '
-                                , log_styles_cell, val
-                                //, JSON.stringify(parent_stack)
-                                //, this
-                                );
+                                var logArgs = ['%c ' + this.__mrrPath + '::' + key,
+                                //+ '(' + parent_cell +') ',
+                                log_styles_cell, val];
+                                if (this.__mrr.realComputed.$log.showStack) {
+                                    logArgs.push(JSON.stringify(parent_stack));
+                                }
+                                console.log.apply(console, logArgs);
                             }
                         }
                     }
@@ -999,29 +1092,29 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
 
                     if (isGlobal) {
                         if (this.__mrr.subscribers) {
-                            var _iteratorNormalCompletion8 = true;
-                            var _didIteratorError8 = false;
-                            var _iteratorError8 = undefined;
+                            var _iteratorNormalCompletion9 = true;
+                            var _didIteratorError9 = false;
+                            var _iteratorError9 = undefined;
 
                             try {
-                                for (var _iterator8 = this.__mrr.subscribers[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
-                                    var sub = _step8.value;
+                                for (var _iterator9 = this.__mrr.subscribers[Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
+                                    var sub = _step9.value;
 
                                     if (sub && sub.__mrr.linksNeeded['^'][key]) {
                                         updateOtherGrid(sub, '^', key, this.mrrState[key]);
                                     }
                                 }
                             } catch (err) {
-                                _didIteratorError8 = true;
-                                _iteratorError8 = err;
+                                _didIteratorError9 = true;
+                                _iteratorError9 = err;
                             } finally {
                                 try {
-                                    if (!_iteratorNormalCompletion8 && _iterator8.return) {
-                                        _iterator8.return();
+                                    if (!_iteratorNormalCompletion9 && _iterator9.return) {
+                                        _iterator9.return();
                                     }
                                 } finally {
-                                    if (_didIteratorError8) {
-                                        throw _iteratorError8;
+                                    if (_didIteratorError9) {
+                                        throw _iteratorError9;
                                     }
                                 }
                             }
