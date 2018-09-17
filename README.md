@@ -378,25 +378,28 @@ slightly more beautiful
 
 ```js
 {
+    // Now all cells' changes will be logged
     $log: true,
     $init: { ... },
     foo: [ ... ],
     bar: [ ... ],
+    baz: [ ... ],
 }
 
 ```
-Simple "$log: true" will make mrr log all cells' changes.
+
 ```js
 {
     $log: {
-        // only "foo" cell changes will be logged
-        cells: ['foo'],
+        // only "foo" and "bar" cells will be logged
+        cells: ['foo', 'bar'],
         // will show the chain of parent cells' changes for each cell
         showStack: true,
     },
     $init: { ... },
     foo: [ ... ],
     bar: [ ... ],
+    baz: [ ... ],
 }
 
 ```
