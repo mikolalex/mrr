@@ -14,6 +14,7 @@ import Split from './testComponents/Split';
 import SkipN from './testComponents/SkipN';
 import Init from './testComponents/Init';
 import TestGG, { GG } from './testComponents/TestGG';
+import Coll from './testComponents/Coll';
 
 import { CardForm } from './testComponents/CardForm';
 import Form1 from './testComponents/Form1';
@@ -266,6 +267,52 @@ describe('Macros', () => {
         done();
     });
   });
+  it('Test "coll" macro', () => {
+        const debug = {};
+        const wrapper = mount(<Coll extractDebugMethodsTo={ debug } />);
+        assert.strictEqual(debug.getState().items.length, 1);
+        
+        wrapper.find('.add1').simulate('click');
+        assert.strictEqual(debug.getState().items.length, 2);
+        
+        wrapper.find('.add2').simulate('click');
+        assert.strictEqual(debug.getState().items.length, 3);
+        
+        wrapper.find('.add3').simulate('click');
+        assert.strictEqual(debug.getState().items.length, 4);
+        
+        
+        
+        wrapper.find('.upd1').simulate('click');
+        assert.strictEqual(debug.getState().items[2].name, 'baz1');
+        
+        wrapper.find('.upd2').simulate('click');
+        assert.strictEqual(debug.getState().items[0].age, 42);
+        assert.strictEqual(debug.getState().items[1].age, 42);
+        assert.strictEqual(debug.getState().items[2].age, 42);
+        assert.strictEqual(debug.getState().items[3].age, 42);
+        
+        wrapper.find('.upd3').simulate('click');
+        assert.strictEqual(debug.getState().items[3].age, 0);
+        
+        
+        
+        wrapper.find('.del1').simulate('click');
+        assert.strictEqual(debug.getState().items.length, 4);
+        
+        wrapper.find('.del2').simulate('click');
+        assert.strictEqual(debug.getState().items.length, 3);
+        assert.strictEqual(debug.getState().items[0].name, 'foo');
+        
+        wrapper.find('.del3').simulate('click');
+        assert.strictEqual(debug.getState().items.length, 2);
+        assert.strictEqual(debug.getState().items[1].name, 'baz1');
+        
+        wrapper.find('.del4').simulate('click');
+        assert.strictEqual(debug.getState().items.length, 0);
+        
+  });
+  
   it('Test "skipN" macro', (done) => {
     const wrapper = mount(<SkipN />);
     const state = wrapper.state();
