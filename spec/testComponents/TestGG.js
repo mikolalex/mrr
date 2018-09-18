@@ -10,7 +10,7 @@ export const { withMrr, GG } = createMrrApp({
 
 export default withMrr({
   $expose: {
-      foo: 'bar'
+      bar: 'foo'
   },
   $init: {
     foo: 10,

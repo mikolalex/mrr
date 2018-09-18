@@ -53,7 +53,13 @@ const updateOtherGrid = (grid, as, key, val) => {
     }
 }
 
-
+const swapObj = a => {
+    const b = {};
+    for(let k in a){
+        b[a[k]] = k;
+    }
+    return b;
+}
 
 const joinAsObject = (target_struct, parent, child, key) => {
     if(parent && child && parent[key] && child[key]) {
@@ -227,10 +233,13 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
         }
     }
     const cls = class Mrr extends mrrParentClass {
-        constructor(props, context, already_inited) {
+        constructor(props, context, already_inited, isGG) {
             super(props, context, true);
             if(already_inited) {
               //return;
+            }
+            if(isGG) {
+              this.isGG = true;
             }
             this.props = props || {};
             this.__mrr = {
@@ -248,6 +257,7 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
                 dataTypes: {},
                 dom_based_cells: {},
                 root_el_handlers: {},
+                alreadyInitedLinkedCells: {},
             };
             if(props && props.extractDebugMethodsTo){
                 props.extractDebugMethodsTo.getState = () => {
@@ -278,6 +288,13 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
                 if(this.__mrr.linksNeeded['^']){
                     GG.__mrr.subscribers.push(this);
                     this.checkLinkedCellsTypes(this, GG, '^');
+                    for(let a in this.__mrr.linksNeeded['^']){
+                        const child_cells = this.__mrr.linksNeeded['^'][a];
+                        const val = GG.mrrState[a];
+                        for(let cell of child_cells){
+                            this.mrrState[cell] = val;
+                        }
+                    }
                 }
                 this.checkLinkedCellsTypes(GG, this, '*');
             }
@@ -290,7 +307,6 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
         componentDidMount(){
             this.setState({
                 $start: true,
-                $props: this.props,
             });
         }
         
@@ -308,7 +324,7 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
             return Object.assign({}, macros, global_macros);
         }
         get __mrrPath(){
-            return this.__mrrParent ? this.__mrrParent.__mrrPath + '/' + this.$name : 'root';
+            return this.__mrrParent ? this.__mrrParent.__mrrPath + '/' + this.$name : (this.isGG ? 'GG' : 'root');
         }
         setCellDataType(cell, type){
             if(!dataTypes[type]){
@@ -431,9 +447,10 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
                         for(let k in fexpr) {
                             obj[fexpr[k]] = fexpr[k];
                         }
-                        fexpr = obj;
+                        this.__mrr.expose = obj;
+                    } else {
+                        this.__mrr.expose = swapObj(fexpr);
                     }
-                    this.__mrr.expose = fexpr;
                     continue;
                 };
                 if(key === "$readFromDOM") {
@@ -863,7 +880,7 @@ const initGlobalGrid = (struct, availableMacros, availableDataTypes) => {
     }
     const GwithMrr = getWithMrr(null, availableMacros, availableDataTypes);
     const GlobalGridClass = GwithMrr(null, null, GlobalGrid, true);
-    const GG = new GlobalGridClass;
+    const GG = new GlobalGridClass(null, null, null, true);
     GG.__mrr.subscribers = [];
     return GG;
 }
