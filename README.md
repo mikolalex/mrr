@@ -42,13 +42,13 @@ c: [(n, m) => {
    return isNaN(num) ? '' : num;
 }, 'a',  'b']
 ```
-Here "c" is computable property, "a" and "b" are "arguments" - parent properties, which are passes as arguments to the "formula" - function (n, m) => ... .
-You may add any number of dependent(computable) properties, each dependent property may have any number of arguments(more than 0).
+Here "c" is computable property - a "cell", "a" and "b" are "arguments" - parent properties, which are passes as arguments to the "formula" - function (n, m) => ... .
+You may add any number of dependent(computable) properties, each dependent cell may have any number of arguments(more than 0).
 
 ### Asynchronous computing
 
 In most cases, you should use pure functions for calculating computable properties' values and avoid side-effect. But sometimes you may need to make something asynchronous, e.g. ajax request. For this case, use "async" type.
-When using 'async' type, the first parameter in function is always callback function, which you should call to return the value for computed property.
+When using 'async' type, the first parameter in function is always callback function, which you should call to return the value for computed property(cell).
 ```js
 
 withMrr({
@@ -75,7 +75,7 @@ withMrr({
 ```
 In $init section we can optionally set initial values for our computed properties(to make our code work before the data is loaded).
 
-A computed property may also depend on other computed property.
+A cell may also depend on other cell.
 ```js
 withMrr({
   $init: {
@@ -106,14 +106,16 @@ withMrr({
     </div>
 ));
 ```
-A "type" in mrr means different way of calculating the value of computed property.
+A "type" in mrr means different way of calculating the value of cell.
 Unlike the Rx approach wich hundred of operators, mrr has only basic 5 types which cover all the cases, and some syntactic sugar.
 
-### $start cell
+### Special cells
+
+#### $start
 
 Sometimes we need to do something only once, when the component in created.
 E.g., load the list of goods in the example above.
-In this case we can use "$start" property.
+In this case we can use "$start" cell.
 ```js
     all_goods: ['async', (cb, category) => {
         fetch('/goods?category=' + category)
@@ -122,12 +124,25 @@ In this case we can use "$start" property.
     }, 'selectedCategory', '$start'],
 
 ```
-Now our 'all_goods' property will be computed when the "selectedCategory" property changes and when the component is created.
+Now our 'all_goods' cell will be computed when the "selectedCategory" cell changes and when the component is created.
 (as the very value of "$start" cell is useless for us, we don't mention it in our arguments' list)
+
+#### $props
+
+This cell is used when you want to access component's props as a mrr cell.
+```js
+
+    fullName: [(name, props) => {
+        return name + ' ' + props.surname;
+    }, 'name', '$props'],
+
+```
+Due to new React API(introduces in React 16.3.0), mrr cannot detect and handle property changes, so "$props" cell will not be fired when some property changes.
+That's why "$props" is always a passive cell, see "Passive listening" below.
 
 ### Nested type
 
-Nested type allows us to put the results of calculation into different "cells". In general it reminds async type - it also receives callback as first argument. The difference is the callback function receives the name of sub-property as the first argument, and it's value as second.
+Nested type allows us to put the results of calculation into different "cells". In general it reminds async type - it also receives callback as first argument. The difference is the callback function receives the name of sub-cell as the first argument, and it's value as second.
 ```js
 withMrr({
   $init: {
@@ -168,9 +183,9 @@ withMrr({
     </div>
 ));
 ```
-Here "all_goods" property was actually into two "sub-" properties: "loading" and "data".
-We update the value of these properties by calling cb(%subproperty%, %value%).
-They become accessible to the outer world by the name %property% . %subproperty%, e.g. "all_goods.loading".
+Here "all_goods" cell was actually into two "sub-" properties: "loading" and "data".
+We update the value of these properties by calling cb(%subcell%, %value%).
+They become accessible to the outer world by the name %cell% . %subcell%, e.g. "all_goods.loading".
 
 ### Funnel type
 
@@ -204,7 +219,7 @@ withMrr({
 ));
 
 ```
-When using funnel type, your formula function receives only the name and value of property which changed at that moment.
+When using funnel type, your formula function receives only the name and value of cell which changed at that moment.
 This pattern is very common, and mrr has syntactic sugar for this called "merge":
 ```js
   popup_shown: ['merge', {
@@ -213,7 +228,7 @@ This pattern is very common, and mrr has syntactic sugar for this called "merge"
   	'cancel': confirm('Do you really want to close?'),
   }]
 ```
-Actually, "merge" is not another mrr property type, it's a macros. See "Creating macros" section for more info.
+Actually, "merge" is not another mrr cell type, it's a macros. See "Creating macros" section for more info.
 
 ### Closure type
 
@@ -245,7 +260,7 @@ This is a way to store some data between formula calls safely, without exposing 
 
 ### Combining types
 
-There are 5 property types in mrr: async, nested, funnel, closure, and the default type(used when you don't specify any type). The fact is you can combine them as you like!
+There are 5 cell types in mrr: async, nested, funnel, closure, and the default type(used when you don't specify any type). The fact is you can combine them as you like!
 ```js
 // you can combine two or more types by joining them with '.', order is not important
 num: ['closure.funnel', () => {
@@ -301,7 +316,7 @@ withMrr({
 
 ```
 
-To subscribe to changes in child component, you should add the property mrrConnect with a value of mrrConnect(%connect_as%)
+To subscribe to changes in child component, you should add the mrrConnect property with a value of mrrConnect(%connect_as%)
 In this case, we connected AddTodoForm as 'add_todo'.
 ```js
   todos: [(arr, new_item) => {
@@ -310,16 +325,16 @@ In this case, we connected AddTodoForm as 'add_todo'.
   }, '^', 'add_todo/new_todo'],
 ```
 We are listening to changes in "new_todo" stream in child which was connected as "add_todo".
-'^' means the previous value of the very property, in this case an array of todos.
+'^' means the previous value of the very cell, in this case an array of todos.
 
 ### Passive listening
 
-In fact, this example won't work as expected. Our "new_todo" property of AddTodoForm will be computed each times "text" or "submit" are changed, so that new todo will be created after you enter first character. That happens because we are subscribed to "text" and emit new todo objects each time the "text" changes.
+In fact, this example won't work as expected. Our "new_todo" cell of AddTodoForm will be computed each times "text" or "submit" are changed, so that new todo will be created after you enter first character. That happens because we are subscribed to "text" and emit new todo objects each time the "text" changes.
 To fix this, we can use passive listening approach.
 ```js
     new_todo: [(text, submit) => ({text}), '-text', 'submit'],
 ```
-We added a "-" before the name of "text" argument. It means that our property will not be recalculated when the "text" changes. Still it remains accessible in the list of our arguments.
+We added a "-" before the name of "text" argument. It means that our cell will not be recalculated when the "text" changes. Still it remains accessible in the list of our arguments.
 Passive listening allows flexible control over the properties calculation.
 
 ### Macros

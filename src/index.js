@@ -293,9 +293,7 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
                 $props: this.props,
             });
         }
-        componentWillReceiveProps(nextProps){
-            this.setState({$props: nextProps});
-        }
+        
         componentWillUnmount(){
             this.setState({$end: true});
             if(this.__mrrParent){
@@ -462,7 +460,13 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
             this.mrrDepMap = depMap;
             if(this.__mrr.readFromDOM){
                 for(let cn in this.mentionedCells){
-                    if(!this.__mrr.realComputed[cn] && !this.__mrr.readFromDOM[cn] && (cn.indexOf('.') === -1)){
+                    if(
+                        !this.__mrr.realComputed[cn] 
+                        && !this.__mrr.readFromDOM[cn] 
+                        && (cn.indexOf('.') === -1)
+                        && (cn !== '$start')
+                        && (cn !== '$end')
+                    ){
                         throw new Error('Linking to undescribed cell: ' + cn);
                     }
                 }
@@ -605,6 +609,9 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
                     }
                     if(arg_cell === '$name'){
                       return this.$name;
+                    }
+                    if(arg_cell === '$props'){
+                      return this.props;
                     }
                     return ((this.mrrState[arg_cell] === undefined) && this.state && this.__mrr.constructing)
                         ? this.initialState[arg_cell]

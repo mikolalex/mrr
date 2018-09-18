@@ -4,6 +4,8 @@ import { shallow, configure, mount } from 'enzyme';
 import { describe, it } from 'mocha';
 import Adapter from 'enzyme-adapter-react-16';
 
+import { withMrr, skip } from '../src';
+
 import a from './setup';
 
 import LoginForm from './testComponents/LoginForm';
@@ -125,6 +127,50 @@ describe('Testing readFromDOM', () => {
     expect(() => { 
         const a = mount(<WrongStreamError />); 
     }).to.throw(Error);
+  });
+});
+
+
+describe('Testing $props cell', () => {
+  it('Should return proper props', (done) => {
+
+    let cb1;
+    let cb2;
+    let y;
+
+    const B = withMrr({
+        y: [(props) => {
+            y = props.y;
+        }, '$props', 'x'],
+        x: ['async', callback => {
+            cb2 = callback;
+        }, '$start'],
+    }, (state, props, $) => <div />);
+
+    const A = withMrr({
+        z: ['async', callback => {
+            cb1 = callback;
+        }, '$start'],
+    }, (state, props, $) => {
+      return (
+        <div>
+            <B y={ state.z } />
+        </div>
+      );
+    });
+    mount(<A />);
+    
+    cb1(1);
+    assert.strictEqual(y, undefined);
+    cb2(true);
+    assert.strictEqual(y, 1);
+    
+    cb1(42);
+    assert.strictEqual(y, 1);
+    cb2(true);
+    assert.strictEqual(y, 42);
+    
+    done();
   });
 });
 

@@ -484,11 +484,6 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                     });
                 }
             }, {
-                key: 'componentWillReceiveProps',
-                value: function componentWillReceiveProps(nextProps) {
-                    this.setState({ $props: nextProps });
-                }
-            }, {
                 key: 'componentWillUnmount',
                 value: function componentWillUnmount() {
                     this.setState({ $end: true });
@@ -700,7 +695,7 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                     this.mrrDepMap = depMap;
                     if (this.__mrr.readFromDOM) {
                         for (var cn in this.mentionedCells) {
-                            if (!this.__mrr.realComputed[cn] && !this.__mrr.readFromDOM[cn] && cn.indexOf('.') === -1) {
+                            if (!this.__mrr.realComputed[cn] && !this.__mrr.readFromDOM[cn] && cn.indexOf('.') === -1 && cn !== '$start' && cn !== '$end') {
                                 throw new Error('Linking to undescribed cell: ' + cn);
                             }
                         }
@@ -902,6 +897,9 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                             }
                             if (arg_cell === '$name') {
                                 return _this6.$name;
+                            }
+                            if (arg_cell === '$props') {
+                                return _this6.props;
                             }
                             return _this6.mrrState[arg_cell] === undefined && _this6.state && _this6.__mrr.constructing ? _this6.initialState[arg_cell] : _this6.mrrState[arg_cell];
                         }
