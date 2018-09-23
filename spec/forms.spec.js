@@ -2,6 +2,7 @@ import React from 'react';
 import { expect, assert } from 'chai';
 import { shallow, configure, mount } from 'enzyme';
 import { describe, it } from 'mocha';
+import parallel from 'mocha.parallel';
 import Adapter from 'enzyme-adapter-react-16';
 
 import a from './setup';
@@ -33,7 +34,7 @@ const wwait = ms => () => {
 };
 
 
-describe('Mrr Forms', () => {
+parallel('Mrr Forms', () => {
   it('Test validation', (done) => {
     const getStateObj_1 = {};
     const getStateObj_2 = {};

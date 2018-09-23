@@ -444,6 +444,7 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                     props.extractDebugMethodsTo.getState = function () {
                         return _this3.mrrState;
                     };
+                    props.extractDebugMethodsTo.self = _this3;
                 }
                 if (!_this3.__mrr.valueCells) {
                     _this3.__mrr.valueCells = {};

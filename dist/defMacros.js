@@ -434,10 +434,27 @@ var defMacros = {
             };
         }, field];
     },
-    accum: function accum(_ref43) {
-        var _ref44 = _slicedToArray(_ref43, 2),
+    buffer: function buffer(_ref43) {
+        var _ref44 = _slicedToArray(_ref43, 3),
             cell = _ref44[0],
-            time = _ref44[1];
+            time = _ref44[1],
+            defVal = _ref44[2];
+
+        return ['async.closure', function () {
+            var timer = void 0;
+            return function (cb, val) {
+                clearTimeout(timer);
+                cb(val);
+                timer = setTimeout(function () {
+                    cb(defVal);
+                }, time);
+            };
+        }, cell];
+    },
+    accum: function accum(_ref45) {
+        var _ref46 = _slicedToArray(_ref45, 2),
+            cell = _ref46[0],
+            time = _ref46[1];
 
         var res = time ? ['async.closure', function () {
             var vals = {};

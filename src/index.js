@@ -263,6 +263,7 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
                 props.extractDebugMethodsTo.getState = () => {
                     return this.mrrState;
                 }
+                props.extractDebugMethodsTo.self = this;
             }
             if(!this.__mrr.valueCells){
                 this.__mrr.valueCells = {};

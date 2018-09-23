@@ -271,6 +271,18 @@ const defMacros = {
             }
         }
     }, field],
+    buffer: ([cell, time, defVal]) => {
+        return ['async.closure', () => {
+            let timer;
+            return (cb, val) => {
+                clearTimeout(timer);
+                cb(val);
+                timer = setTimeout(() => {
+                    cb(defVal);
+                }, time);
+            }
+        }, cell]
+    },
     accum: ([cell, time]) => {
         var res = time
         ? ['async.closure', () => {

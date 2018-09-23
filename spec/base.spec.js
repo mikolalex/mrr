@@ -2,6 +2,7 @@ import React from 'react';
 import { expect, assert } from 'chai';
 import { shallow, configure, mount } from 'enzyme';
 import { describe, it } from 'mocha';
+import parallel from 'mocha.parallel';
 import Adapter from 'enzyme-adapter-react-16';
 
 import { withMrr, skip } from '../src';
@@ -34,7 +35,7 @@ const wwait = ms => () => {
   return new Promise(wait(ms));
 };
 
-describe('Form validation', () => {
+parallel('Form validation', () => {
   const wrapper = mount(<LoginForm />);
   it('Should validate', () => {
     wrapper.find('.submitButton').simulate('click');
@@ -52,7 +53,7 @@ describe('Form validation', () => {
   });
 });
 
-describe('Some input form', () => {
+parallel('Some input form', () => {
   const wrapper = mount(<InputForm />);
   it('Should show error on empty input', (done) => {
 
@@ -91,7 +92,7 @@ describe('Some input form', () => {
   });
 });
 
-describe('Ticks', () => {
+parallel('Ticks', () => {
   it('Test timer', (done) => {
     let c = 0;
     let d = 0;
@@ -115,7 +116,7 @@ describe('Ticks', () => {
 });
 
 
-describe('Testing readFromDOM', () => {
+parallel('Testing readFromDOM', () => {
   it('Should throw an exception when linking to undescribed cell', () => {
     //const component = mount(<UndescribedCellError />);
     expect(() => { 
@@ -131,7 +132,7 @@ describe('Testing readFromDOM', () => {
 });
 
 
-describe('Testing $props cell', () => {
+parallel('Testing $props cell', () => {
   it('Should return proper props', (done) => {
 
     let cb1;

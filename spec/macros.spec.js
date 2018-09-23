@@ -2,6 +2,7 @@ import React from 'react';
 import { expect, assert } from 'chai';
 import { shallow, configure, mount } from 'enzyme';
 import { describe, it } from 'mocha';
+import parallel from 'mocha.parallel';
 import Adapter from 'enzyme-adapter-react-16';
 
 import a from './setup';
@@ -15,6 +16,7 @@ import SkipN from './testComponents/SkipN';
 import Init from './testComponents/Init';
 import TestGG, { GG } from './testComponents/TestGG';
 import Coll from './testComponents/Coll';
+import Buffer from './testComponents/Buffer';
 
 import { CardForm } from './testComponents/CardForm';
 import Form1 from './testComponents/Form1';
@@ -33,8 +35,49 @@ const wwait = ms => () => {
 };
 
 
+const mrrMount = (Component) => {
+    const debug = {};
+    const wrapper = mount(<Component extractDebugMethodsTo={ debug } />);
+    const component = debug.self;
+    return {
+        set: (cell, val) => {
+            component.toState(cell, val)();
+        },
+        get: cell => {
+            return component.mrrState[cell];
+        }
+    }
+}
 
-describe('Macros', () => {
+const timeline = (arr) => {
+    for(let [time, func] of arr){
+        setTimeout(func, time || 0);
+    }
+}
+
+
+parallel('Macros', () => {
+  it('Test "buffer" macro', (done) => {
+    const comp = mrrMount(Buffer);
+    timeline([
+        [0, () => {
+            comp.set('b', 10);
+            assert.equal(comp.get('a'), 10);
+        }],
+        [50, () => {
+            assert.equal(comp.get('a'), 10);
+        }],
+        [200, () => {
+            assert.equal(comp.get('a'), 'N/A');
+            comp.set('b', 42);
+            assert.equal(comp.get('a'), 42);
+        }],
+        [250, () => {
+            assert.equal(comp.get('a'), 42);
+            done();
+        }],
+    ])
+  });
   it('Test "merge" macro', (done) => {
     const wrapper = mount(<Merge />);
     const state = wrapper.state();
