@@ -2,12 +2,14 @@ import React from 'react';
 import { expect, assert } from 'chai';
 import { shallow, configure, mount } from 'enzyme';
 import { describe, it } from 'mocha';
-import parallel from 'mocha.parallel';
+//import parallel from 'mocha.parallel';
 import Adapter from 'enzyme-adapter-react-16';
 
 import { withMrr, skip } from '../src';
 
 import a from './setup';
+
+import { mrrMount, timeline } from './utils';
 
 import LoginForm from './testComponents/LoginForm';
 import TimerWrapper from './testComponents/TimerWrapper';
@@ -26,6 +28,9 @@ import CascadeForm from './testComponents/CascadeForm';
 import UndescribedCellError from './testComponents/UndescribedCellError';
 import WrongStreamError from './testComponents/WrongStreamError';
 
+import Error1 from './testComponents/Error1';
+import Error2 from './testComponents/Error2';
+
 configure({ adapter: new Adapter() });
 
 const wait = ms => resolve => {
@@ -35,7 +40,7 @@ const wwait = ms => () => {
   return new Promise(wait(ms));
 };
 
-parallel('Form validation', () => {
+describe('Form validation', () => {
   const wrapper = mount(<LoginForm />);
   it('Should validate', () => {
     wrapper.find('.submitButton').simulate('click');
@@ -53,7 +58,7 @@ parallel('Form validation', () => {
   });
 });
 
-parallel('Some input form', () => {
+describe('Some input form', () => {
   const wrapper = mount(<InputForm />);
   it('Should show error on empty input', (done) => {
 
@@ -92,7 +97,7 @@ parallel('Some input form', () => {
   });
 });
 
-parallel('Ticks', () => {
+describe('Ticks', () => {
   it('Test timer', (done) => {
     let c = 0;
     let d = 0;
@@ -116,7 +121,7 @@ parallel('Ticks', () => {
 });
 
 
-parallel('Testing readFromDOM', () => {
+describe('Testing readFromDOM', () => {
   it('Should throw an exception when linking to undescribed cell', () => {
     //const component = mount(<UndescribedCellError />);
     expect(() => { 
@@ -132,7 +137,42 @@ parallel('Testing readFromDOM', () => {
 });
 
 
-parallel('Testing $props cell', () => {
+describe('Testing special error cells', () => {
+  it('Should emit error to special $err.%cellname% cell', () => {
+    const comp = mrrMount(Error1);
+
+    comp.set('b', () => 42);
+    const a42 = comp.get('a');
+
+    comp.set('b', 33);
+    assert.strictEqual(comp.get('errorCount'), 1);
+
+    comp.set('b', 44);
+    assert.strictEqual(comp.get('errorCount'), 2);
+
+    comp.set('b', () => 42);
+    assert.strictEqual(comp.get('errorCount'), 2);
+
+  });
+  it('Should emit error to general $err cell', () => {
+    const comp = mrrMount(Error2);
+
+    assert.strictEqual(comp.get('errorCount'), 0);
+
+    comp.set('b', 33);
+    assert.strictEqual(comp.get('errorCount'), 1);
+
+    comp.set('d', 33);
+    assert.strictEqual(comp.get('errorCount'), 2);
+
+    comp.set('b', 44);
+    assert.strictEqual(comp.get('errorCount'), 3);
+
+  });
+});
+
+
+describe('Testing $props cell', () => {
   it('Should return proper props', (done) => {
 
     let cb1;

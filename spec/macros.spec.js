@@ -25,6 +25,8 @@ import CascadeForm from './testComponents/CascadeForm';
 import UndescribedCellError from './testComponents/UndescribedCellError';
 import WrongStreamError from './testComponents/WrongStreamError';
 
+import { mrrMount, timeline } from './utils';
+
 configure({ adapter: new Adapter() });
 
 const wait = ms => resolve => {
@@ -35,29 +37,11 @@ const wwait = ms => () => {
 };
 
 
-const mrrMount = (Component) => {
-    const debug = {};
-    const wrapper = mount(<Component extractDebugMethodsTo={ debug } />);
-    const component = debug.self;
-    return {
-        set: (cell, val) => {
-            component.toState(cell, val)();
-        },
-        get: cell => {
-            return component.mrrState[cell];
-        }
-    }
-}
 
-const timeline = (arr) => {
-    for(let [time, func] of arr){
-        setTimeout(func, time || 0);
-    }
-}
 
 
 parallel('Macros', () => {
-  it('Test "buffer" macro', (done) => {
+  it('Test "remember" macro', (done) => {
     const comp = mrrMount(Buffer);
     timeline([
         [0, () => {
