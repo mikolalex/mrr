@@ -271,7 +271,7 @@ const defMacros = {
             }
         }
     }, field],
-    buffer: ([cell, time, defVal]) => {
+    remember: ([cell, time, defVal]) => {
         return ['async.closure', () => {
             let timer;
             return (cb, val) => {

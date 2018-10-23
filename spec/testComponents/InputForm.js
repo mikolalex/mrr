@@ -36,7 +36,7 @@ export default withMrr({
     'apiRequest.error': (prevVal) => prevVal + 1,
     'apiRequest.success': () => 0,
   }],
-  inputErrorShown: ['map', {
+  inputErrorShown: ['merge', {
     'submission.error': 'Please enter at least 3 characters',
     'apiRequest.error': e => e,
     'input': false,

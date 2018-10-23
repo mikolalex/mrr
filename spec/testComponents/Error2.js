@@ -3,12 +3,20 @@ import { withMrr } from '../../src';
 
 export default withMrr({
   $init: {
-    
+  	errorCount: 0,
   },
-  a: ['remember', 'b', 100, 'N/A'],
+  a: [a => {
+  	return a();
+  }, 'b'],
+  c: [a => {
+  	return a();
+  }, 'd'],
+  errorCount: [a => {
+  	return a + 1;
+  }, '^', '$err'],
 }, (state, props, $) => {
   return (
-    <div className="set-b" onClick={ $('b', 10) }>
+    <div>
       
     </div>
   );

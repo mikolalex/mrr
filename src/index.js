@@ -561,7 +561,7 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
                 }
             }
         }
-        toState(key, val){
+        toState(key, val, notHandleFunctions){
             if(this.__mrr.readFromDOM && !this.__mrr.readFromDOM[key]){
                 throw new Error('MRERR_101: trying to create undescribed stream: ' + key, this.__mrr.readFromDOM);
             }
@@ -573,7 +573,7 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
                 const func = (a) => {
                     let value;
                     if(val !== undefined){
-                        if(val instanceof Function){
+                        if(val instanceof Function && !notHandleFunctions){
                             value = val(a);
                         } else {
                             value = val;
@@ -638,6 +638,17 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
             }));
             return res;
         }
+        __mrrSetError(cell, e){
+            if(this.mrrDepMap['$err.' + cell]){
+                this.setState({['$err.' + cell]: e});
+            } else {
+                if(this.mrrDepMap.$err){
+                    this.setState({$err: e});
+                } else {
+                    throw e;
+                }
+            }
+        }
         __mrrUpdateCell(cell, parent_cell, update, parent_stack){
             var val, func, args, updateNested, types = [];
             const superSetState = super.setState;
@@ -682,8 +693,12 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
             if(fexpr[0] instanceof Function){
                 func = this.__mrr.realComputed[cell][0];
                 args = this.__getCellArgs(cell);
-
-                val = func.apply(null, args);
+                try {
+                    val = func.apply(null, args);
+                } catch (e) {
+                    this.__mrrSetError(cell, e);
+                    return;
+                }
             } else {
                 if(types.indexOf('funnel') !== -1){
                     args = [parent_cell, this.mrrState[parent_cell], this.mrrState[cell]];
@@ -711,15 +726,7 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
                 try {
                   val = func.apply(null, args);
                 } catch (e) {
-                    if(this.__mrr.realComputed['$err.' + cell]){
-                        this.setState({['$err.' + cell]: e});
-                    } else {
-                        if(this.__mrr.realComputed.$err){
-                            this.setState({$err: e});
-                        } else {
-                            throw e;
-                        }
-                    }
+                    this.__mrrSetError(cell, e);
                     return;
                 }
             }
