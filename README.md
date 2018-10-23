@@ -389,6 +389,38 @@ slightly more beautiful
 
 ```
 
+## Error handling
+
+Sometimes errors might appear within the calculation
+```js
+{
+    
+    a: [() => 42, '$start'],
+    b: [a => a(), 'a'], // TypeError: a is not a function
+}
+
+```
+You can handle them by subscribing to special cell of $err.%cellname%, where cellname is a name of cell where error happened.
+```js
+{
+    
+    a: [() => 42, '$start'],
+    b: [a => a(), 'a'],
+    showError: [(e) => 'Some error happened: ' + e.message, '$err.b'],
+}
+
+```
+If there are no subscribers to special $err.%cellname% cell, the error will be put into general $err cell
+```js
+{
+    a: [() => 42, '$start'],
+    b: [a => a(), 'a'],
+    c: [a => a.slice(), 'a'],
+    // all errors will be put into $err cell
+    showError: [(e) => 'Some error happened: ' + e.message, '$err'],
+}
+```
+
 ## Debugging
 
 ```js
@@ -418,6 +450,26 @@ slightly more beautiful
 }
 
 ```
+
+## Reliability
+
+As mrr uses strings as variables, it's easy to make a typo and break the code.
+```js
+{   
+    bar: [() => { ... }, 'some_click'],
+    foo: [() => { ... }, 'baz'], // a typo, "foo" will never be computed
+}
+```
+To fight this, you should specify the list of streams which are read from DOM. Thereby mrr would be able to analyze your code and find broken linking.
+It's done with special $readFromDOM field.
+```js
+{
+    $readFromDOM: ['some_click', 'another_click', ...],
+    bar: [() => { ... }, 'some_click'],
+    foo: [() => { ... }, 'baz'], // throws error
+}
+```
+Now mrr knows that "baz" is not read from DOM and it's not defined as a stream also, so it's probably a typo, and throws an error.
 
 ## Built-in macros
 
@@ -529,10 +581,10 @@ bar: =1======2===========================5=========================
 foo: =[1]====[1,2]========[2]======[]====[5]====================[]=
 ```
 
-#### buffer
+#### remember
 Stores the value of input cell for specified time. May accept an optional default value.
 ```js
-foo: ['buffer', 'bar', 100/* time in ms*/, 'N/A'/* default value */],
+foo: ['remember', 'bar', 100/* time in ms*/, 'N/A'/* default value */],
 ```
 ```
 bar: =1==================3=====4==========================5=====
