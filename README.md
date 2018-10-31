@@ -471,6 +471,136 @@ It's done with special $readFromDOM field.
 ```
 Now mrr knows that "baz" is not read from DOM and it's not defined as a stream also, so it's probably a typo, and throws an error.
 
+## Basic types: closure, funnel, nested, async
+
+#### closure
+
+Runs a function on component init, which should return another function used as formula.
+
+```js
+vals: ['closure', () => {
+	// this function would be run once the component is initialized
+	const vals = [];
+	return val => {
+		// this function would become a formula
+		vals.push(vul);
+		return vals;
+	}
+}, 'some_cell'],
+
+```
+
+#### funnel
+
+Allows to listen to each stream independently, receiving the name of stream and it's value when it changes.
+```js
+
+popup_state: ['funnel', (cell, val) => {
+	if(cell === 'open_popup'){
+		return true;
+	} else {
+		return false;
+	}
+}, 'open_popup', 'close_popup', 'close_everything'],
+
+```
+
+
+#### async
+
+Allows to run async computations. To yield a result, call a callback function always passed as a first argument to a formula.
+
+
+```js
+
+user_data: ['async', (cb, uid) => {
+	fetch('/user/' + uid).then(res => res.toJSON()).then(cb);
+}, 'user_id'],
+
+```
+```js
+timer: ['async', (cb) => {
+	setInterval(cb, 100);
+}, '$start']
+
+```
+
+#### nested
+
+Allows to "put" the results of computation into different subcells. Callback function is always passed as a first argument to a formula. It accepts the name of subcell you want 
+to put in and the value, or the object where keys/values represent names of subcells and their values.
+
+```js
+user_req: ['nested', (cb, uid) => {
+	cb('loading', true);
+
+	fetch('/user/' + uid)
+	.then(res => res.toJSON())
+	.then(data => cb({
+		data,
+		loading: false,
+	}))
+	.catch(error => cb({
+		error,
+		loading: false,
+	}));
+}, 'user_id'],
+
+// use subcells just like any other cell
+
+error: ['merge', 'some_error', 'user_req.error'],
+user_data: [() => { ... }, 'user_req.data'],
+show_spinner: 'user_req.loading',
+
+
+```
+
+### Combining basic types
+
+These four basic types(nested, funnel, closure, async) can be used together.
+You may mix two of them, separated by dot.
+```js
+//  perform request for each element in a stream, but limited to 5 requests simultaneously.
+req: ['async.closure', () => {
+	const queue = [];
+	let counter = 0;
+	const max_requests = 5;
+	const make_request = data => fetch('/data/' + data).then(res => res.toJSON());
+	return function check(cb, data){
+		if(counter < max_requests){
+			++counter;
+			make_request.then(cb).finally(() => {
+				--counter;
+				if(queue.length){
+					check(cb, queue.shift());
+				}
+			})
+		} else {
+			queue.push(data);
+		}
+	}
+}, 'data']
+
+```
+Even three:
+```js
+
+timer: ['async.closure.funnel', () => {
+	let timer;
+	return (cb, cell, val) => {
+		if(cell === 'start_timer'){
+			timer = setInterval(cb, 100);
+		}
+		if(cell === 'stop_timer'){
+			clearInterval(timer);
+		}
+	}
+}, 'start_timer', 'stop_timer'],
+
+```
+The only two types you cannot combine together are "async" and "nested", as the second includes the first by design.
+Combination is possible for these basic types, macros(operators) cannot be combined.
+
 ## Built-in macros
 
 #### toggle
