@@ -46,10 +46,10 @@ export const shallow_equal = (a, b) => {
     return a == b;
 }
 
-const updateOtherGrid = (grid, as, key, val) => {
+const updateOtherGrid = (grid, as, key, val, level) => {
     const his_cells = grid.__mrr.linksNeeded[as][key];
     for(let cell of his_cells){
-        grid.setState({[cell]: val});
+        grid.setState({[cell]: val}, null, null, level);
     }
 }
 
@@ -195,6 +195,8 @@ const html_aspects = {
         return ['Click', e => e];
     },
 }
+
+let currentChange;
 
 const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, parentClass = null, isGlobal = false) => {
     let mrrParentClass = mrrStructure;
@@ -423,6 +425,44 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
                 depMap[cell].push(key);
             }
         }
+        
+        logChange(){
+            let currentLevel = -1;
+            for(let k in currentChange){
+                const [str, style, val, level] = currentChange[k];
+                if(level > (currentLevel + 1)){
+                    const diff = level - (currentLevel + 1);
+                    for(let j = k; currentChange[j] && currentChange[j][3] >= currentLevel; j++){
+                        currentChange[j][3] -= diff;
+                    }
+                }
+                currentLevel = level;
+            }
+            currentLevel = -1;
+            console.group('');
+            for(let k in currentChange){
+                const [str, style, val, level] = currentChange[k];
+                if(level !== currentLevel){
+                    if(level > currentLevel){
+                        //console.group(level);
+                    } else {
+                        const riz = (currentLevel - level);
+                        for(let s = currentLevel; s > level; s--){
+                            //console.groupEnd();
+                        }
+                    }
+                }
+                //if(level <= currentLevel){
+                    console.log.apply(console, [new Array(level + 1).fill('').join('___') + ' ' + str, style, val]);
+                //}
+                currentLevel = level;
+            }
+            for(let s = currentLevel; s >= 0; s--){
+                //console.groupEnd();
+            }
+            console.groupEnd();
+        }
+        
         parseMrr(){
             const depMap = {};
             this.mentionedCells = {};
@@ -435,10 +475,16 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
                 if(fexpr === skip) continue;
                 if(key === '$meta') continue;
                 if(key === '$init'){
+                    if(mrr.$log && mrr.$log.showTree){
+                        currentChange = [];
+                    }
                     let init_vals = mrr[key] instanceof Function ? mrr[key](this.props) : mrr[key];
                     for(let cell in init_vals){
-                        this.__mrrSetState(cell, init_vals[cell], []);
+                        this.__mrrSetState(cell, init_vals[cell], null, [], 0);
                         updateOnInit[cell] = init_vals[cell];
+                    }
+                    if(mrr.$log && mrr.$log.showTree){
+                        this.logChange();
                     }
                     continue;
                 }
@@ -602,9 +648,9 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
                         key.forEach(k => {
                             ns[k] = value;
                         })
-                        this.setState(ns, null, null, true);
+                        this.setState(ns, null, null, 0);
                     } else {
-                        this.setState({[key]: value}, null, null, true);
+                        this.setState({[key]: value}, null, null, 0);
                     }
                 }
                 if(val === undefined){
@@ -649,18 +695,24 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
                 }
             }
         }
-        __mrrUpdateCell(cell, parent_cell, update, parent_stack){
+        __mrrUpdateCell(cell, parent_cell, update, parent_stack, level){
             var val, func, args, updateNested, types = [];
             const superSetState = super.setState;
             const updateFunc = val => {
                 if(val === skip) {
                     return;
                 }
-                this.__mrrSetState(cell, val, parent_cell, parent_stack);
+                if(this.__mrr.realComputed.$log && this.__mrr.realComputed.$log.showTree){
+                    currentChange = [];
+                }
+                this.__mrrSetState(cell, val, parent_cell, parent_stack, 0);
                 const update = {};
                 update[cell] = val;
-                this.checkMrrCellUpdate(cell, update, parent_stack, val);
+                this.checkMrrCellUpdate(cell, update, parent_stack, val, 0);
                 superSetState.call(this, update, null, true);
+                if(this.__mrr.realComputed.$log && this.__mrr.realComputed.$log.showTree){
+                    this.logChange();
+                }
             }
             const fexpr = this.__mrr.realComputed[cell];
             if(typeof fexpr[0] === 'string'){
@@ -675,18 +727,24 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
                         }
                         return;
                     }
+                    if(this.__mrr.realComputed.$log && this.__mrr.realComputed.$log.showTree){
+                        currentChange = [];
+                    }
                     const subcellname = cell + '.' + subcell;
                     const stateSetter = mrrParentClass.prototype.setState || (() => {});
-                    this.__mrrSetState(subcellname, val, parent_cell, parent_stack);
+                    this.__mrrSetState(subcellname, val, parent_cell, parent_stack, level);
                     const update = {};
                     update[subcellname] = val;
-                    this.checkMrrCellUpdate(subcellname, update, parent_stack, val);
+                    this.checkMrrCellUpdate(subcellname, update, parent_stack, val, level);
                     stateSetter.call(this, update, null, true);
                     const nested_update = {
                         [cell]: this.mrrState[cell] instanceof Object ? this.mrrState[cell] : {}
                     }
                     nested_update[cell][subcell] = val;
                     stateSetter.call(this, nested_update, null, true);
+                    if(this.__mrr.realComputed.$log && this.__mrr.realComputed.$log.showTree){
+                        this.logChange();
+                    }
                 }
             }
 
@@ -762,19 +820,19 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
                     return;
                 }
                 update[cell] = val;
-                this.__mrrSetState(cell, val, parent_cell, parent_stack);
-                this.checkMrrCellUpdate(cell, update, parent_stack, val);
+                this.__mrrSetState(cell, val, parent_cell, parent_stack, level);
+                this.checkMrrCellUpdate(cell, update, parent_stack, val, level);
             }
         }
-        checkMrrCellUpdate(parent_cell, update, parent_stack = [], val){
+        checkMrrCellUpdate(parent_cell, update, parent_stack = [], val, level){
             if(this.mrrDepMap[parent_cell]){
                 for(let cell of this.mrrDepMap[parent_cell]){
                     const next_parent_stack = this.__mrr.realComputed.$log ? [...parent_stack, [parent_cell, val]] : parent_stack;
-                    this.__mrrUpdateCell(cell, parent_cell, update, next_parent_stack);
+                    this.__mrrUpdateCell(cell, parent_cell, update, next_parent_stack, level + 1);
                 }
             }
         }
-        __mrrSetState(key, val, parent_cell, parent_stack){
+        __mrrSetState(key, val, parent_cell, parent_stack, level){
             //@ todo: omit @@anon cells
             if(this.__mrr.realComputed.$log 
                 && (key[0] !== '@')
@@ -784,12 +842,18 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
                     ||
                     ((this.__mrr.realComputed.$log instanceof Array) && (this.__mrr.realComputed.$log.indexOf(key) !== -1))
                     ||
-                    (this.__mrr.realComputed.$log.cells && (this.__mrr.realComputed.$log.cells.indexOf(key) !== -1))
+                    (this.__mrr.realComputed.$log.cells 
+                        && (
+                            (this.__mrr.realComputed.$log.cells === true)
+                            || 
+                            (this.__mrr.realComputed.$log.cells.indexOf(key) !== -1)
+                        )
+                    )
                 ){
                     if(this.__mrr.realComputed.$log === 'no-colour'){
                       console.log(key, val);
                     } else {
-                      const logArgs = ['%c ' + this.__mrrPath + '::' + key,
+                        const logArgs = ['%c ' + this.__mrrPath + '::' + key,
                         //+ '(' + parent_cell +') ',
                         log_styles_cell,
                         val
@@ -797,7 +861,13 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
                       if(this.__mrr.realComputed.$log.showStack){
                           logArgs.push(JSON.stringify(parent_stack))
                       }
-                      console.log.apply(console, logArgs);
+                      if(this.__mrr.realComputed.$log.showTree){
+                        logArgs.push(level);
+                        if(!currentChange) debugger;
+                        currentChange.push(logArgs);
+                      } else {
+                        console.log.apply(console, logArgs);
+                      }
                     }
                 }
             }
@@ -807,7 +877,7 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
                 if(this.__mrr.subscribers){
                     for(let sub of this.__mrr.subscribers){
                         if(sub && sub.__mrr.linksNeeded['^'][key]){
-                            updateOtherGrid(sub, '^', key, this.mrrState[key]);
+                            updateOtherGrid(sub, '^', key, this.mrrState[key], level + 1);
                         }
                     }
                 }
@@ -817,7 +887,7 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
                         && this.__mrr.children[as].__mrr.linksNeeded['..'][key]
                         && (val === this.mrrState[key])
                     ){
-                        updateOtherGrid(this.__mrr.children[as], '..', key, this.mrrState[key]);
+                        updateOtherGrid(this.__mrr.children[as], '..', key, this.mrrState[key], level + 1);
                     }
                 }
                 let as  = this.__mrrLinkedAs;
@@ -826,14 +896,14 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
                     && this.__mrrParent.__mrr.linksNeeded[as][key]
                     && (val === this.mrrState[key])
                 ){
-                    updateOtherGrid(this.__mrrParent, as, key, this.mrrState[key]);
+                    updateOtherGrid(this.__mrrParent, as, key, this.mrrState[key], level + 1);
                 }
                 if(    this.__mrrParent
                     && this.__mrrParent.__mrr.linksNeeded['*']
                     && this.__mrrParent.__mrr.linksNeeded['*'][key]
                     && (val === this.mrrState[key])
                 ){
-                    updateOtherGrid(this.__mrrParent, '*', key, this.mrrState[key]);
+                    updateOtherGrid(this.__mrrParent, '*', key, this.mrrState[key], level + 1);
                 }
                 if(    this.__mrr.expose
                     && this.__mrr.expose[key]
@@ -842,25 +912,31 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
                     && GG.__mrr.linksNeeded['*'][this.__mrr.expose[key]]
                     && (val === this.mrrState[key])
                 ){
-                    updateOtherGrid(GG, '*', this.__mrr.expose[key], this.mrrState[key]);
+                    updateOtherGrid(GG, '*', this.__mrr.expose[key], this.mrrState[key], level + 1);
                 }
             }
         }
         getUpdateQueue(cell){
 
         }
-        setState(ns, cb, alreadyRun, topLevel){
+        setState(ns, cb, alreadyRun, level = 0){
             if(!(ns instanceof Object)) {
                 ns = ns.call(null, this.state, this.props);
             }
             const update = Object.assign({}, ns);
+            if(!level && this.__mrr.realComputed.$log && this.__mrr.realComputed.$log.showTree){
+                currentChange = [];
+            }
             if(!alreadyRun){
               for(let cell in update){
-                  this.__mrrSetState(cell, update[cell], null, []);
+                  this.__mrrSetState(cell, update[cell], null, [], level);
               }
               for(let parent_cell in update){
-                  this.checkMrrCellUpdate(parent_cell, update);
+                  this.checkMrrCellUpdate(parent_cell, update, [], null, level);
               }
+            }
+            if(!level && this.__mrr.realComputed.$log && this.__mrr.realComputed.$log.showTree){
+                this.logChange();
             }
             if(!this.__mrr.constructing){
                 return (mrrParentClass.prototype.setState || (() => {})).call(this, update, cb, true);

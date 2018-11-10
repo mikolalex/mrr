@@ -603,6 +603,18 @@ Combination is possible for these basic types, macros(operators) cannot be combi
 
 ## Built-in macros
 
+#### merge
+Joins the streams
+```js
+quinter: ['merge', 'ene', 'bene', 'raba'],
+```
+```
+ene:     ----------------------------3------------
+bene:    --"1"--------------false-----------------
+raba:    ----------"bar"------------------false---
+quinter: --"1"-----"bar"----false----3----false---
+```
+
 #### toggle
 Set the value to ***true*** when the first argument is fired, and **false** when the second is fired.
 ```js

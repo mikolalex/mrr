@@ -434,7 +434,7 @@ var defMacros = {
             };
         }, field];
     },
-    buffer: function buffer(_ref43) {
+    remember: function remember(_ref43) {
         var _ref44 = _slicedToArray(_ref43, 3),
             cell = _ref44[0],
             time = _ref44[1],

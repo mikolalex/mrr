@@ -79,7 +79,7 @@ var shallow_equal = exports.shallow_equal = function shallow_equal(a, b) {
     return a == b;
 };
 
-var updateOtherGrid = function updateOtherGrid(grid, as, key, val) {
+var updateOtherGrid = function updateOtherGrid(grid, as, key, val, level) {
     var his_cells = grid.__mrr.linksNeeded[as][key];
     var _iteratorNormalCompletion = true;
     var _didIteratorError = false;
@@ -89,7 +89,7 @@ var updateOtherGrid = function updateOtherGrid(grid, as, key, val) {
         for (var _iterator = his_cells[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
             var cell = _step.value;
 
-            grid.setState(_defineProperty({}, cell, val));
+            grid.setState(_defineProperty({}, cell, val), null, null, level);
         }
     } catch (err) {
         _didIteratorError = true;
@@ -317,6 +317,8 @@ var html_aspects = {
         }];
     }
 };
+
+var currentChange = void 0;
 
 var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
     return function (mrrStructure) {
@@ -656,6 +658,54 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                     }
                 }
             }, {
+                key: 'logChange',
+                value: function logChange() {
+                    var currentLevel = -1;
+                    for (var k in currentChange) {
+                        var _currentChange$k = _slicedToArray(currentChange[k], 4),
+                            str = _currentChange$k[0],
+                            style = _currentChange$k[1],
+                            val = _currentChange$k[2],
+                            level = _currentChange$k[3];
+
+                        if (level > currentLevel + 1) {
+                            var diff = level - (currentLevel + 1);
+                            for (var j = k; currentChange[j] && currentChange[j][3] >= currentLevel; j++) {
+                                currentChange[j][3] -= diff;
+                            }
+                        }
+                        currentLevel = level;
+                    }
+                    currentLevel = -1;
+                    console.group('');
+                    for (var _k2 in currentChange) {
+                        var _currentChange$_k = _slicedToArray(currentChange[_k2], 4),
+                            str = _currentChange$_k[0],
+                            style = _currentChange$_k[1],
+                            val = _currentChange$_k[2],
+                            level = _currentChange$_k[3];
+
+                        if (level !== currentLevel) {
+                            if (level > currentLevel) {
+                                //console.group(level);
+                            } else {
+                                var riz = currentLevel - level;
+                                for (var s = currentLevel; s > level; s--) {
+                                    //console.groupEnd();
+                                }
+                            }
+                        }
+                        //if(level <= currentLevel){
+                        console.log.apply(console, [new Array(level + 1).fill('').join('___') + ' ' + str, style, val]);
+                        //}
+                        currentLevel = level;
+                    }
+                    for (var _s = currentLevel; _s >= 0; _s--) {
+                        //console.groupEnd();
+                    }
+                    console.groupEnd();
+                }
+            }, {
                 key: 'parseMrr',
                 value: function parseMrr() {
                     var depMap = {};
@@ -669,10 +719,16 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                         if (fexpr === skip) continue;
                         if (key === '$meta') continue;
                         if (key === '$init') {
+                            if (mrr.$log && mrr.$log.showTree) {
+                                currentChange = [];
+                            }
                             var init_vals = mrr[key] instanceof Function ? mrr[key](this.props) : mrr[key];
                             for (var cell in init_vals) {
-                                this.__mrrSetState(cell, init_vals[cell], []);
+                                this.__mrrSetState(cell, init_vals[cell], null, [], 0);
                                 updateOnInit[cell] = init_vals[cell];
+                            }
+                            if (mrr.$log && mrr.$log.showTree) {
+                                this.logChange();
                             }
                             continue;
                         }
@@ -866,7 +922,7 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                 }
             }, {
                 key: 'toState',
-                value: function toState(key, val) {
+                value: function toState(key, val, notHandleFunctions) {
                     var _this5 = this;
 
                     if (this.__mrr.readFromDOM && !this.__mrr.readFromDOM[key]) {
@@ -880,7 +936,7 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                         var func = function func(a) {
                             var value = void 0;
                             if (val !== undefined) {
-                                if (val instanceof Function) {
+                                if (val instanceof Function && !notHandleFunctions) {
                                     value = val(a);
                                 } else {
                                     value = val;
@@ -909,9 +965,9 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                                 key.forEach(function (k) {
                                     ns[k] = value;
                                 });
-                                _this5.setState(ns, null, null, true);
+                                _this5.setState(ns, null, null, 0);
                             } else {
-                                _this5.setState(_defineProperty({}, key, value), null, null, true);
+                                _this5.setState(_defineProperty({}, key, value), null, null, 0);
                             }
                         };
                         if (val === undefined) {
@@ -948,8 +1004,21 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                     return res;
                 }
             }, {
+                key: '__mrrSetError',
+                value: function __mrrSetError(cell, e) {
+                    if (this.mrrDepMap['$err.' + cell]) {
+                        this.setState(_defineProperty({}, '$err.' + cell, e));
+                    } else {
+                        if (this.mrrDepMap.$err) {
+                            this.setState({ $err: e });
+                        } else {
+                            throw e;
+                        }
+                    }
+                }
+            }, {
                 key: '__mrrUpdateCell',
-                value: function __mrrUpdateCell(cell, parent_cell, update, parent_stack) {
+                value: function __mrrUpdateCell(cell, parent_cell, update, parent_stack, level) {
                     var _this7 = this;
 
                     var val,
@@ -962,11 +1031,17 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                         if (val === skip) {
                             return;
                         }
-                        _this7.__mrrSetState(cell, val, parent_cell, parent_stack);
+                        if (_this7.__mrr.realComputed.$log && _this7.__mrr.realComputed.$log.showTree) {
+                            currentChange = [];
+                        }
+                        _this7.__mrrSetState(cell, val, parent_cell, parent_stack, 0);
                         var update = {};
                         update[cell] = val;
-                        _this7.checkMrrCellUpdate(cell, update, parent_stack, val);
+                        _this7.checkMrrCellUpdate(cell, update, parent_stack, val, 0);
                         superSetState.call(_this7, update, null, true);
+                        if (_this7.__mrr.realComputed.$log && _this7.__mrr.realComputed.$log.showTree) {
+                            _this7.logChange();
+                        }
                     };
                     var fexpr = this.__mrr.realComputed[cell];
                     if (typeof fexpr[0] === 'string') {
@@ -981,24 +1056,34 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                                 }
                                 return;
                             }
+                            if (_this7.__mrr.realComputed.$log && _this7.__mrr.realComputed.$log.showTree) {
+                                currentChange = [];
+                            }
                             var subcellname = cell + '.' + subcell;
                             var stateSetter = mrrParentClass.prototype.setState || function () {};
-                            _this7.__mrrSetState(subcellname, val, parent_cell, parent_stack);
+                            _this7.__mrrSetState(subcellname, val, parent_cell, parent_stack, level);
                             var update = {};
                             update[subcellname] = val;
-                            _this7.checkMrrCellUpdate(subcellname, update, parent_stack, val);
+                            _this7.checkMrrCellUpdate(subcellname, update, parent_stack, val, level);
                             stateSetter.call(_this7, update, null, true);
                             var nested_update = _defineProperty({}, cell, _this7.mrrState[cell] instanceof Object ? _this7.mrrState[cell] : {});
                             nested_update[cell][subcell] = val;
                             stateSetter.call(_this7, nested_update, null, true);
+                            if (_this7.__mrr.realComputed.$log && _this7.__mrr.realComputed.$log.showTree) {
+                                _this7.logChange();
+                            }
                         };
                     }
 
                     if (fexpr[0] instanceof Function) {
                         func = this.__mrr.realComputed[cell][0];
                         args = this.__getCellArgs(cell);
-
-                        val = func.apply(null, args);
+                        try {
+                            val = func.apply(null, args);
+                        } catch (e) {
+                            this.__mrrSetError(cell, e);
+                            return;
+                        }
                     } else {
                         if (types.indexOf('funnel') !== -1) {
                             args = [parent_cell, this.mrrState[parent_cell], this.mrrState[cell]];
@@ -1026,15 +1111,7 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                         try {
                             val = func.apply(null, args);
                         } catch (e) {
-                            if (this.__mrr.realComputed['$err.' + cell]) {
-                                this.setState(_defineProperty({}, '$err.' + cell, e));
-                            } else {
-                                if (this.__mrr.realComputed.$err) {
-                                    this.setState({ $err: e });
-                                } else {
-                                    throw e;
-                                }
-                            }
+                            this.__mrrSetError(cell, e);
                             return;
                         }
                     }
@@ -1070,8 +1147,8 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                             return;
                         }
                         update[cell] = val;
-                        this.__mrrSetState(cell, val, parent_cell, parent_stack);
-                        this.checkMrrCellUpdate(cell, update, parent_stack, val);
+                        this.__mrrSetState(cell, val, parent_cell, parent_stack, level);
+                        this.checkMrrCellUpdate(cell, update, parent_stack, val, level);
                     }
                 }
             }, {
@@ -1079,6 +1156,7 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                 value: function checkMrrCellUpdate(parent_cell, update) {
                     var parent_stack = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : [];
                     var val = arguments[3];
+                    var level = arguments[4];
 
                     if (this.mrrDepMap[parent_cell]) {
                         var _iteratorNormalCompletion9 = true;
@@ -1090,7 +1168,7 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                                 var _cell2 = _step9.value;
 
                                 var next_parent_stack = this.__mrr.realComputed.$log ? [].concat(_toConsumableArray(parent_stack), [[parent_cell, val]]) : parent_stack;
-                                this.__mrrUpdateCell(_cell2, parent_cell, update, next_parent_stack);
+                                this.__mrrUpdateCell(_cell2, parent_cell, update, next_parent_stack, level + 1);
                             }
                         } catch (err) {
                             _didIteratorError9 = true;
@@ -1110,10 +1188,10 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                 }
             }, {
                 key: '__mrrSetState',
-                value: function __mrrSetState(key, val, parent_cell, parent_stack) {
+                value: function __mrrSetState(key, val, parent_cell, parent_stack, level) {
                     //@ todo: omit @@anon cells
                     if (this.__mrr.realComputed.$log && key[0] !== '@') {
-                        if (this.__mrr.realComputed.$log === true || this.__mrr.realComputed.$log instanceof Array && this.__mrr.realComputed.$log.indexOf(key) !== -1 || this.__mrr.realComputed.$log.cells && this.__mrr.realComputed.$log.cells.indexOf(key) !== -1) {
+                        if (this.__mrr.realComputed.$log === true || this.__mrr.realComputed.$log instanceof Array && this.__mrr.realComputed.$log.indexOf(key) !== -1 || this.__mrr.realComputed.$log.cells && (this.__mrr.realComputed.$log.cells === true || this.__mrr.realComputed.$log.cells.indexOf(key) !== -1)) {
                             if (this.__mrr.realComputed.$log === 'no-colour') {
                                 console.log(key, val);
                             } else {
@@ -1123,7 +1201,13 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                                 if (this.__mrr.realComputed.$log.showStack) {
                                     logArgs.push(JSON.stringify(parent_stack));
                                 }
-                                console.log.apply(console, logArgs);
+                                if (this.__mrr.realComputed.$log.showTree) {
+                                    logArgs.push(level);
+                                    if (!currentChange) debugger;
+                                    currentChange.push(logArgs);
+                                } else {
+                                    console.log.apply(console, logArgs);
+                                }
                             }
                         }
                     }
@@ -1140,7 +1224,7 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                                     var sub = _step10.value;
 
                                     if (sub && sub.__mrr.linksNeeded['^'][key]) {
-                                        updateOtherGrid(sub, '^', key, this.mrrState[key]);
+                                        updateOtherGrid(sub, '^', key, this.mrrState[key], level + 1);
                                     }
                                 }
                             } catch (err) {
@@ -1161,18 +1245,18 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                     } else {
                         for (var _as in this.__mrr.children) {
                             if (this.__mrr.children[_as].__mrr.linksNeeded['..'] && this.__mrr.children[_as].__mrr.linksNeeded['..'][key] && val === this.mrrState[key]) {
-                                updateOtherGrid(this.__mrr.children[_as], '..', key, this.mrrState[key]);
+                                updateOtherGrid(this.__mrr.children[_as], '..', key, this.mrrState[key], level + 1);
                             }
                         }
                         var as = this.__mrrLinkedAs;
                         if (this.__mrrParent && this.__mrrParent.__mrr.linksNeeded[as] && this.__mrrParent.__mrr.linksNeeded[as][key] && val === this.mrrState[key]) {
-                            updateOtherGrid(this.__mrrParent, as, key, this.mrrState[key]);
+                            updateOtherGrid(this.__mrrParent, as, key, this.mrrState[key], level + 1);
                         }
                         if (this.__mrrParent && this.__mrrParent.__mrr.linksNeeded['*'] && this.__mrrParent.__mrr.linksNeeded['*'][key] && val === this.mrrState[key]) {
-                            updateOtherGrid(this.__mrrParent, '*', key, this.mrrState[key]);
+                            updateOtherGrid(this.__mrrParent, '*', key, this.mrrState[key], level + 1);
                         }
                         if (this.__mrr.expose && this.__mrr.expose[key] && GG && GG.__mrr.linksNeeded['*'] && GG.__mrr.linksNeeded['*'][this.__mrr.expose[key]] && val === this.mrrState[key]) {
-                            updateOtherGrid(GG, '*', this.__mrr.expose[key], this.mrrState[key]);
+                            updateOtherGrid(GG, '*', this.__mrr.expose[key], this.mrrState[key], level + 1);
                         }
                     }
                 }
@@ -1181,18 +1265,26 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                 value: function getUpdateQueue(cell) {}
             }, {
                 key: 'setState',
-                value: function setState(ns, cb, alreadyRun, topLevel) {
+                value: function setState(ns, cb, alreadyRun) {
+                    var level = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 0;
+
                     if (!(ns instanceof Object)) {
                         ns = ns.call(null, this.state, this.props);
                     }
                     var update = Object.assign({}, ns);
+                    if (!level && this.__mrr.realComputed.$log && this.__mrr.realComputed.$log.showTree) {
+                        currentChange = [];
+                    }
                     if (!alreadyRun) {
                         for (var _cell3 in update) {
-                            this.__mrrSetState(_cell3, update[_cell3], null, []);
+                            this.__mrrSetState(_cell3, update[_cell3], null, [], level);
                         }
                         for (var parent_cell in update) {
-                            this.checkMrrCellUpdate(parent_cell, update);
+                            this.checkMrrCellUpdate(parent_cell, update, [], null, level);
                         }
+                    }
+                    if (!level && this.__mrr.realComputed.$log && this.__mrr.realComputed.$log.showTree) {
+                        this.logChange();
                     }
                     if (!this.__mrr.constructing) {
                         return (mrrParentClass.prototype.setState || function () {}).call(this, update, cb, true);
