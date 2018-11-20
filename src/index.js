@@ -76,6 +76,7 @@ const mrrJoin = (child_struct = {}, parent_struct = {}) => {
     const struct = Object.assign({}, parent_struct, child_struct);
     joinAsObject(struct, parent_struct, child_struct, '$init');
     joinAsArray(struct, parent_struct, child_struct, '$readFromDOM');
+    joinAsArray(struct, parent_struct, child_struct, '$writeToDOM');
     joinAsArray(struct, parent_struct, child_struct, '$expose');
     for(let k in struct){
         if(k[0] === '+'){
@@ -428,6 +429,7 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
         
         logChange(){
             let currentLevel = -1;
+            //console.log('CHANGE', currentChange);
             for(let k in currentChange){
                 const [str, style, val, level] = currentChange[k];
                 if(level > (currentLevel + 1)){
@@ -504,6 +506,13 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
                     this.__mrr.readFromDOM = {};
                     for(let item of fexpr){
                         this.__mrr.readFromDOM[item] = true;
+                    }
+                    continue;
+                };
+                if(key === "$writeToDOM") {
+                    this.__mrr.writeToDOM = {};
+                    for(let item of fexpr){
+                        this.__mrr.writeToDOM[item] = true;
                     }
                     continue;
                 };
@@ -709,6 +718,7 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
                 const update = {};
                 update[cell] = val;
                 this.checkMrrCellUpdate(cell, update, parent_stack, val, 0);
+                console.log('Update react state', update);
                 superSetState.call(this, update, null, true);
                 if(this.__mrr.realComputed.$log && this.__mrr.realComputed.$log.showTree){
                     this.logChange();
@@ -863,7 +873,6 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
                       }
                       if(this.__mrr.realComputed.$log.showTree){
                         logArgs.push(level);
-                        if(!currentChange) debugger;
                         currentChange.push(logArgs);
                       } else {
                         console.log.apply(console, logArgs);
@@ -939,7 +948,20 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
                 this.logChange();
             }
             if(!this.__mrr.constructing){
-                return (mrrParentClass.prototype.setState || (() => {})).call(this, update, cb, true);
+                let real_update = {};
+                if(this.__mrr.writeToDOM){
+                    let once = false;
+                    for(let key in update){
+                        if(this.__mrr.writeToDOM[key]){
+                            real_update[key] = update[key];
+                            once = true;
+                        }
+                    }
+                    if(!once) return;
+                } else {
+                    real_update = update;
+                }
+                return (mrrParentClass.prototype.setState || (() => {})).call(this, real_update, cb, true);
             } else {
                 for(let cell in update){
                     this.initialState[cell] = update[cell];
