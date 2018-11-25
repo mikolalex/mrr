@@ -25,6 +25,7 @@ export default withMrr((props) => {
       setVal: props.filter ? (val => props.filter(val) ? val : skip ) : id,
       'clear': always(''),
     }],
+    $writeToDOM: ['val', 'beingChecked', 'errorShown', 'currentError', 'options', 'hidden', 'disabled'],
   }
   return struct;
 }, (state, props, $) => {
@@ -56,7 +57,7 @@ export default withMrr((props) => {
       { props.type === 'select' && 
         <select {...elProps}>
         <option key=""></option>
-        { (options instanceof Array) && options.map((a, i) => <option key={ i }>{ a }</option>) }
+        { (options instanceof Array) && options.map(a => <option key={ a }>{ a }</option>) }
         </select> }
       {
         props.type !== 'select' && 
