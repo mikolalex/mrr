@@ -1,4 +1,4 @@
-import { skip, shallow_equal } from './';
+import { skip, shallow_equal } from './core';
 
 const isJustObject = a => (a instanceof Object) && !(a instanceof Array) && !(a instanceof Function);
 const always = a => _ => a;
