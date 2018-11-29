@@ -108,7 +108,9 @@ exports.getValidationFunc = getValidationFunc;
 exports.default = (0, _myMrr.withMrr)(function (props) {
   var valPrefix = props.validateOnlyAfterSubmit ? '-' : '';
   var struct = {
-    $init: {},
+    $init: {
+      status: props.errors ? 'unknown' : 'valid'
+    },
     'initVal': [function (parent, name) {
       if (parent && parent[name] !== undefined) {
         return props.disassemble ? props.disassemble(parent[name]) : parent[name];
@@ -140,6 +142,9 @@ exports.default = (0, _myMrr.withMrr)(function (props) {
       if (status === 'checking') {
         return ['checking', name];
       }
+      if (status === 'unknown') {
+        return ['unknown', name];
+      }
       if (status === 'valid') {
         return [true, name];
       }
@@ -147,12 +152,17 @@ exports.default = (0, _myMrr.withMrr)(function (props) {
         return [false, name];
       }
       return _myMrr.skip;
-    }, 'status', '$name'],
+    }, 'status', '$name', '$start'],
     'orderWithName': [function (props, name) {
       return [props.order, name];
     }, '-$props', '$name', '$start'],
     otherVals: '../val',
-    validation: ['nested', getValidationFunc(props), valPrefix + 'val', '-otherVals', valPrefix + 'valids', 'submit', valPrefix + '$start'
+    needsRevalidation: ['merge', {
+      val: true,
+      'validation.error': false,
+      'validation.success': false
+    }],
+    validation: ['nested', getValidationFunc(props), valPrefix + 'val', '-otherVals', valPrefix + 'valids', ['transist', '-needsRevalidation', 'submit'], valPrefix + '$start'
     //, props.validateOnlyAfterSubmit ? skip : ['skipIf', not, '-submit', ['join', '../vals', 'val']]
     ],
     "submit": ['skipIf', function (a) {
@@ -168,12 +178,14 @@ exports.default = (0, _myMrr.withMrr)(function (props) {
     "=currentError": ['merge', {
       'validation.error': id,
       'validation.success': '',
-      'validation.clearErrors': '',
-      'val': ''
+      'validation.clearErrors': ''
+      //'val': '',
     }],
     "=canShowErrors": ['toggle', 'submit', ['join', 'val', ['turnsFromTo', true, false, 'hidden']]],
     hideErrors: [Boolean, 'val'],
-    "=errorsDisplayed": ['toggle', 'validation.error', ['transist', '-submit', 'hideErrors']],
+    "=errorsDisplayed": ['toggle', ['async', function (cb) {
+      return setTimeout(cb, 0);
+    }, 'validation.error'], ['transist', '-submit', 'hideErrors']],
     "=errorShown": ['&&', 'canShowErrors', 'errorsDisplayed'],
     "=disabled": props.disabled || props.disableWhenValidated ? [Boolean, ['||',
     // disable when beingChecked after submit

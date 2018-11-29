@@ -55,7 +55,8 @@ exports.default = (0, _myMrr.withMrr)(function (props) {
         return props.filter(val) ? val : _myMrr.skip;
       } : id,
       'clear': always('')
-    }]
+    }],
+    $writeToDOM: ['val', 'beingChecked', 'errorShown', 'currentError', 'options', 'hidden', 'disabled']
   };
   return struct;
 }, function (state, props, $) {
@@ -96,10 +97,10 @@ exports.default = (0, _myMrr.withMrr)(function (props) {
         'select',
         elProps,
         _react2.default.createElement('option', { key: '' }),
-        options instanceof Array && options.map(function (a, i) {
+        options instanceof Array && options.map(function (a) {
           return _react2.default.createElement(
             'option',
-            { key: i },
+            { key: a },
             a
           );
         })

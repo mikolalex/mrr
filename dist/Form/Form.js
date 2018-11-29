@@ -101,9 +101,22 @@ function isChecked(a) {
   return false;
 }
 
+function objEach(obj) {
+  var func = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : Boolean;
+
+  var check = func instanceof Function ? func : function (a) {
+    return a === func;
+  };
+  for (var i in obj) {
+    if (!check(obj[i])) return false;
+  }
+  return true;
+}
+
 var Form = (0, _myMrr.withMrr)(function (props) {
   var struct = {
     $meta: {},
+    $writeToDOM: ['hidden', 'errorShown', 'currentError', 'currentStep', 'controlsDisabled'],
     "=val": ['closure', state, ['join', '*/valWithName', 'initVal']],
     "=valids": ['closure', state, '*/validWithName'],
     "=focusedChildren": ['closure', state, '*/focusedWithName'],
@@ -117,7 +130,9 @@ var Form = (0, _myMrr.withMrr)(function (props) {
       return isChecked(a);
     }, 'checkings', 'status'],
     "=controlsDisabled": ['||', 'disabled', props.disableControlsWhenValidated ? 'somethingIsChecked' : _myMrr.skip],
-    "=inputsDisabled": ['||', 'disabled', props.disableInputsWhenValidated ? 'somethingIsChecked' : _myMrr.skip]
+    "=inputsDisabled": ['||', 'disabled', props.disableInputsWhenValidated ? 'somethingIsChecked' : _myMrr.skip],
+    "allValid": [objEach, 'valids'],
+    "successfulSubmit": ['transist', '-allValid', [id, '-val', 'submit']]
   };
   return struct;
 }, function (state, props, $, connectAs) {

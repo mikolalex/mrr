@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
 
-var _2 = require('./');
+var _mrr = require('./mrr');
 
 function _toArray(arr) { return Array.isArray(arr) ? arr : Array.from(arr); }
 
@@ -25,7 +25,7 @@ var isPromise = function isPromise(a) {
 };
 var matches = function matches(obj, subset) {
     for (var k in subset) {
-        if (!(0, _2.shallow_equal)(obj[k], subset[k])) {
+        if (!(0, _mrr.shallow_equal)(obj[k], subset[k])) {
             return false;
         }
     }
@@ -261,7 +261,7 @@ var defMacros = {
     },
     transist: function transist(cells) {
         return [function (a, b) {
-            return a ? b : _2.skip;
+            return a ? b : _mrr.skip;
         }].concat(_toConsumableArray(cells));
     },
     closureMerge: function closureMerge(_ref19) {
@@ -355,7 +355,7 @@ var defMacros = {
             val = _ref32[1];
 
         return [function (a) {
-            return a === val ? true : _2.skip;
+            return a === val ? true : _mrr.skip;
         }, field];
     },
     skipSame: function skipSame(_ref33) {
@@ -363,7 +363,7 @@ var defMacros = {
             field = _ref34[0];
 
         return [function (z, x) {
-            return (0, _2.shallow_equal)(z, x) ? _2.skip : z;
+            return (0, _mrr.shallow_equal)(z, x) ? _mrr.skip : z;
         }, field, '^'];
     },
     skipIf: function skipIf(_ref35) {
@@ -379,7 +379,7 @@ var defMacros = {
         }
         return [function () {
             var res = func.apply(null, arguments);
-            return !res ? true : _2.skip;
+            return !res ? true : _mrr.skip;
         }].concat(_toConsumableArray(fields));
     },
     when: function when(_ref37) {
@@ -395,7 +395,7 @@ var defMacros = {
         }
         return [function () {
             var res = func.apply(null, arguments);
-            return !!res ? true : _2.skip;
+            return !!res ? true : _mrr.skip;
         }].concat(_toConsumableArray(fields));
     },
     turnsFromTo: function turnsFromTo(_ref39) {
@@ -412,7 +412,7 @@ var defMacros = {
                     return true;
                 } else {
                     prev_val = val;
-                    return _2.skip;
+                    return _mrr.skip;
                 }
             };
         }, cell];
@@ -429,7 +429,7 @@ var defMacros = {
                 if (++count > n) {
                     return val;
                 } else {
-                    return _2.skip;
+                    return _mrr.skip;
                 }
             };
         }, field];

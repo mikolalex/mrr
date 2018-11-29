@@ -101,7 +101,7 @@ const updateOtherGrid = (grid, as, key, val, level) => {
 		if(!grid){
 			debugger;
 		}
-        grid.setState({[cell]: val}, null, null, level);
+        grid.setState({[cell]: val}, level);
     }
 }
 
@@ -126,18 +126,12 @@ const isPromise = a => a instanceof Object && a.toString && a.toString().indexOf
 
 
 class Mrr {
-    constructor(props, context, already_inited, isGG, setOuterState, mrrStructure, macros, GG, dataTypes, isGlobal = false) {
+    constructor(mrrStructure, props, setOuterState, macros, dataTypes, GG = false) {
         this.macros = macros;
-        this.isGlobal = isGlobal;
-        this.GG = GG;
+        this.GG = (GG && (GG !== true)) ? GG : null;
         this.dataTypes = dataTypes;
         this.setOuterState = setOuterState;
-        if(already_inited) {
-          //return;
-        }
-        if(isGG) {
-          this.isGG = true;
-        }
+        this.isGG = GG === true;
         this.props = props || {};
         this.__mrr = {
             id: ++ids,
@@ -452,7 +446,7 @@ class Mrr {
         this.setState({[key]: val});
     }
     toStateAs(key, val){
-        this.setState({[key]: val}, null, null, true);
+        this.setState({[key]: val});
     }
     checkLinkedCellsTypes(a, b, linked_as){
         if(!a) debugger;
@@ -555,9 +549,9 @@ class Mrr {
                     key.forEach(k => {
                         ns[k] = value;
                     })
-                    this.setState(ns, null, null, 0);
+                    this.setState(ns);
                 } else {
-                    this.setState({[key]: value}, null, null, 0);
+                    this.setState({[key]: value});
                 }
             }
             if(val === undefined){
@@ -778,7 +772,7 @@ class Mrr {
         }
         this.mrrState[key] = val;
 
-        if(this.isGlobal){
+        if(this.isGG){
             if(this.__mrr.subscribers){
                 for(let sub of this.__mrr.subscribers){
                     if(sub && sub.__mrr.linksNeeded['^'][key]){
@@ -824,46 +818,44 @@ class Mrr {
     getUpdateQueue(cell){
 
     }
-    setState(ns, cb, alreadyRun, level = 0){
-        if(!(ns instanceof Object)) {
-            ns = ns.call(null, this.state, this.props);
-        }
-        const update = Object.assign({}, ns);
-        if(!level && this.__mrr.realComputed.$log && this.__mrr.realComputed.$log.showTree){
-            currentChange = [];
-        }
-        if(!alreadyRun){
+    setState(ns, level = 0){
+      if(!(ns instanceof Object)) {
+          ns = ns.call(null, this.state, this.props);
+      }
+      const update = Object.assign({}, ns);
+      if(!level && this.__mrr.realComputed.$log && this.__mrr.realComputed.$log.showTree){
+          currentChange = [];
+      }
+      for(let cell in update){
+          this.__mrrSetState(cell, update[cell], null, [], level);
+      }
+      for(let parent_cell in update){
+          this.checkMrrCellUpdate(parent_cell, update, [], null, level);
+      }
+      if(!level && this.__mrr.realComputed.$log && this.__mrr.realComputed.$log.showTree){
+          this.logChange();
+      }
+      if(!this.__mrr.constructing){
+          let real_update = {};
+          if(this.__mrr.writeToDOM){
+              let once = false;
+              for(let key in update){
+                  if(this.__mrr.writeToDOM[key]){
+                      real_update[key] = update[key];
+                      once = true;
+                  }
+              }
+              if(!once) return;
+          } else {
+              real_update = update;
+          }
+          return this.setOuterState(real_update, true);
+          //return (mrrParentClass.prototype.setState || (() => {})).call(this, real_update, cb, true);
+      } else {
           for(let cell in update){
-              this.__mrrSetState(cell, update[cell], null, [], level);
+              this.initialState[cell] = update[cell];
           }
-          for(let parent_cell in update){
-              this.checkMrrCellUpdate(parent_cell, update, [], null, level);
-          }
-        }
-        if(!level && this.__mrr.realComputed.$log && this.__mrr.realComputed.$log.showTree){
-            this.logChange();
-        }
-        if(!this.__mrr.constructing){
-            let real_update = {};
-            if(this.__mrr.writeToDOM){
-                let once = false;
-                for(let key in update){
-                    if(this.__mrr.writeToDOM[key]){
-                        real_update[key] = update[key];
-                        once = true;
-                    }
-                }
-                if(!once) return;
-            } else {
-                real_update = update;
-            }
-            return this.setOuterState(real_update, cb, true);
-            //return (mrrParentClass.prototype.setState || (() => {})).call(this, real_update, cb, true);
-        } else {
-            for(let cell in update){
-                this.initialState[cell] = update[cell];
-            }
-        }
+      }
     }
 }
 
