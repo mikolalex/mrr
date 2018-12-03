@@ -24,7 +24,11 @@ const mrrJoin = (child_struct = {}, parent_struct = {}) => {
         if(k[0] === '+'){
             const real_k = k.substr(1);
             if(!struct[real_k]){
-                struct[real_k] = struct[k];
+                if(struct['=' + real_k]){
+                    struct['=' + real_k] = ['join', struct[k], struct['=' + real_k]];
+                } else {
+                    struct[real_k] = struct[k];
+                }
             } else {
                 struct[real_k] = ['join', struct[k], struct[real_k]];
             }
@@ -84,11 +88,15 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
     const parent = parentClass || React.Component;
     render = render || parent.prototype.render || (() => null);
     const cls = class Mrr extends parent {
-        constructor(props, already_inited) {
-          super(props, true);
-          this.mrr = new MrrCore(this.getMrrStruct(), props, a => this.setState(a), macros, dataTypes, GG);
-          this.mrr.reactWrapper = this;
-          this.state = this.mrr.initialState;
+        constructor(props, already_inited = false) {
+            super(props, 'AI');
+            this.props = props;
+            if(already_inited !== 'AI'){
+                const struct = this.getMrrStruct();
+                this.mrr = new MrrCore(struct, props, a => this.setState(a), macros, dataTypes, GG);
+                this.mrr.reactWrapper = this;
+                this.state = this.mrr.initialState;
+            }
         }
         componentDidMount(){
             this.mrr.onMount();

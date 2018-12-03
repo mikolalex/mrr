@@ -475,9 +475,9 @@ class Mrr {
         return {
             subscribe: (child) => {
                 child.$name = as;
-				//if(!child.state){
-				//	debugger;
-				//}
+                //if(!child.state){
+                //	debugger;
+                //}
                 //child.state.$name = as;
                 this.__mrr.children[as] = child;
                 child.__mrrParent = self;
@@ -500,9 +500,9 @@ class Mrr {
                       )
                 ){
                     if(this.__mrr.realComputed.$log === 'no-colour'){
-                      console.log('CONNECTED: ' + (this.$name || '/') + as);
+                      console.log('CONNECTED: ' + (this.$name || '/') + as, child.__mrr.realComputed);
                     } else {
-                      console.log('%c CONNECTED: ' + (this.$name || '/') + as, log_styles_mount);
+                      console.log('%c CONNECTED: ' + (this.$name || '/') + as, log_styles_mount, child.__mrr.realComputed);
                     }
                 }   
             }

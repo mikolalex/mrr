@@ -72,6 +72,23 @@ const defMacros = {
     },
     coll: collMacros,
     list: collMacros,
+    passOnceIf: ([func, cell]) => {
+        return ['closure', () => {
+           let passed = false;
+           return function(){
+               if(passed){
+                   return skip;
+               }
+               const res = func.apply(null, arguments);
+               if(res){
+                   passed = true;
+                   return res;
+               } else {
+                   return skip;
+               }
+           }
+        }, cell]
+    },
     merge: ([map, ...others]) => {
         if(isJustObject(map)){
             var res = ['funnel', (cell, val) => [cell, val], ...Object.keys(map)];
