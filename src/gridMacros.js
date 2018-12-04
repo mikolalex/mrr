@@ -37,7 +37,11 @@ const gridMacros = {
                     struct[real_k] = struct[k];
                 }
             } else {
+              if(['$writeToDOM', '$readFromDOM'].indexOf(real_k) !== -1){
+                struct[real_k] = [...new Set([...struct[k], ...struct[real_k]])];
+              } else {
                 struct[real_k] = ['join', struct[k], struct[real_k]];
+              }
             }
             delete struct[k];
         }
