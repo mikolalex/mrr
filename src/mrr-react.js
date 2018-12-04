@@ -1,43 +1,8 @@
 import React from 'react';
 
-import defMacros from './defMacros';
+import cellMacros from './cellMacros';
 import MrrCore, { skip } from './mrr';
-
-const joinAsObject = (target_struct, parent, child, key) => {
-    if(parent && child && parent[key] && child[key]) {
-        target_struct[key] = Object.assign({}, parent[key], child[key]);
-    }
-}
-const joinAsArray = (target_struct, parent, child, key) => {
-    if(parent && child && parent[key] && child[key]) {
-        target_struct[key] = [...parent[key], ...child[key]];
-    }
-}
-
-const mrrJoin = (child_struct = {}, parent_struct = {}) => {
-    const struct = Object.assign({}, parent_struct, child_struct);
-    joinAsObject(struct, parent_struct, child_struct, '$init');
-    joinAsArray(struct, parent_struct, child_struct, '$readFromDOM');
-    joinAsArray(struct, parent_struct, child_struct, '$writeToDOM');
-    joinAsArray(struct, parent_struct, child_struct, '$expose');
-    for(let k in struct){
-        if(k[0] === '+'){
-            const real_k = k.substr(1);
-            if(!struct[real_k]){
-                if(struct['=' + real_k]){
-                    struct['=' + real_k] = ['join', struct[k], struct['=' + real_k]];
-                } else {
-                    struct[real_k] = struct[k];
-                }
-            } else {
-                struct[real_k] = ['join', struct[k], struct[real_k]];
-            }
-            delete struct[k];
-        }
-    }
-    return struct;
-}
-
+import { merge } from './gridMacros';
 
 export const isOfType = (val, type, dataTypes) => dataTypes[type] ? dataTypes[type](val) : false;
 
@@ -109,13 +74,13 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
             const parent_struct = parent.prototype.__mrrGetComputed
               ? parent.prototype.__mrrGetComputed.apply(this)
               : {};
-            return mrrJoin(mrrStructure instanceof Function ?  mrrStructure(this.props || {}) : mrrStructure, parent_struct);
+            return merge(mrrStructure instanceof Function ?  mrrStructure(this.props || {}) : mrrStructure, parent_struct);
         }
 		getMrrStruct(){
 			if(!this.props){
 				return this.__mrrGetComputed();
 			}
-			return mrrJoin(this.props.__mrr, this.__mrrGetComputed());
+			return merge(this.props.__mrr, this.__mrrGetComputed());
 		}
         render(){
             const self = this;
@@ -145,7 +110,7 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
     return cls;
 }
 
-export const withMrr = getWithMrr(null, defMacros, defDataTypes);
+export const withMrr = getWithMrr(null, cellMacros, defDataTypes);
 
 const def = withMrr({}, null, React.Component);
 def.skip = skip;
@@ -159,7 +124,7 @@ const initGlobalGrid = (struct, availableMacros, availableDataTypes) => {
 }
 
 export const createMrrApp = (conf) => {
-    const availableMacros = Object.assign({}, defMacros, conf.macros || {});
+    const availableMacros = Object.assign({}, cellMacros, conf.macros || {});
     const availableDataTypes = Object.assign({}, defDataTypes, conf.dataTypes || {});
     const GG = conf.globalGrid ? initGlobalGrid(conf.globalGrid, availableMacros, availableDataTypes) : null;
     const withMrr = getWithMrr(GG, availableMacros, availableDataTypes);

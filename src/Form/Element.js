@@ -1,5 +1,6 @@
 import React from 'react';
 import { withMrr, skip } from './myMrr';
+import { gridMacros } from '../';
 
 
 const not = a => !a;
@@ -92,11 +93,11 @@ export default withMrr((props) => {
     }, '-../val', '$name', '$start'],
     'val': 'initVal',
     'clear': '../clear',
-    '=focusedWithName': [(val, name) => [val, name], 'focused', '$name'], 
-    '=valWithName': [(val, name) => [props.assemble ? props.assemble(val) : val, name], 'val', '$name'],
-    '=beingCheckedWithName': [(beingChecked, name) => [beingChecked, name], 'beingChecked', '$name'],
-    '=beingChecked': [status => status === 'checking', 'status'],
-    '=somethingIsChecked': ['||', '../somethingIsChecked', 'beingChecked'],
+    'focusedWithName': [(val, name) => [val, name], 'focused', '$name'], 
+    'valWithName': [(val, name) => [props.assemble ? props.assemble(val) : val, name], 'val', '$name'],
+    'beingCheckedWithName': [(beingChecked, name) => [beingChecked, name], 'beingChecked', '$name'],
+    'beingChecked': [status => status === 'checking', 'status'],
+    'somethingIsChecked': ['||', '../somethingIsChecked', 'beingChecked'],
     //'validWithName': [(status, name) => [status === 'valid', name]
     'validWithName': [(status, name) => {
       if(status === 'checking'){
@@ -126,28 +127,28 @@ export default withMrr((props) => {
       //, props.validateOnlyAfterSubmit ? skip : ['skipIf', not, '-submit', ['join', '../vals', 'val']]
     ],
     "submit": ['skipIf', a => a, '-hidden', '../submit'],
-    "=status": ['merge', {
+    "status": ['merge', {
         'validation.checking': a => a ? 'checking' : skip,
         'validation.error': 'invalid',
         'validation.success': 'valid',
       }
     ],
-    "=currentError": ['merge', {
+    "currentError": ['merge', {
       'validation.error': id,
       'validation.success': '',
       'validation.clearErrors': '',
       //'val': '',
     }],
-    "=canShowErrors": ['toggle', 'submit', ['join', 'val', ['turnsFromTo', true, false, 'hidden']]],
+    "canShowErrors": ['toggle', 'submit', ['join', 'val', ['turnsFromTo', true, false, 'hidden']]],
     hideErrors: [Boolean, 'val'],
-    "=errorsDisplayed": ['toggle', ['async', cb => setTimeout(cb, 0), 'validation.error'], ['transist', '-submit', 'hideErrors']],
-    "=errorShown": ['&&', 'canShowErrors', 'errorsDisplayed'],
-    "=disabled": (props.disabled || props.disableWhenValidated ) ? [Boolean, ['||', 
+    "errorsDisplayed": ['toggle', ['async', cb => setTimeout(cb, 0), 'validation.error'], ['transist', '-submit', 'hideErrors']],
+    "errorShown": ['&&', 'canShowErrors', 'errorsDisplayed'],
+    "disabled": (props.disabled || props.disableWhenValidated ) ? [Boolean, ['||', 
       // disable when beingChecked after submit
       '../disabled',
       props.disabled ? [props.disabled, '../val', '../valids'] : skip,
       props.disableWhenValidated ? 'somethingIsChecked' : skip]] : skip,
-    "=hidden": [(currentStep, vals, valids, val, valid) => {
+    "hidden": [(currentStep, vals, valids, val, valid) => {
       if(currentStep) {
         return currentStep != props.order;
       }
@@ -158,7 +159,20 @@ export default withMrr((props) => {
     struct.$init.val = props.defaultValue;
     struct.$init.initVal = props.defaultValue;
   }
-  return struct;  
+  return gridMacros.skipEqual(struct, {
+    focusedWithName: true,
+    valWithName: true,
+    beingCheckedWithName: true,
+    beingChecked: true,
+    somethingIsChecked: true,
+    status: true,
+    currentError: true,
+    canShowErrors: true,
+    errorsDisplayed: true,
+    errorShown: true,
+    disabled: true,
+    hidden: true,
+  });  
 }, (state, props, $) => {
   return <div>Please override me!</div>;
 });

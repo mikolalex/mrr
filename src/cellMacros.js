@@ -60,7 +60,7 @@ const collMacros = ([map]) => {
     }, res, '^'];
 }
 
-const defMacros = {
+const cellMacros = {
     map: ([map]) => {
         var res = ['funnel', (cell, val) => {
             return map[cell] instanceof Function ? map[cell](val) : map[cell];
@@ -325,4 +325,4 @@ const defMacros = {
     }
 }
 
-export default defMacros;
+export default cellMacros;
