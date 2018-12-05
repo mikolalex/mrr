@@ -135,6 +135,7 @@ export default withMrr(props => {
     makeNextStepAfterValidation: ['skipIf', not, 'validSoFar'],
     //reset: ['skipSame', 'currentStep'],
     "orders": [objFlip, ['closure', state, '*/orderWithName']],
+    "successfulSubmit": ['transist', '-val', 'makeNextStep.final'],
   }, {
     allSteps: true,
     mayProceed: true,

@@ -70,11 +70,20 @@ function isChecked(a){
   return false;
 }
 
+function objEach(obj, func = Boolean){
+    const check = func instanceof Function ? func : a => a === func;
+    for(let i in obj){
+        if(!check(obj[i])) return false;
+    }
+    return true;
+}
+
 const Form = withMrr(props => {
     const struct = {
         $meta: {
 
         },
+        $writeToDOM: ['hidden', 'errorShown', 'currentError', 'currentStep', 'controlsDisabled'],
         "val": ['closure', state, ['join', '*/valWithName', 'initVal', 'setVal']],
         "valids": ['closure', state, '*/validWithName'],
         "focusedChildren": ['closure', state, '*/focusedWithName'],
@@ -87,7 +96,9 @@ const Form = withMrr(props => {
           return isChecked(a);
         }, 'checkings', 'status'],
         "controlsDisabled": ['||', 'disabled', props.disableControlsWhenValidated ? 'somethingIsChecked' : skip],
-        "inputsDisabled": ['||', 'disabled', props.disableInputsWhenValidated ? 'somethingIsChecked' : skip],
+        "inputsDisabled": ['||', 'disabled', props.disableInputsWhenValidated ? 'somethingIsChecked' : skip],        
+        "allValid": [objEach, 'valids'],
+        "successfulSubmit": ['transist', '-allValid', [id, '-val', 'submit']],
     };
     return gridMacros.skipEqual(struct, {
       val: 'deepEqual',

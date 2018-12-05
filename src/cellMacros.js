@@ -304,6 +304,17 @@ const cellMacros = {
             }
         }
     }, field],
+    once: ([field]) => ['closure', () => {
+        let already = false;
+        return (val) => {
+            if(!already){
+                already = true;
+                return val;
+            } else {
+                return skip;
+            }
+        }
+    }, field],
     remember: ([cell, time, defVal]) => {
         return ['async.closure', () => {
             let timer;

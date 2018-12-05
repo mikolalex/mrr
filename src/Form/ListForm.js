@@ -43,6 +43,9 @@ export default withMrr(props => gridMacros.skipEqual({
       if(props.defaultValue && props.defaultValue[i] !== undefined){
         childProps.defaultValue = props.defaultValue[i];
       }
+      if(state.val && state.val[i] !== undefined){
+        childProps.defaultValue = state.val[i];
+      }
       return ( <div>
         <Child { ...childProps }/>
       </div>);
