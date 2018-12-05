@@ -66,7 +66,15 @@ let currentChange;
 let ids = 0;
 const type_delimiter = ': ';
 
+const allGrids = {};
+
 const isUndef = a => (a === null || a === undefined);
+
+const runGridMethodIfExists = (method, id, ...params) => {
+  if(allGrids[id]){
+    allGrids[id][method](...params);
+  }
+}
 
 export const shallow_equal = (a, b) => {
     if(a instanceof Object){
@@ -147,6 +155,8 @@ class Mrr {
             root_el_handlers: {},
             alreadyInitedLinkedCells: {},
         };
+        allGrids[this.__mrr.id] = this;
+        
         if(props && props.extractDebugMethodsTo){
             props.extractDebugMethodsTo.getState = () => {
                 return this.mrrState;
@@ -208,6 +218,7 @@ class Mrr {
             const i = this.GG.__mrr.subscribers.indexOf(this);
             delete this.GG.__mrr.subscribers[i];
         }
+        delete allGrids[this.__mrr.id];
     }
     get __mrrMacros(){
         return Object.assign({}, this.macros, global_macros);
@@ -593,56 +604,62 @@ class Mrr {
             }
         }
     }
+    
+    updateAsync(cell, parent_cell, parent_stack, val){
+      if(val === skip) {
+          return;
+      }
+      if(this.__mrr.realComputed.$log && this.__mrr.realComputed.$log.showTree){
+          currentChange = [];
+      }
+      this.__mrrSetState(cell, val, parent_cell, parent_stack, 0);
+      const update = {};
+      update[cell] = val;
+      this.checkMrrCellUpdate(cell, update, parent_stack, val, 0);
+      this.setOuterState(update, null, true);
+      if(this.__mrr.realComputed.$log && this.__mrr.realComputed.$log.showTree){
+          this.logChange();
+      }
+    }
+    
+    updateNested(cell, parent_cell, parent_stack, level, subcell, val){
+      if(subcell instanceof Object){
+          for(let k in subcell){
+              updateNested(k, subcell[k]);
+          }
+          return;
+      }
+      if(this.__mrr.realComputed.$log && this.__mrr.realComputed.$log.showTree){
+          currentChange = [];
+      }
+      const subcellname = cell + '.' + subcell;
+      const stateSetter = this.setOuterState;
+      this.__mrrSetState(subcellname, val, parent_cell, parent_stack, level);
+      const update = {};
+      update[subcellname] = val;
+      this.checkMrrCellUpdate(subcellname, update, parent_stack, val, level);
+      stateSetter.call(this, update, null, true);
+      const nested_update = {
+          [cell]: this.mrrState[cell] instanceof Object ? this.mrrState[cell] : {}
+      }
+      nested_update[cell][subcell] = val;
+      stateSetter.call(this, nested_update, null, true);
+      if(this.__mrr.realComputed.$log && this.__mrr.realComputed.$log.showTree){
+          this.logChange();
+      }
+    }
+    
     __mrrUpdateCell(cell, parent_cell, update, parent_stack, level){
         var val, func, args, updateNested, types = [];
-        const updateFunc = val => {
-            if(val === skip) {
-                return;
-            }
-            if(this.__mrr.realComputed.$log && this.__mrr.realComputed.$log.showTree){
-                currentChange = [];
-            }
-            this.__mrrSetState(cell, val, parent_cell, parent_stack, 0);
-            const update = {};
-            update[cell] = val;
-            this.checkMrrCellUpdate(cell, update, parent_stack, val, 0);
-            this.setOuterState(update, null, true);
-            if(this.__mrr.realComputed.$log && this.__mrr.realComputed.$log.showTree){
-                this.logChange();
-            }
-        }
+        const updateFunc = runGridMethodIfExists.bind(null, 'updateAsync', this.__mrr.id, cell, parent_cell, parent_stack);
+        
         const fexpr = this.__mrr.realComputed[cell];
         if(typeof fexpr[0] === 'string'){
             types = fexpr[0].split('.');
         }
 
         if(types.indexOf('nested') !== -1){
-            updateNested = (subcell, val) => {
-                if(subcell instanceof Object){
-                    for(let k in subcell){
-                        updateNested(k, subcell[k]);
-                    }
-                    return;
-                }
-                if(this.__mrr.realComputed.$log && this.__mrr.realComputed.$log.showTree){
-                    currentChange = [];
-                }
-                const subcellname = cell + '.' + subcell;
-                const stateSetter = this.setOuterState;
-                this.__mrrSetState(subcellname, val, parent_cell, parent_stack, level);
-                const update = {};
-                update[subcellname] = val;
-                this.checkMrrCellUpdate(subcellname, update, parent_stack, val, level);
-                stateSetter.call(this, update, null, true);
-                const nested_update = {
-                    [cell]: this.mrrState[cell] instanceof Object ? this.mrrState[cell] : {}
-                }
-                nested_update[cell][subcell] = val;
-                stateSetter.call(this, nested_update, null, true);
-                if(this.__mrr.realComputed.$log && this.__mrr.realComputed.$log.showTree){
-                    this.logChange();
-                }
-            }
+            updateNested = runGridMethodIfExists.bind(null, 'updateNested', this.__mrr.id, cell, parent_cell, parent_stack, level);
         }
 
         if(fexpr[0] instanceof Function){
