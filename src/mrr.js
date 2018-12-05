@@ -98,9 +98,6 @@ export const shallow_equal = (a, b) => {
 const updateOtherGrid = (grid, as, key, val, level) => {
     const his_cells = grid.__mrr.linksNeeded[as][key];
     for(let cell of his_cells){
-		if(!grid){
-			debugger;
-		}
         grid.setState({[cell]: val}, level);
     }
 }

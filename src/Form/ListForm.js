@@ -1,5 +1,5 @@
 import React from 'react';
-import { withMrr, skip } from './myMrr';
+import { withMrr, skip, gridMacros } from './myMrr';
 import Element, { getValidationFunc } from './Element';
 import Form from './Form';
 
@@ -10,33 +10,31 @@ const arrState = (a, prev) => {
   return state;
 };
 
-export default withMrr(props => ({
-    $init: {
-        length: 1,
-    },
-    length: ['merge', {
-        incr: (_, prev) => prev + 1,
-        decr: (_, prev) => prev - 1 || 1,
-        initVal: vals => vals ? vals.length : skip,
-    }, '^'],
+export default withMrr(props => gridMacros.skipEqual({
+    length: [val => val.length, 'val'],
     '+hideErrors': 'length',
-    "=val": ['closure.funnel', (init) => {
-      let prev = init || [];
-      return (cell, val) => {
-        if(cell === 'initVal'){
-          prev = val;
-        } else {
-          let state = prev.slice();
+    "val": ['merge', {
+        //initVal: a => a,
+        '*/valWithName': (val, prev) => {
+          let state = prev ? prev.slice() : [];
           state[val[1]] = val[0];
-          prev = state;
-
-        }
-        return prev;
-      }
-    }, '*/valWithName', 'initVal'],
-    "=valids": ['skipSame', [arrState, '*/validWithName', '^']],
+          return state;
+        },
+        incr: (_, prev) => {
+            return [...prev, {}];
+        },
+        decr: (_, prev) => {
+            return prev.slice(0, prev.length - 1);
+        },
+        setVal: a => a,
+    }, '-val'],
+    "valids": ['skipSame', [arrState, '*/validWithName', '^']],
     validation: ['nested', getValidationFunc(props), 'val', '../val', 'valids', 'length', 'submit', '$start'],
+}, {
+  val: 'deepEqual',
+  valids: true,
 }), (state, props, $, connectAs) => {
+    if(state.hidden) return null;
     const arr = new Array(state.length).fill(true);
     const Child = props.child || Form;
     return ( <div>
@@ -52,9 +50,9 @@ export default withMrr(props => ({
     { state.errorShown && <div className="error">
       { state.currentError }
     </div> }
-    <div>
+    { !props.fixedLength && <div>
         <button onClick={ $('incr') }>+</button>&nbsp;&nbsp;&nbsp;
         <button onClick={ $('decr') }>-</button>
-    </div>
+    </div> }
     </div> );
 }, Element)

@@ -1,4 +1,4 @@
-import { withMrr, skip } from '../';
+import { withMrr, skip, gridMacros } from '../';
 
 //const withMrr = function(mrrStructure, render = null, parentClass = null, config = {}){
 //    config.filterDuplicateValuesInCells = true;
@@ -7,5 +7,6 @@ import { withMrr, skip } from '../';
 
 export {
     withMrr,
+    gridMacros,
     skip
 }

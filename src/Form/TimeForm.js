@@ -1,5 +1,5 @@
 import React from 'react';
-import { withMrr, skip } from './myMrr';
+import { withMrr, skip, gridMacros } from './myMrr';
 import Form from './Form';
 
 const not = a => !a;
@@ -94,9 +94,9 @@ const getValidationFunc = props => (cb, val, vals, valids, orders, currentStep) 
 };
 
 export default withMrr(props => {
-
+  
   const valPrefix = props.validateOnlyAfterSubmit ? '-' : '';
-  return {
+  return gridMacros.skipEqual({
     $init: {
       currentStep: 1,
     },
@@ -109,11 +109,11 @@ export default withMrr(props => {
       'next': (orders, currentStep) => orders[currentStep + 1],
       'final': (orders, currentStep) => !orders[currentStep + 1],
     }, '-orders', '-currentStep', 'makeNextStepAfterValidation'],
-    "=allSteps": [a => a.size, ['closure', set, '*/orderWithName']],
+    "allSteps": [a => a.size, ['closure', set, '*/orderWithName']],
     validation: ['nested', 
       getValidationFunc(props), 
       valPrefix + 'val', ['skipSame', valPrefix + '../val'], '-valids', 'makeNextStep.final'],
-    "=mayProceed": ['toggle', 'nextStep', 'val'],
+    "mayProceed": ['toggle', 'nextStep', 'val'],
     validSoFar: ['join', ['closure', () => {
         const state = {};
         return (valids, orders, currentStep, mayProceed) => {
@@ -126,16 +126,19 @@ export default withMrr(props => {
       }, 'valids', '-orders', '-currentStep', '-mayProceed'], 
       [(valids, orders, currentStep) => {
         if(!orders) return skip;
-        if(!valids) return skip;
         const key = orders[currentStep];
-        return (valids[key] === true) || (valids[key] === undefined);
+        return !valids || (valids[key] === true) || (valids[key] === undefined);
       }, 
       '-valids', '-orders', '-currentStep', 'nextStep'],
     ],
     submit: ['merge', '../submit', 'nextStep'],
     makeNextStepAfterValidation: ['skipIf', not, 'validSoFar'],
     //reset: ['skipSame', 'currentStep'],
-    "=orders": [objFlip, ['closure', state, '*/orderWithName']],
-  }
+    "orders": [objFlip, ['closure', state, '*/orderWithName']],
+  }, {
+    allSteps: true,
+    mayProceed: true,
+    orders: true,
+  });
 
 }, null, Form);

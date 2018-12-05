@@ -68,7 +68,11 @@ const gridMacros = {
   skipEqual: (grid, config) => {
     const res = {};
     for(let cell in config){
-      res['*' + cell] = ['skipSame', overwritePlaceholder]
+      if(config[cell] === true){
+        res['*' + cell] = ['skipSame', overwritePlaceholder];
+      } else {
+        res['*' + cell] = ['skipSame', config[cell], overwritePlaceholder];
+      }
     }
     return gridMacros.merge(res, grid);
   },

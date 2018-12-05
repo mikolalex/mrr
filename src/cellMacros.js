@@ -244,7 +244,23 @@ const cellMacros = {
         }, ...cells];
     },
     trigger: ([field, val]) => [a => a === val ? true : skip, field],
-    skipSame: ([field]) => [(z, x) => shallow_equal(z, x) ? skip : z, field, '^'],
+    skipSame: ([eq_type, field]) => {
+        if(!field){
+          return [(z, x) => shallow_equal(z, x) ? skip : z, eq_type, '^'];
+        }
+        let func;
+        if(eq_type instanceof Function){
+          func = eq_type;
+        } else {
+          if(eq_type === 'deepEqual'){
+            func = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+          } else {
+            throw new Exception('Unknown comparison type: ' + eq_type + ' in "skipSame" macros!');
+          }
+        }
+        return [(z, x) => func(z, x) ? skip : z, field, '^'];
+               
+    },
     skipIf: ([func, ...fields]) => {
       if(!fields.length) {
         fields = [func];
