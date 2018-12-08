@@ -5,7 +5,7 @@ import { describe, it } from 'mocha';
 //import parallel from 'mocha.parallel';
 import Adapter from 'enzyme-adapter-react-16';
 
-import { withMrr, skip } from '../src';
+import { withMrr, skip, Grid } from '../src';
 
 import a from './setup';
 
@@ -39,6 +39,36 @@ const wait = ms => resolve => {
 const wwait = ms => () => {
   return new Promise(wait(ms));
 };
+
+const incr = new Function('a', 'return a + 1');
+incr.toString = function(){ return '[INCREMENT]'; };
+
+describe('Grid inheritance', () => {
+  it('Should proper inherit grids', () => {
+    const a = new Grid({
+        $init: {
+           b: 10,
+        },
+        a: [incr, 'b'],
+    })
+
+    const b = a.extend(props => ({
+        c: [incr, props.c_parent || 'z']
+    }))
+
+    const struct1 = a.get({})
+    const struct2 = b.get({
+        c_parent: 'a'
+    });
+    const struct3 = b.get({});
+
+    //console.log('_____________________ struct 2', struct2.c[1]);
+
+    assert.equal(struct1.c, undefined);
+    assert.equal(struct2.c[1], 'a');
+    assert.equal(struct3.c[1], 'z');
+  });   
+});
 
 describe('Form validation', () => {
   const wrapper = mount(<LoginForm />);

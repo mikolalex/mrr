@@ -25,6 +25,9 @@ import CascadeForm from './testComponents/CascadeForm';
 import UndescribedCellError from './testComponents/UndescribedCellError';
 import WrongStreamError from './testComponents/WrongStreamError';
 
+import Mrr, { Grid } from '../src/mrr';
+import GridMacros from '../src/gridMacros';
+
 import { mrrMount, timeline } from './utils';
 
 configure({ adapter: new Adapter() });
@@ -38,9 +41,38 @@ const wwait = ms => () => {
 
 
 
+const incr = a => a + 1;
+
+parallel('Grid macros', () => {
+  it('Test "skipEqual" macro', () => {
+      let c_counter = 0;
+      let d_counter = 0;
+      
+      const struct = GridMacros.skipEqual({
+          $init: {
+            b: 0,
+          },
+          a: [incr, 'b'],
+          c: [incr, 'a'],
+          d: [incr, 'a'],
+          c1: [() => ++c_counter, 'c'],
+          d1: [() => ++d_counter, 'd'],
+      }, {
+          c: true,
+      })
+      const grid = new Mrr(struct);
+      grid.toState('b')(1);
+      grid.toState('b')(1);
+      grid.toState('b')(1);
+      
+      assert.equal(c_counter, 1);
+      assert.equal(d_counter, 3);
+  });
+});
 
 
-parallel('Macros', () => {
+
+parallel('Cell macros', () => {
   it('Test "remember" macro', (done) => {
     const comp = mrrMount(Buffer);
     timeline([

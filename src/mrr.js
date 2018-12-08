@@ -1,3 +1,6 @@
+import GridMacros from './gridMacros';
+import CellMacros from './CellMacros';
+
 export const skip = new function MrrSkip(){};
 
 const cell_types = ['funnel', 'closure', 'nested', 'async'];
@@ -131,7 +134,7 @@ const isPromise = a => a instanceof Object && a.toString && a.toString().indexOf
 
 
 class Mrr {
-    constructor(mrrStructure, props, setOuterState, macros, dataTypes, GG = false) {
+    constructor(mrrStructure, props = {}, setOuterState = () => {}, macros = CellMacros, dataTypes = {}, GG = false) {
         this.macros = macros;
         this.GG = (GG && (GG !== true)) ? GG : null;
         this.dataTypes = dataTypes;
@@ -226,6 +229,11 @@ class Mrr {
     get __mrrPath(){
         return this.__mrrParent ? this.__mrrParent.__mrrPath + '/' + this.$name : (this.isGG ? 'GG' : 'root');
     }
+    
+    get innerState(){
+        return Object.assign({}, this.mrrState);
+    }
+    
     setCellDataType(cell, type){
         if(!this.dataTypes[type]){
             throw new Error('Undeclared type: ' + type);
@@ -872,5 +880,27 @@ class Mrr {
       }
     }
 }
+
+const Grid = function Grid(struct){
+	this.struct = struct instanceof Array ? struct : [struct];
+}
+Grid.prototype.extend = function(child){
+	return new Grid([...this.struct, child]);
+}
+
+Grid.prototype.get = function(props = {}){
+	let res;
+    for(let i in this.struct){
+        const struct = this.struct[i] instanceof Function ? this.struct[i](props) : this.struct[i];
+        if(i == 0) {
+            res = struct;
+        } else {
+            res = GridMacros.merge(struct, res);
+        }
+    }
+    return res;
+}
+
+export { Grid };
 
 export default Mrr;
