@@ -5,7 +5,7 @@ import { describe, it } from 'mocha';
 //import parallel from 'mocha.parallel';
 import Adapter from 'enzyme-adapter-react-16';
 
-import { withMrr, skip, Grid } from '../src';
+import { withMrr, skip, Grid, Mrr } from '../src';
 
 import a from './setup';
 
@@ -164,6 +164,30 @@ describe('Testing readFromDOM', () => {
         const a = mount(<WrongStreamError />); 
     }).to.throw(Error);
   });
+});
+
+
+describe('Testing system cells', () => {
+  it('Should throw an exception when trying to assign system cell', () => {
+    //const component = mount(<UndescribedCellError />);
+    expect(() => { 
+      const mrr1 = new Mrr({
+        a: [incr, 'b'],
+        $state: [incr, 'a'],
+      });
+    }).to.throw(Error);
+  });
+  
+  it('Should return grid state', () => {
+      const grid = new Mrr({
+        a: [incr, 'b'],
+        c: [(d, state) => state.a + 1, 'd', '$state'],
+      });
+      grid.toState('b')(1);
+      grid.toState('d')(1);
+      
+      assert.strictEqual(grid.innerState.c, 3);
+  })
 });
 
 

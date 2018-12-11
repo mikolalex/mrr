@@ -132,6 +132,8 @@ const objMap = (obj, func) => {
 
 const isPromise = a => a instanceof Object && a.toString && a.toString().indexOf('Promise') !== -1;
 
+const systemCells = ['$state', '$props', '$name'];
+
 
 class Mrr {
     constructor(mrrStructure, props = {}, setOuterState = () => {}, macros = CellMacros, dataTypes = {}, GG = false) {
@@ -380,6 +382,9 @@ class Mrr {
             if(key === '$log') continue;
             if(fexpr === skip) continue;
             if(key === '$meta') continue;
+            if(systemCells.indexOf(key) !== -1){
+              throw new Error('Cannot redefine system cell: ' + key);
+            }
             if(key === '$init'){
                 if(mrr.$log && mrr.$log.showTree){
                     currentChange = [];
@@ -593,6 +598,16 @@ class Mrr {
                 }
                 if(arg_cell === '$props'){
                   return this.reactWrapper ? this.reactWrapper.props : undefined;
+                }
+                if(arg_cell === '$state'){
+                  return Object.assign({}, this.mrrState);
+                }
+                if(arg_cell === '^/$state'){
+                  if(this.GG){
+                    return Object.assign({}, this.GG.mrrState);
+                  } else {
+                    return;
+                  }
                 }
                 return ((this.mrrState[arg_cell] === undefined) && this.state && this.__mrr.constructing)
                     ? this.initialState[arg_cell]

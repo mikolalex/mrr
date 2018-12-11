@@ -15,6 +15,7 @@ import Split from './testComponents/Split';
 import SkipN from './testComponents/SkipN';
 import Init from './testComponents/Init';
 import TestGG, { GG } from './testComponents/TestGG';
+import TestGG_2 from './testComponents/TestGG_2';
 import Coll from './testComponents/Coll';
 
 import { CardForm } from './testComponents/CardForm';
@@ -42,5 +43,14 @@ parallel('Testing global grid', () => {
     assert.strictEqual(GG.mrrState['a'], 20);
     assert.strictEqual(GG.mrrState['*/baz'], undefined);
     assert.strictEqual(GG.mrrState['b'], undefined);
+  });
+  
+  it('Should return GG state', (done) => {
+    let d;
+    const component = mount(<TestGG_2 setVal={val => d = val}/>);
+    setTimeout(() => {
+      assert.strictEqual(d, 20);
+      done();
+    }, 20);
   });
 });
