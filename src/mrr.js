@@ -1,5 +1,5 @@
 import GridMacros from './gridMacros';
-import CellMacros from './CellMacros';
+import CellMacros from './cellMacros';
 
 export const skip = new function MrrSkip(){};
 

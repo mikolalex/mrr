@@ -12,6 +12,47 @@ const matches = (obj, subset) => {
     return true;
 }
 
+const applyDelta = (delta, prev) => {
+  const [type, changes] = delta;
+  let next = [...prev];
+  switch(type){
+    case 'update':
+        const [newProps, predicate] = changes;
+        if(!(predicate instanceof Object)){
+            // it's index
+            prev.map((item, i) => [i, item])
+            .filter(pair => Number(pair[0]) === Number(predicate))
+            .forEach(i => {
+                next[i[0]] = Object.assign({}, next[i[0]], newProps);
+            });
+        } else {
+            prev.map((item, i) => [i, item])
+            .filter(pair => matches(pair[1], predicate))
+            .forEach(i => {
+                next[i[0]] = Object.assign({}, next[i[0]], newProps);
+            });
+        }
+    break;
+    case 'delete':
+        next = next.filter((item, i) => {
+            if(changes instanceof Object){
+                return !matches(item, changes)
+            } else {
+                return Number(i) !== changes;
+            }
+        });
+    break;
+    case 'create':
+        if(changes instanceof Array){
+            changes.forEach(item => next.push(item))
+        } else {
+            next.push(changes);
+        }
+    break;
+  }
+  return next;  
+}
+
 const collMacros = ([map]) => {
     const res = ['funnel', (cell, val) => val];
     for(let type in map){
@@ -20,44 +61,18 @@ const collMacros = ([map]) => {
         }
     }
     return [([type, changes], prev) => {
-        let next = [...prev];
-        switch(type){
-            case 'update':
-                const [newProps, predicate] = changes;
-                if(!(predicate instanceof Object)){
-                    // it's index
-                    prev.map((item, i) => [i, item])
-                    .filter(pair => Number(pair[0]) === Number(predicate))
-                    .forEach(i => {
-                        next[i[0]] = Object.assign({}, next[i[0]], newProps);
-                    });
-                } else {
-                    prev.map((item, i) => [i, item])
-                    .filter(pair => matches(pair[1], predicate))
-                    .forEach(i => {
-                        next[i[0]] = Object.assign({}, next[i[0]], newProps);
-                    });
-                }
-            break;
-            case 'delete':
-                next = next.filter((item, i) => {
-                    if(changes instanceof Object){
-                        return !matches(item, changes)
-                    } else {
-                        return Number(i) !== changes;
-                    }
-                });
-            break;
-            case 'create':
-                if(changes instanceof Array){
-                    changes.forEach(item => next.push(item))
-                } else {
-                    next.push(changes);
-                }
-            break;
-        }
-        return next;
+        return applyDelta([type, changes], prev);
     }, res, '^'];
+}
+
+const deltasMacros = ([map]) => {
+    const res = ['funnel', (cell, val) => val];
+    for(let type in map){
+        if(type !== 'custom'){
+            res.push([(...args) => [type, ...args], map[type]]);
+        }
+    }
+    return res;
 }
 
 const cellMacros = {
@@ -70,6 +85,22 @@ const cellMacros = {
         }
         return res;
     },
+    deltasToArr: ([cell]) => {
+      return [applyDelta, cell, '^'];
+    },
+    arrToDeltas: ([cell, idField]) => {
+      //idField = idField ||
+      return ['closure.async', () => { 
+          let prev = [];
+          return (cb, arr) => {
+            if(!prev.length){
+              arr.forEach(item => cb(['create', item]));
+            }
+            prev = arr;
+          }          
+      }, cell];
+    },
+    deltas: deltasMacros,
     coll: collMacros,
     list: collMacros,
     passOnceIf: ([func, cell]) => {
