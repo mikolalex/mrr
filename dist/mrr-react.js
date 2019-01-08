@@ -13,13 +13,15 @@ var _react = require('react');
 
 var _react2 = _interopRequireDefault(_react);
 
-var _defMacros = require('./defMacros');
+var _cellMacros = require('./cellMacros');
 
-var _defMacros2 = _interopRequireDefault(_defMacros);
+var _cellMacros2 = _interopRequireDefault(_cellMacros);
 
 var _mrr = require('./mrr');
 
 var _mrr2 = _interopRequireDefault(_mrr);
+
+var _gridMacros = require('./gridMacros');
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -30,42 +32,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
 
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
-
-var joinAsObject = function joinAsObject(target_struct, parent, child, key) {
-    if (parent && child && parent[key] && child[key]) {
-        target_struct[key] = Object.assign({}, parent[key], child[key]);
-    }
-};
-var joinAsArray = function joinAsArray(target_struct, parent, child, key) {
-    if (parent && child && parent[key] && child[key]) {
-        target_struct[key] = [].concat(_toConsumableArray(parent[key]), _toConsumableArray(child[key]));
-    }
-};
-
-var mrrJoin = function mrrJoin() {
-    var child_struct = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-    var parent_struct = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-    var struct = Object.assign({}, parent_struct, child_struct);
-    joinAsObject(struct, parent_struct, child_struct, '$init');
-    joinAsArray(struct, parent_struct, child_struct, '$readFromDOM');
-    joinAsArray(struct, parent_struct, child_struct, '$writeToDOM');
-    joinAsArray(struct, parent_struct, child_struct, '$expose');
-    for (var k in struct) {
-        if (k[0] === '+') {
-            var real_k = k.substr(1);
-            if (!struct[real_k]) {
-                struct[real_k] = struct[k];
-            } else {
-                struct[real_k] = ['join', struct[k], struct[real_k]];
-            }
-            delete struct[k];
-        }
-    }
-    return struct;
-};
 
 var isOfType = exports.isOfType = function isOfType(val, type, dataTypes) {
     return dataTypes[type] ? dataTypes[type](val) : false;
@@ -136,16 +102,22 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
         var cls = function (_parent) {
             _inherits(Mrr, _parent);
 
-            function Mrr(props, already_inited) {
+            function Mrr(props) {
+                var already_inited = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+
                 _classCallCheck(this, Mrr);
 
-                var _this = _possibleConstructorReturn(this, (Mrr.__proto__ || Object.getPrototypeOf(Mrr)).call(this, props, true));
+                var _this = _possibleConstructorReturn(this, (Mrr.__proto__ || Object.getPrototypeOf(Mrr)).call(this, props, 'AI'));
 
-                _this.mrr = new _mrr2.default(_this.getMrrStruct(), props, function (a) {
-                    return _this.setState(a);
-                }, macros, dataTypes, GG);
-                _this.mrr.reactWrapper = _this;
-                _this.state = _this.mrr.initialState;
+                _this.props = props;
+                if (already_inited !== 'AI') {
+                    var struct = _this.getMrrStruct();
+                    _this.mrr = new _mrr2.default(struct, props, function (a) {
+                        return _this.setState(a);
+                    }, macros, dataTypes, GG);
+                    _this.mrr.reactWrapper = _this;
+                    _this.state = _this.mrr.initialState;
+                }
                 return _this;
             }
 
@@ -163,7 +135,7 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                 key: '__mrrGetComputed',
                 value: function __mrrGetComputed() {
                     var parent_struct = parent.prototype.__mrrGetComputed ? parent.prototype.__mrrGetComputed.apply(this) : {};
-                    return mrrJoin(mrrStructure instanceof Function ? mrrStructure(this.props || {}) : mrrStructure, parent_struct);
+                    return (0, _gridMacros.merge)(mrrStructure instanceof Function ? mrrStructure(this.props || {}) : mrrStructure, parent_struct);
                 }
             }, {
                 key: 'getMrrStruct',
@@ -171,7 +143,7 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                     if (!this.props) {
                         return this.__mrrGetComputed();
                     }
-                    return mrrJoin(this.props.__mrr, this.__mrrGetComputed());
+                    return (0, _gridMacros.merge)(this.props.__mrr, this.__mrrGetComputed());
                 }
             }, {
                 key: 'render',
@@ -240,7 +212,7 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
     };
 };
 
-var withMrr = exports.withMrr = getWithMrr(null, _defMacros2.default, defDataTypes);
+var withMrr = exports.withMrr = getWithMrr(null, _cellMacros2.default, defDataTypes);
 
 var def = withMrr({}, null, _react2.default.Component);
 def.skip = _mrr.skip;
@@ -255,7 +227,7 @@ var initGlobalGrid = function initGlobalGrid(struct, availableMacros, availableD
 };
 
 var createMrrApp = exports.createMrrApp = function createMrrApp(conf) {
-    var availableMacros = Object.assign({}, _defMacros2.default, conf.macros || {});
+    var availableMacros = Object.assign({}, _cellMacros2.default, conf.macros || {});
     var availableDataTypes = Object.assign({}, defDataTypes, conf.dataTypes || {});
     var GG = conf.globalGrid ? initGlobalGrid(conf.globalGrid, availableMacros, availableDataTypes) : null;
     var withMrr = getWithMrr(GG, availableMacros, availableDataTypes);

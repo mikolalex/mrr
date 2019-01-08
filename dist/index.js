@@ -3,7 +3,7 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.isOfType = exports.withMrr = exports.skip = exports.createMrrApp = exports.Mrr = undefined;
+exports.isOfType = exports.withMrr = exports.skip = exports.createMrrApp = exports.Grid = exports.gridMacros = exports.Mrr = undefined;
 
 var _mrrReact = require('./mrr-react');
 
@@ -38,7 +38,13 @@ var _mrr = require('./mrr');
 
 var _mrr2 = _interopRequireDefault(_mrr);
 
+var _gridMacros = require('./gridMacros');
+
+var _gridMacros2 = _interopRequireDefault(_gridMacros);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 exports.default = _mrrReact2.default;
 exports.Mrr = _mrr2.default;
+exports.gridMacros = _gridMacros2.default;
+exports.Grid = _mrr.Grid;

@@ -132,8 +132,27 @@ const objMap = (obj, func) => {
 
 const isPromise = a => a instanceof Object && a.toString && a.toString().indexOf('Promise') !== -1;
 
-const systemCells = ['$state', '$props', '$name'];
+const systemCells = ['$state', '^/$state', '$props', '$name', '$async', '$nested', '$changedCellName'];
 
+
+const recur = (obj, key, func) => {
+    func(obj);
+    var val = obj;
+    if(key instanceof Array){
+        for(let field of key){
+            val = val[field];
+            if(!val) break;
+        }
+        
+    } else {
+        val = val[key];
+    }
+    if(val){
+        for(let k in val){
+            recur(val[k], key, func);
+        }
+    }
+}
 
 class Mrr {
     constructor(mrrStructure, props = {}, setOuterState = () => {}, macros = CellMacros, dataTypes = {}, GG = false) {
@@ -581,7 +600,7 @@ class Mrr {
             return func;
         }
     }
-    __getCellArgs(cell){
+    __getCellArgs(cell, parent_cell, parent_stack, level){
         const arg_cells = this.__mrr.realComputed[cell]
             .slice(this.__mrr.realComputed[cell][0] instanceof Function ? 1 : 2)
             .filter(a => a !== skip);
@@ -598,6 +617,18 @@ class Mrr {
                 }
                 if(arg_cell === '$props'){
                   return this.reactWrapper ? this.reactWrapper.props : undefined;
+                }
+                if(arg_cell === '$async'){
+                  return runGridMethodIfExists.bind(null, 'updateAsync', this.__mrr.id, cell, parent_cell, parent_stack);
+                }
+                if(arg_cell === '$nested'){
+                  return runGridMethodIfExists.bind(null, 'updateNested', this.__mrr.id, cell, parent_cell, parent_stack, level);
+                }
+                if(arg_cell === '$changedCellName'){
+                  return parent_cell;
+                }
+                if(arg_cell === '$changedCellName'){
+                  return parent_cell;
                 }
                 if(arg_cell === '$state'){
                   return Object.assign({}, this.mrrState);
@@ -627,6 +658,67 @@ class Mrr {
             }
         }
     }
+    
+    getGraph(){
+        let c = 0;
+        const cells = {
+            
+        };
+        const edges = [];
+        const setCell = (cell, gridId) => {
+            if(!cells[gridId]){
+                cells[gridId] = {};
+            }
+            if(!cells[gridId][cell]){
+                cells[gridId][cell] = ++c;
+                return c;
+            } else {
+                return cells[gridId][cell];
+            }
+        };
+        const nodes = [];
+        const getId = (gridId, cell) => {
+            return cells[gridId][cell];
+        };
+        const addLink = (fromCell, fromGrid, toCell, toGrid) => {
+            const from = setCell(fromCell, fromGrid);
+            const to = setCell(toCell, toGrid);
+            edges.push({
+                from,
+                to,
+                arrows: 'to',
+            })
+        };
+        recur(this, ['__mrr', 'children'], (child) => {
+            for(let cn in child.mrrDepMap){
+                for(let depC of child.mrrDepMap[cn]){
+                    addLink(cn, child.__mrr.id, depC, child.__mrr.id);
+                }
+            }
+            for(let type in child.__mrr.linksNeeded){
+              for(let masterCell in child.__mrr.linksNeeded[type]){
+                for(let childCell of child.__mrr.linksNeeded[type][masterCell]){
+                  if(type === '*'){
+                    for(let ch in child.__mrr.children){
+                      let childId = child.__mrr.children[ch].__mrr.id;
+                      addLink(masterCell, childId, depC, child.__mrr.id);
+                    }
+                  }
+                }
+              }
+            }
+        });
+        for(let gridId in cells){
+            for(let cellname in cells[gridId]){
+                nodes.push({
+                    id: cells[gridId][cellname],
+                    label: gridId + '/' + cellname,
+                })
+            }
+        }
+        return [nodes, edges];
+    }
+    
     
     updateAsync(cell, parent_cell, parent_stack, val){
       if(val === skip) {
@@ -673,8 +765,7 @@ class Mrr {
     }
     
     __mrrUpdateCell(cell, parent_cell, update, parent_stack, level){
-        var val, func, args, updateNested, types = [];
-        const updateFunc = runGridMethodIfExists.bind(null, 'updateAsync', this.__mrr.id, cell, parent_cell, parent_stack);
+        var val, func, args, updateNested, updateFunc, types = [];
         
         const fexpr = this.__mrr.realComputed[cell];
         if(typeof fexpr[0] === 'string'){
@@ -687,7 +778,7 @@ class Mrr {
 
         if(fexpr[0] instanceof Function){
             func = this.__mrr.realComputed[cell][0];
-            args = this.__getCellArgs(cell);
+            args = this.__getCellArgs(cell, parent_cell, parent_stack, level);
             try {
                 val = func.apply(null, args);
             } catch (e) {
@@ -698,12 +789,13 @@ class Mrr {
             if(types.indexOf('funnel') !== -1){
                 args = [parent_cell, this.mrrState[parent_cell], this.mrrState[cell]];
             } else {
-                args = this.__getCellArgs(cell);
+                args = this.__getCellArgs(cell, parent_cell, parent_stack, level);
             }
             if(types.indexOf('nested') !== -1){
                 args.unshift(updateNested)
             }
             if(types.indexOf('async') !== -1){
+                updateFunc = updateFunc = runGridMethodIfExists.bind(null, 'updateAsync', this.__mrr.id, cell, parent_cell, parent_stack);
                 args.unshift(updateFunc)
             }
             if(types.indexOf('closure') !== -1){
@@ -751,6 +843,9 @@ class Mrr {
             return;
         }
         if(isPromise(val)){
+            if(!updateFunc){
+                updateFunc = runGridMethodIfExists.bind(null, 'updateAsync', this.__mrr.id, cell, parent_cell, parent_stack);
+            }
             val.then(updateFunc)
         } else {
             if(val === skip) {

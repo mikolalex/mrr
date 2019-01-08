@@ -122,28 +122,32 @@ exports.default = (0, _myMrr.withMrr)(function (props) {
         }
       }
     }, '-../val', '$name', '$start'],
-    'val': 'initVal',
+    'setVal': [function (name, parent) {
+      if (parent && parent[name] !== undefined) {
+        return props.disassemble ? props.disassemble(parent[name]) : parent[name];
+      } else {
+        return _myMrr.skip;
+      }
+    }, '$name', '../setVal'],
+    'val': ['merge', 'initVal', 'setVal'],
     'clear': '../clear',
-    '=focusedWithName': [function (val, name) {
+    'focusedWithName': [function (val, name) {
       return [val, name];
     }, 'focused', '$name'],
-    '=valWithName': [function (val, name) {
+    'valWithName': [function (val, name) {
       return [props.assemble ? props.assemble(val) : val, name];
     }, 'val', '$name'],
-    '=beingCheckedWithName': [function (beingChecked, name) {
+    'beingCheckedWithName': [function (beingChecked, name) {
       return [beingChecked, name];
     }, 'beingChecked', '$name'],
-    '=beingChecked': [function (status) {
+    'beingChecked': [function (status) {
       return status === 'checking';
     }, 'status'],
-    '=somethingIsChecked': ['||', '../somethingIsChecked', 'beingChecked'],
+    'somethingIsChecked': ['||', '../somethingIsChecked', 'beingChecked'],
     //'validWithName': [(status, name) => [status === 'valid', name]
     'validWithName': [function (status, name) {
       if (status === 'checking') {
         return ['checking', name];
-      }
-      if (status === 'unknown') {
-        return ['unknown', name];
       }
       if (status === 'valid') {
         return [true, name];
@@ -152,7 +156,7 @@ exports.default = (0, _myMrr.withMrr)(function (props) {
         return [false, name];
       }
       return _myMrr.skip;
-    }, 'status', '$name', '$start'],
+    }, 'status', '$name'],
     'orderWithName': [function (props, name) {
       return [props.order, name];
     }, '-$props', '$name', '$start'],
@@ -168,29 +172,27 @@ exports.default = (0, _myMrr.withMrr)(function (props) {
     "submit": ['skipIf', function (a) {
       return a;
     }, '-hidden', '../submit'],
-    "=status": ['merge', {
+    "status": ['merge', {
       'validation.checking': function validationChecking(a) {
         return a ? 'checking' : _myMrr.skip;
       },
       'validation.error': 'invalid',
       'validation.success': 'valid'
     }],
-    "=currentError": ['merge', {
+    "currentError": ['merge', {
       'validation.error': id,
       'validation.success': '',
       'validation.clearErrors': ''
       //'val': '',
     }],
-    "=canShowErrors": ['toggle', 'submit', ['join', 'val', ['turnsFromTo', true, false, 'hidden']]],
+    "canShowErrors": ['toggle', 'submit', ['join', 'val', ['turnsFromTo', true, false, 'hidden']]],
     hideErrors: [Boolean, 'val'],
-    "=errorsDisplayed": ['toggle', ['async', function (cb) {
-      return setTimeout(cb, 0);
-    }, 'validation.error'], ['transist', '-submit', 'hideErrors']],
-    "=errorShown": ['&&', 'canShowErrors', 'errorsDisplayed'],
-    "=disabled": props.disabled || props.disableWhenValidated ? [Boolean, ['||',
+    "errorsDisplayed": ['toggle', ['async', setImmediate, 'validation.error'], ['transist', '-submit', 'hideErrors']],
+    "errorShown": ['&&', 'canShowErrors', 'errorsDisplayed'],
+    "disabled": props.disabled || props.disableWhenValidated ? [Boolean, ['||',
     // disable when beingChecked after submit
     '../disabled', props.disabled ? [props.disabled, '../val', '../valids'] : _myMrr.skip, props.disableWhenValidated ? 'somethingIsChecked' : _myMrr.skip]] : _myMrr.skip,
-    "=hidden": [function (currentStep, vals, valids, val, valid) {
+    "hidden": [function (currentStep, vals, valids, val, valid) {
       if (currentStep) {
         return currentStep != props.order;
       }
@@ -201,7 +203,20 @@ exports.default = (0, _myMrr.withMrr)(function (props) {
     struct.$init.val = props.defaultValue;
     struct.$init.initVal = props.defaultValue;
   }
-  return struct;
+  return _myMrr.gridMacros.skipEqual(struct, {
+    focusedWithName: true,
+    valWithName: true,
+    beingCheckedWithName: true,
+    beingChecked: true,
+    somethingIsChecked: true,
+    status: true,
+    currentError: true,
+    canShowErrors: true,
+    errorsDisplayed: true,
+    errorShown: true,
+    disabled: true,
+    hidden: true
+  });
 }, function (state, props, $) {
   return _react2.default.createElement(
     'div',

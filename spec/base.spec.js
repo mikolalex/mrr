@@ -225,6 +225,72 @@ describe('Testing special error cells', () => {
   });
 });
 
+describe('Testing special cells', () => {
+  it('Should provide cb ', () => {
+    const comp = mrrMount(withMrr(
+        {
+            $init: {
+              a: 10,
+            },
+            b: [(cb, a) => {
+              cb(a + 1);
+            }, '$async', 'a', '$start'],
+        }, 
+        (state, props, $) => null
+    ));
+    timeline([
+        [0, () => {
+            assert.equal(comp.get('b'), 11);
+            comp.set('a', 20);
+            assert.equal(comp.get('b'), 11);
+        }],
+        [1, () => {
+            assert.equal(comp.get('b'), 21);
+        }],
+    ])
+  }); 
+  it('Should provide nested cb ', () => {
+    const comp = mrrMount(withMrr(
+        {
+            $init: {
+              a: 10,
+            },
+            b: [(cb, a) => {
+              cb('foo', a + 1);
+            }, '$nested', 'a', '$start'],
+        }, 
+        (state, props, $) => null
+    ));
+    timeline([
+        [0, () => {
+            assert.equal(comp.get('b.foo'), 11);
+            comp.set('a', 20);
+            assert.equal(comp.get('b.foo'), 11);
+        }],
+        [1, () => {
+            assert.equal(comp.get('b.foo'), 21);
+        }],
+    ])
+  });
+  it('Should provide cellname', () => {
+    const comp = mrrMount(withMrr(
+        {
+            $init: {
+              c: 0,
+            },
+            c: [(cellname, a, b, prev) => {
+              return cellname === 'a' ? prev + a : prev - b;
+            }, '$changedCellName', 'a', 'b', '-c'],
+        }, 
+        (state, props, $) => null
+    ));
+    comp.set('a', 10);
+    assert.equal(comp.get('c'), 10);
+    comp.set('b', 2);
+    assert.equal(comp.get('c'), 8);
+  });  
+})
+
 
 describe('Testing $props cell', () => {
   it('Should return proper props', (done) => {

@@ -117,24 +117,32 @@ var Form = (0, _myMrr.withMrr)(function (props) {
   var struct = {
     $meta: {},
     $writeToDOM: ['hidden', 'errorShown', 'currentError', 'currentStep', 'controlsDisabled'],
-    "=val": ['closure', state, ['join', '*/valWithName', 'initVal']],
-    "=valids": ['closure', state, '*/validWithName'],
-    "=focusedChildren": ['closure', state, '*/focusedWithName'],
-    "=focused": [findFirst, 'focusedChildren'],
-    "=checkings": ['closure', state, '*/beingCheckedWithName'],
-    "=beingChecked": [function (a, status) {
-      //console.log('BC', a, status);
+    "val": ['closure', state, ['join', '*/valWithName', 'initVal', 'setVal']],
+    "valids": ['closure', state, '*/validWithName'],
+    "focusedChildren": ['closure', state, '*/focusedWithName'],
+    "focused": [findFirst, 'focusedChildren'],
+    "checkings": ['closure', state, '*/beingCheckedWithName'],
+    "beingChecked": [function (a, status) {
       if (status === 'checking') {
         return true;
       }
       return isChecked(a);
     }, 'checkings', 'status'],
-    "=controlsDisabled": ['||', 'disabled', props.disableControlsWhenValidated ? 'somethingIsChecked' : _myMrr.skip],
-    "=inputsDisabled": ['||', 'disabled', props.disableInputsWhenValidated ? 'somethingIsChecked' : _myMrr.skip],
+    "controlsDisabled": ['||', 'disabled', props.disableControlsWhenValidated ? 'somethingIsChecked' : _myMrr.skip],
+    "inputsDisabled": ['||', 'disabled', props.disableInputsWhenValidated ? 'somethingIsChecked' : _myMrr.skip],
     "allValid": [objEach, 'valids'],
     "successfulSubmit": ['transist', '-allValid', [id, '-val', 'submit']]
   };
-  return struct;
+  return _myMrr.gridMacros.skipEqual(struct, {
+    val: 'deepEqual',
+    valids: true,
+    focusedChildren: true,
+    focused: true,
+    checkings: true,
+    beingChecked: true,
+    controlsDisabled: true,
+    inputsDisabled: true
+  });
 }, function (state, props, $, connectAs) {
   if (state.hidden) return null;
   if (!props.fields) {
@@ -162,7 +170,7 @@ var Form = (0, _myMrr.withMrr)(function (props) {
       { className: 'form-errors' },
       state.currentError
     ),
-    state.currentStep && _react2.default.createElement(
+    state.currentStep && !props.hideStepsButtons && _react2.default.createElement(
       'div',
       { className: 'form-controls' },
       _react2.default.createElement(

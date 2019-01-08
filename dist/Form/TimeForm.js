@@ -103,7 +103,7 @@ var getValidationFunc = function getValidationFunc(props) {
 exports.default = (0, _myMrr.withMrr)(function (props) {
 
   var valPrefix = props.validateOnlyAfterSubmit ? '-' : '';
-  return {
+  return _myMrr.gridMacros.skipEqual({
     $init: {
       currentStep: 1
     },
@@ -124,11 +124,11 @@ exports.default = (0, _myMrr.withMrr)(function (props) {
         return !orders[currentStep + 1];
       }
     }, '-orders', '-currentStep', 'makeNextStepAfterValidation'],
-    "=allSteps": [function (a) {
+    "allSteps": [function (a) {
       return a.size;
     }, ['closure', set, '*/orderWithName']],
     validation: ['nested', getValidationFunc(props), valPrefix + 'val', ['skipSame', valPrefix + '../val'], '-valids', 'makeNextStep.final'],
-    "=mayProceed": ['toggle', 'nextStep', 'val'],
+    "mayProceed": ['toggle', 'nextStep', 'val'],
     validSoFar: ['join', ['closure', function () {
       var state = {};
       return function (valids, orders, currentStep, mayProceed) {
@@ -140,13 +140,17 @@ exports.default = (0, _myMrr.withMrr)(function (props) {
       };
     }, 'valids', '-orders', '-currentStep', '-mayProceed'], [function (valids, orders, currentStep) {
       if (!orders) return _myMrr.skip;
-      if (!valids) return _myMrr.skip;
       var key = orders[currentStep];
-      return valids[key] === true || valids[key] === undefined;
+      return !valids || valids[key] === true || valids[key] === undefined;
     }, '-valids', '-orders', '-currentStep', 'nextStep']],
     submit: ['merge', '../submit', 'nextStep'],
     makeNextStepAfterValidation: ['skipIf', not, 'validSoFar'],
     //reset: ['skipSame', 'currentStep'],
-    "=orders": [objFlip, ['closure', state, '*/orderWithName']]
-  };
+    "orders": [objFlip, ['closure', state, '*/orderWithName']],
+    "successfulSubmit": ['transist', '-val', 'makeNextStep.final']
+  }, {
+    allSteps: true,
+    mayProceed: true,
+    orders: true
+  });
 }, null, _Form2.default);

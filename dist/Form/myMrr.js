@@ -3,7 +3,7 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-exports.skip = exports.withMrr = undefined;
+exports.skip = exports.gridMacros = exports.withMrr = undefined;
 
 var _ = require('../');
 
@@ -13,4 +13,5 @@ var _ = require('../');
 //}
 
 exports.withMrr = _.withMrr;
+exports.gridMacros = _.gridMacros;
 exports.skip = _.skip;

@@ -20,6 +20,8 @@ var _Form2 = _interopRequireDefault(_Form);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+
 var arrState = function arrState(a, prev) {
   var state = prev ? prev.slice() : [];
   state[a[1]] = a[0];
@@ -27,39 +29,36 @@ var arrState = function arrState(a, prev) {
 };
 
 exports.default = (0, _myMrr.withMrr)(function (props) {
-  return {
-    $init: {
-      length: 1
-    },
-    length: ['merge', {
+  return _myMrr.gridMacros.skipEqual({
+    length: [function (val) {
+      return val.length;
+    }, 'val'],
+    '+hideErrors': 'length',
+    "val": ['merge', {
+      //initVal: a => a,
+      '*/valWithName': function valWithName(val, prev) {
+        var state = prev ? prev.slice() : [];
+        state[val[1]] = val[0];
+        return state;
+      },
       incr: function incr(_, prev) {
-        return prev + 1;
+        return [].concat(_toConsumableArray(prev), [{}]);
       },
       decr: function decr(_, prev) {
-        return prev - 1 || 1;
+        return prev.slice(0, prev.length - 1);
       },
-      initVal: function initVal(vals) {
-        return vals ? vals.length : _myMrr.skip;
+      setVal: function setVal(a) {
+        return a;
       }
-    }, '^'],
-    '+hideErrors': 'length',
-    "=val": ['closure.funnel', function (init) {
-      var prev = init || [];
-      return function (cell, val) {
-        if (cell === 'initVal') {
-          prev = val;
-        } else {
-          var state = prev.slice();
-          state[val[1]] = val[0];
-          prev = state;
-        }
-        return prev;
-      };
-    }, '*/valWithName', 'initVal'],
-    "=valids": ['skipSame', [arrState, '*/validWithName', '^']],
+    }, '-val'],
+    "valids": ['skipSame', [arrState, '*/validWithName', '^']],
     validation: ['nested', (0, _Element.getValidationFunc)(props), 'val', '../val', 'valids', 'length', 'submit', '$start']
-  };
+  }, {
+    val: 'deepEqual',
+    valids: true
+  });
 }, function (state, props, $, connectAs) {
+  if (state.hidden) return null;
   var arr = new Array(state.length).fill(true);
   var Child = props.child || _Form2.default;
   return _react2.default.createElement(
@@ -69,6 +68,9 @@ exports.default = (0, _myMrr.withMrr)(function (props) {
       var childProps = Object.assign({ isChildForm: true }, connectAs(i), props.childProps || {});
       if (props.defaultValue && props.defaultValue[i] !== undefined) {
         childProps.defaultValue = props.defaultValue[i];
+      }
+      if (state.val && state.val[i] !== undefined) {
+        childProps.defaultValue = state.val[i];
       }
       return _react2.default.createElement(
         'div',
@@ -81,7 +83,7 @@ exports.default = (0, _myMrr.withMrr)(function (props) {
       { className: 'error' },
       state.currentError
     ),
-    _react2.default.createElement(
+    !props.fixedLength && _react2.default.createElement(
       'div',
       null,
       _react2.default.createElement(
