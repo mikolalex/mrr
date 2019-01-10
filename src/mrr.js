@@ -540,9 +540,9 @@ class Mrr {
                       )
                 ){
                     if(this.__mrr.realComputed.$log === 'no-colour'){
-                      console.log('CONNECTED: ' + (this.$name || '/') + as, child.__mrr.realComputed);
+                      console.log('CONNECTED: ' + (this.$name || '') + '/' + as, child.__mrr.realComputed);
                     } else {
-                      console.log('%c CONNECTED: ' + (this.$name || '/') + as, log_styles_mount, child.__mrr.realComputed);
+                      console.log('%c CONNECTED: ' + (this.$name || '') + '/' + as, log_styles_mount, child.__mrr.realComputed);
                     }
                 }   
             }

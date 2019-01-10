@@ -382,5 +382,64 @@ const cellMacros = {
         return res;
     }
 }
+const getMacrosFunc = macrosName => (...args) => [macrosName, ...args];
+
+const map = getMacrosFunc('map');
+const deltasToArr = getMacrosFunc('deltasToArr');
+const arrToDeltas = getMacrosFunc('arrToDeltas');
+const deltas = getMacrosFunc('deltas');
+const coll = getMacrosFunc('coll');
+const list = getMacrosFunc('list');
+const passOnceIf = getMacrosFunc('passOnceIf');
+const merge = getMacrosFunc('merge');
+const toggle = getMacrosFunc('toggle');
+const debounce = getMacrosFunc('debounce');
+const promise = getMacrosFunc('promise');
+const split = getMacrosFunc('split');
+const transist = getMacrosFunc('transist');
+const closureMerge = getMacrosFunc('closureMerge');
+const closureMap = getMacrosFunc('closureMap');
+const mapPrev = getMacrosFunc('mapPrev');
+const join = getMacrosFunc('join');
+const and = getMacrosFunc('&&');
+const or = getMacrosFunc('||');
+const trigger = getMacrosFunc('trigger');
+const skipSame = getMacrosFunc('skipSame');
+const skipIf = getMacrosFunc('skipIf');
+const when = getMacrosFunc('when');
+const turnsFromTo = getMacrosFunc('turnsFromTo');
+const skipN = getMacrosFunc('skipN');
+const remember = getMacrosFunc('remember');
+const accum = getMacrosFunc('accum');
 
 export default cellMacros;
+    
+export {
+    map,
+    deltasToArr,
+    arrToDeltas,
+    deltas,
+    coll,
+    list,
+    passOnceIf,
+    merge,
+    toggle,
+    debounce,
+    promise,
+    split,
+    transist,
+    closureMerge,
+    closureMap,
+    mapPrev,
+    join,
+    and,
+    or,
+    trigger,
+    skipSame,
+    skipIf,
+    when,
+    turnsFromTo,
+    skipN,
+    remember,
+    accum,
+}
