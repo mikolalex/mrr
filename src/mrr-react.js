@@ -1,6 +1,6 @@
 import React from 'react';
 
-import cellMacros from './cellMacros';
+import cellMacros from './operators';
 import MrrCore, { skip } from './mrr';
 import { merge } from './gridMacros';
 
