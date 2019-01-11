@@ -13,9 +13,9 @@ var _react = require('react');
 
 var _react2 = _interopRequireDefault(_react);
 
-var _cellMacros = require('./cellMacros');
+var _operators = require('./operators');
 
-var _cellMacros2 = _interopRequireDefault(_cellMacros);
+var _operators2 = _interopRequireDefault(_operators);
 
 var _mrr = require('./mrr');
 
@@ -151,8 +151,8 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                     var _this2 = this;
 
                     var self = this;
-                    var jsx = _render.call(this, this.state, this.props, this.mrr.toState.bind(this.mrr), function (as) {
-                        return { mrrConnect: _this2.mrr.mrrConnect(as) };
+                    var jsx = _render.call(this, this.state, this.props, this.mrr.toState.bind(this.mrr), function (as, up, down) {
+                        return { mrrConnect: _this2.mrr.mrrConnect(as, up, down) };
                     }, function () {
                         self.mrr.__mrr.getRootHandlersCalled = true;
                         var props = {
@@ -212,7 +212,7 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
     };
 };
 
-var withMrr = exports.withMrr = getWithMrr(null, _cellMacros2.default, defDataTypes);
+var withMrr = exports.withMrr = getWithMrr(null, _operators2.default, defDataTypes);
 
 var def = withMrr({}, null, _react2.default.Component);
 def.skip = _mrr.skip;
@@ -227,7 +227,7 @@ var initGlobalGrid = function initGlobalGrid(struct, availableMacros, availableD
 };
 
 var createMrrApp = exports.createMrrApp = function createMrrApp(conf) {
-    var availableMacros = Object.assign({}, _cellMacros2.default, conf.macros || {});
+    var availableMacros = Object.assign({}, _operators2.default, conf.macros || {});
     var availableDataTypes = Object.assign({}, defDataTypes, conf.dataTypes || {});
     var GG = conf.globalGrid ? initGlobalGrid(conf.globalGrid, availableMacros, availableDataTypes) : null;
     var withMrr = getWithMrr(GG, availableMacros, availableDataTypes);

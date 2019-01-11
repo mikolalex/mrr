@@ -121,6 +121,17 @@ const swapObj = a => {
     return b;
 }
 
+const objFlipArr = a => {
+    const b = {};
+    for(let k in a){
+        if(!b[a[k]]){
+            b[a[k]] = [];
+        }
+        b[a[k]].push(k);
+    }
+    return b;
+}
+
 const objMap = (obj, func) => {
     const res = {};
     for(let i in obj){
@@ -132,7 +143,7 @@ const objMap = (obj, func) => {
 
 const isPromise = a => a instanceof Object && a.toString && a.toString().indexOf('Promise') !== -1;
 
-const systemCells = ['$state', '^/$state', '$props', '$name', '$async', '$nested', '$changedCellName'];
+const systemCells = ['$start', '$end', '$state', '^/$state', '$props', '$name', '$async', '$nested', '$changedCellName'];
 
 
 const recur = (obj, key, func) => {
@@ -444,6 +455,13 @@ class Mrr {
                 }
                 continue;
             };
+            if(key === "$toBeLinked") {
+                this.__mrr.toBeLinked = {};
+                for(let item of fexpr){
+                    this.__mrr.toBeLinked[item] = true;
+                }
+                continue;
+            };
             if(!(fexpr instanceof Array)){
                 if(typeof fexpr === 'string'){
                     // another cell
@@ -464,9 +482,9 @@ class Mrr {
                 if(
                     !this.__mrr.realComputed[cn] 
                     && !this.__mrr.readFromDOM[cn] 
+                    && (!this.__mrr.toBeLinked || !this.__mrr.toBeLinked[cn])
                     && (cn.indexOf('.') === -1)
-                    && (cn !== '$start')
-                    && (cn !== '$end')
+                    && (systemCells.indexOf(cn) === -1)
                 ){
                     throw new Error('Linking to undescribed cell: ' + cn);
                 }
@@ -507,18 +525,45 @@ class Mrr {
             }
         }
     }
-    mrrConnect(as){
+    mrrConnect(as, upstream = {}, downstream = {}){
         const self = this;
         if(isUndef(as)){
             as = '__rand_child_name_' + (++this.__mrr.childrenCounter);
         }
         return {
             subscribe: (child) => {
+                let upstreamObj = upstream;
+                if(upstreamObj instanceof Array){
+                    let r = {};
+                    for(let cell of upstreamObj){
+                        r[cell] = cell;
+                    }
+                    upstreamObj = r;
+                }
+                child.upstream = objFlipArr(upstreamObj);
+                
+                let downstreamObj = downstream;
+                if(downstreamObj instanceof Array){
+                    let r = {};
+                    for(let cell of downstreamObj){
+                        r[cell] = cell;
+                    }
+                    downstreamObj = r;
+                }
+                for(let k in downstreamObj){
+                    let parent_cell = downstreamObj[k];
+                    if(!child.__mrr.linksNeeded['..']){
+                        child.__mrr.linksNeeded['..'] = {};
+                    }
+                    if(!child.__mrr.linksNeeded['..'][parent_cell]){
+                        child.__mrr.linksNeeded['..'][parent_cell] = [];
+                    }
+                    if(child.__mrr.linksNeeded['..'][parent_cell].indexOf(k) === -1){
+                        child.__mrr.linksNeeded['..'][parent_cell].push(k);
+                    }
+                }
+                
                 child.$name = as;
-                //if(!child.state){
-                //	debugger;
-                //}
-                //child.state.$name = as;
                 this.__mrr.children[as] = child;
                 child.__mrrParent = self;
                 child.__mrrLinkedAs = as;
@@ -527,6 +572,7 @@ class Mrr {
                     const val = self.mrrState[a];
                     for(let cell of child_cells){
                         child.mrrState[cell] = val;
+                        child.initialState[cell] = val;
                     }
                 }
                 this.checkLinkedCellsTypes(child, this, '..');
@@ -544,7 +590,7 @@ class Mrr {
                     } else {
                       console.log('%c CONNECTED: ' + (this.$name || '') + '/' + as, log_styles_mount, child.__mrr.realComputed);
                     }
-                }   
+                } 
             }
         }
     }
@@ -604,6 +650,7 @@ class Mrr {
         const arg_cells = this.__mrr.realComputed[cell]
             .slice(this.__mrr.realComputed[cell][0] instanceof Function ? 1 : 2)
             .filter(a => a !== skip);
+        const found = {}
         const res = arg_cells.map((arg_cell => {
             if(arg_cell === '^'){
                 //console.log('looking for prev val of', cell, this.mrrState, this.state);
@@ -619,6 +666,7 @@ class Mrr {
                   return this.reactWrapper ? this.reactWrapper.props : undefined;
                 }
                 if(arg_cell === '$async'){
+                  found.$async = true;
                   return runGridMethodIfExists.bind(null, 'updateAsync', this.__mrr.id, cell, parent_cell, parent_stack);
                 }
                 if(arg_cell === '$nested'){
@@ -645,7 +693,7 @@ class Mrr {
                     : this.mrrState[arg_cell]
             }
         }));
-        return res;
+        return [res, found];
     }
     __mrrSetError(cell, e){
         if(this.mrrDepMap['$err.' + cell]){
@@ -775,10 +823,11 @@ class Mrr {
         if(types.indexOf('nested') !== -1){
             updateNested = runGridMethodIfExists.bind(null, 'updateNested', this.__mrr.id, cell, parent_cell, parent_stack, level);
         }
+        let found = {};
 
         if(fexpr[0] instanceof Function){
             func = this.__mrr.realComputed[cell][0];
-            args = this.__getCellArgs(cell, parent_cell, parent_stack, level);
+            [args, found] = this.__getCellArgs(cell, parent_cell, parent_stack, level);
             try {
                 val = func.apply(null, args);
             } catch (e) {
@@ -789,7 +838,7 @@ class Mrr {
             if(types.indexOf('funnel') !== -1){
                 args = [parent_cell, this.mrrState[parent_cell], this.mrrState[cell]];
             } else {
-                args = this.__getCellArgs(cell, parent_cell, parent_stack, level);
+                [args, found] = this.__getCellArgs(cell, parent_cell, parent_stack, level);
             }
             if(types.indexOf('nested') !== -1){
                 args.unshift(updateNested)
@@ -833,7 +882,7 @@ class Mrr {
             }
             return;
         }
-        if(types && (types.indexOf('async') !== -1)){
+        if((types && (types.indexOf('async') !== -1)) || (found.$async)){
             // do nothing!
             return;
         }
@@ -928,6 +977,15 @@ class Mrr {
                 && (val === this.mrrState[key])
             ){
                 updateOtherGrid(this.__mrrParent, as, key, this.mrrState[key], level + 1);
+            }
+            if(    this.__mrrParent
+                && this.upstream
+                && this.upstream[key]
+                && (val === this.mrrState[key])
+            ){
+                for(let parentCell of this.upstream[key]){
+                    this.__mrrParent.setState({[parentCell]: val}, level + 1);
+                }
             }
             if(    this.__mrrParent
                 && this.__mrrParent.__mrr.linksNeeded['*']

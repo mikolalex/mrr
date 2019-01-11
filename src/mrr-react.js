@@ -84,7 +84,7 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
 		}
         render(){
             const self = this;
-            const jsx = render.call(this, this.state, this.props, this.mrr.toState.bind(this.mrr), as => ({ mrrConnect: this.mrr.mrrConnect(as)}), () => {
+            const jsx = render.call(this, this.state, this.props, this.mrr.toState.bind(this.mrr), (as, up, down) => ({ mrrConnect: this.mrr.mrrConnect(as, up, down)}), () => {
                 self.mrr.__mrr.getRootHandlersCalled = true;
                 const props = {
                     id: '__mrr_root_node_n' + self.mrr.__mrr.id,

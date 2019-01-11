@@ -13,9 +13,9 @@ var _gridMacros = require('./gridMacros');
 
 var _gridMacros2 = _interopRequireDefault(_gridMacros);
 
-var _cellMacros = require('./cellMacros');
+var _operators = require('./operators');
 
-var _cellMacros2 = _interopRequireDefault(_cellMacros);
+var _operators2 = _interopRequireDefault(_operators);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -220,6 +220,17 @@ var swapObj = function swapObj(a) {
     return b;
 };
 
+var objFlipArr = function objFlipArr(a) {
+    var b = {};
+    for (var k in a) {
+        if (!b[a[k]]) {
+            b[a[k]] = [];
+        }
+        b[a[k]].push(k);
+    }
+    return b;
+};
+
 var objMap = function objMap(obj, func) {
     var res = {};
     for (var i in obj) {
@@ -237,7 +248,7 @@ var isPromise = function isPromise(a) {
     return a instanceof Object && a.toString && a.toString().indexOf('Promise') !== -1;
 };
 
-var systemCells = ['$state', '^/$state', '$props', '$name', '$async', '$nested', '$changedCellName'];
+var systemCells = ['$start', '$end', '$state', '^/$state', '$props', '$name', '$async', '$nested', '$changedCellName'];
 
 var recur = function recur(obj, key, func) {
     func(obj);
@@ -282,7 +293,7 @@ var Mrr = function () {
     function Mrr(mrrStructure) {
         var props = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
         var setOuterState = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : function () {};
-        var macros = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : _cellMacros2.default;
+        var macros = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : _operators2.default;
 
         var _this = this;
 
@@ -680,6 +691,35 @@ var Mrr = function () {
 
                     continue;
                 };
+                if (key === "$toBeLinked") {
+                    this.__mrr.toBeLinked = {};
+                    var _iteratorNormalCompletion8 = true;
+                    var _didIteratorError8 = false;
+                    var _iteratorError8 = undefined;
+
+                    try {
+                        for (var _iterator8 = fexpr[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
+                            var _item2 = _step8.value;
+
+                            this.__mrr.toBeLinked[_item2] = true;
+                        }
+                    } catch (err) {
+                        _didIteratorError8 = true;
+                        _iteratorError8 = err;
+                    } finally {
+                        try {
+                            if (!_iteratorNormalCompletion8 && _iterator8.return) {
+                                _iterator8.return();
+                            }
+                        } finally {
+                            if (_didIteratorError8) {
+                                throw _iteratorError8;
+                            }
+                        }
+                    }
+
+                    continue;
+                };
                 if (!(fexpr instanceof Array)) {
                     if (typeof fexpr === 'string') {
                         // another cell
@@ -699,7 +739,7 @@ var Mrr = function () {
             this.mrrDepMap = depMap;
             if (this.__mrr.readFromDOM) {
                 for (var cn in this.mentionedCells) {
-                    if (!this.__mrr.realComputed[cn] && !this.__mrr.readFromDOM[cn] && cn.indexOf('.') === -1 && cn !== '$start' && cn !== '$end') {
+                    if (!this.__mrr.realComputed[cn] && !this.__mrr.readFromDOM[cn] && (!this.__mrr.toBeLinked || !this.__mrr.toBeLinked[cn]) && cn.indexOf('.') === -1 && systemCells.indexOf(cn) === -1) {
                         throw new Error('Linking to undescribed cell: ' + cn);
                     }
                 }
@@ -733,13 +773,13 @@ var Mrr = function () {
 
             var _loop = function _loop(v) {
                 var needed_cells = a.__mrr.linksNeeded[linked_as][v];
-                var _iteratorNormalCompletion8 = true;
-                var _didIteratorError8 = false;
-                var _iteratorError8 = undefined;
+                var _iteratorNormalCompletion9 = true;
+                var _didIteratorError9 = false;
+                var _iteratorError9 = undefined;
 
                 try {
                     var _loop2 = function _loop2() {
-                        var cell = _step8.value;
+                        var cell = _step9.value;
 
                         if (a.__mrr.dataTypes[cell] && b.__mrr.dataTypes[v] && isMatchingType(b.__mrr.dataTypes[v], a.__mrr.dataTypes[cell], _this2.dataTypes, {
                             not: function not() {
@@ -751,20 +791,20 @@ var Mrr = function () {
                         })) {}
                     };
 
-                    for (var _iterator8 = needed_cells[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
+                    for (var _iterator9 = needed_cells[Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
                         _loop2();
                     }
                 } catch (err) {
-                    _didIteratorError8 = true;
-                    _iteratorError8 = err;
+                    _didIteratorError9 = true;
+                    _iteratorError9 = err;
                 } finally {
                     try {
-                        if (!_iteratorNormalCompletion8 && _iterator8.return) {
-                            _iterator8.return();
+                        if (!_iteratorNormalCompletion9 && _iterator9.return) {
+                            _iterator9.return();
                         }
                     } finally {
-                        if (_didIteratorError8) {
-                            throw _iteratorError8;
+                        if (_didIteratorError9) {
+                            throw _iteratorError9;
                         }
                     }
                 }
@@ -779,44 +819,119 @@ var Mrr = function () {
         value: function mrrConnect(as) {
             var _this3 = this;
 
+            var upstream = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+            var downstream = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+
             var self = this;
             if (isUndef(as)) {
                 as = '__rand_child_name_' + ++this.__mrr.childrenCounter;
             }
             return {
                 subscribe: function subscribe(child) {
+                    var upstreamObj = upstream;
+                    if (upstreamObj instanceof Array) {
+                        var r = {};
+                        var _iteratorNormalCompletion10 = true;
+                        var _didIteratorError10 = false;
+                        var _iteratorError10 = undefined;
+
+                        try {
+                            for (var _iterator10 = upstreamObj[Symbol.iterator](), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
+                                var _cell = _step10.value;
+
+                                r[_cell] = _cell;
+                            }
+                        } catch (err) {
+                            _didIteratorError10 = true;
+                            _iteratorError10 = err;
+                        } finally {
+                            try {
+                                if (!_iteratorNormalCompletion10 && _iterator10.return) {
+                                    _iterator10.return();
+                                }
+                            } finally {
+                                if (_didIteratorError10) {
+                                    throw _iteratorError10;
+                                }
+                            }
+                        }
+
+                        upstreamObj = r;
+                    }
+                    child.upstream = objFlipArr(upstreamObj);
+
+                    var downstreamObj = downstream;
+                    if (downstreamObj instanceof Array) {
+                        var _r = {};
+                        var _iteratorNormalCompletion11 = true;
+                        var _didIteratorError11 = false;
+                        var _iteratorError11 = undefined;
+
+                        try {
+                            for (var _iterator11 = downstreamObj[Symbol.iterator](), _step11; !(_iteratorNormalCompletion11 = (_step11 = _iterator11.next()).done); _iteratorNormalCompletion11 = true) {
+                                var _cell2 = _step11.value;
+
+                                _r[_cell2] = _cell2;
+                            }
+                        } catch (err) {
+                            _didIteratorError11 = true;
+                            _iteratorError11 = err;
+                        } finally {
+                            try {
+                                if (!_iteratorNormalCompletion11 && _iterator11.return) {
+                                    _iterator11.return();
+                                }
+                            } finally {
+                                if (_didIteratorError11) {
+                                    throw _iteratorError11;
+                                }
+                            }
+                        }
+
+                        downstreamObj = _r;
+                    }
+                    for (var k in downstreamObj) {
+                        var parent_cell = downstreamObj[k];
+                        if (!child.__mrr.linksNeeded['..']) {
+                            child.__mrr.linksNeeded['..'] = {};
+                        }
+                        if (!child.__mrr.linksNeeded['..'][parent_cell]) {
+                            child.__mrr.linksNeeded['..'][parent_cell] = [];
+                        }
+                        if (child.__mrr.linksNeeded['..'][parent_cell].indexOf(k) === -1) {
+                            child.__mrr.linksNeeded['..'][parent_cell].push(k);
+                        }
+                    }
+
                     child.$name = as;
-                    //if(!child.state){
-                    //	debugger;
-                    //}
-                    //child.state.$name = as;
                     _this3.__mrr.children[as] = child;
                     child.__mrrParent = self;
                     child.__mrrLinkedAs = as;
                     for (var a in child.__mrr.linksNeeded['..']) {
                         var child_cells = child.__mrr.linksNeeded['..'][a];
                         var val = self.mrrState[a];
-                        var _iteratorNormalCompletion9 = true;
-                        var _didIteratorError9 = false;
-                        var _iteratorError9 = undefined;
+                        var _iteratorNormalCompletion12 = true;
+                        var _didIteratorError12 = false;
+                        var _iteratorError12 = undefined;
 
                         try {
-                            for (var _iterator9 = child_cells[Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
-                                var _cell = _step9.value;
+                            for (var _iterator12 = child_cells[Symbol.iterator](), _step12; !(_iteratorNormalCompletion12 = (_step12 = _iterator12.next()).done); _iteratorNormalCompletion12 = true) {
+                                var _cell3 = _step12.value;
 
-                                child.mrrState[_cell] = val;
+                                child.mrrState[_cell3] = val;
+                                child.initialState[_cell3] = val;
                             }
                         } catch (err) {
-                            _didIteratorError9 = true;
-                            _iteratorError9 = err;
+                            _didIteratorError12 = true;
+                            _iteratorError12 = err;
                         } finally {
                             try {
-                                if (!_iteratorNormalCompletion9 && _iterator9.return) {
-                                    _iterator9.return();
+                                if (!_iteratorNormalCompletion12 && _iterator12.return) {
+                                    _iterator12.return();
                                 }
                             } finally {
-                                if (_didIteratorError9) {
-                                    throw _iteratorError9;
+                                if (_didIteratorError12) {
+                                    throw _iteratorError12;
                                 }
                             }
                         }
@@ -826,9 +941,9 @@ var Mrr = function () {
                     _this3.checkLinkedCellsTypes(_this3, child, '*');
                     if (_this3.__mrr.realComputed.$log && (_this3.__mrr.realComputed.$log === true || _this3.__mrr.realComputed.$log.showMount)) {
                         if (_this3.__mrr.realComputed.$log === 'no-colour') {
-                            console.log('CONNECTED: ' + (_this3.$name || '/') + as, child.__mrr.realComputed);
+                            console.log('CONNECTED: ' + (_this3.$name || '') + '/' + as, child.__mrr.realComputed);
                         } else {
-                            console.log('%c CONNECTED: ' + (_this3.$name || '/') + as, log_styles_mount, child.__mrr.realComputed);
+                            console.log('%c CONNECTED: ' + (_this3.$name || '') + '/' + as, log_styles_mount, child.__mrr.realComputed);
                         }
                     }
                 }
@@ -898,6 +1013,7 @@ var Mrr = function () {
             var arg_cells = this.__mrr.realComputed[cell].slice(this.__mrr.realComputed[cell][0] instanceof Function ? 1 : 2).filter(function (a) {
                 return a !== skip;
             });
+            var found = {};
             var res = arg_cells.map(function (arg_cell) {
                 if (arg_cell === '^') {
                     //console.log('looking for prev val of', cell, this.mrrState, this.state);
@@ -913,6 +1029,7 @@ var Mrr = function () {
                         return _this5.reactWrapper ? _this5.reactWrapper.props : undefined;
                     }
                     if (arg_cell === '$async') {
+                        found.$async = true;
                         return runGridMethodIfExists.bind(null, 'updateAsync', _this5.__mrr.id, cell, parent_cell, parent_stack);
                     }
                     if (arg_cell === '$nested') {
@@ -937,7 +1054,7 @@ var Mrr = function () {
                     return _this5.mrrState[arg_cell] === undefined && _this5.state && _this5.__mrr.constructing ? _this5.initialState[arg_cell] : _this5.mrrState[arg_cell];
                 }
             });
-            return res;
+            return [res, found];
         }
     }, {
         key: '__mrrSetError',
@@ -984,40 +1101,40 @@ var Mrr = function () {
             };
             recur(this, ['__mrr', 'children'], function (child) {
                 for (var cn in child.mrrDepMap) {
-                    var _iteratorNormalCompletion10 = true;
-                    var _didIteratorError10 = false;
-                    var _iteratorError10 = undefined;
+                    var _iteratorNormalCompletion13 = true;
+                    var _didIteratorError13 = false;
+                    var _iteratorError13 = undefined;
 
                     try {
-                        for (var _iterator10 = child.mrrDepMap[cn][Symbol.iterator](), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
-                            var _depC = _step10.value;
+                        for (var _iterator13 = child.mrrDepMap[cn][Symbol.iterator](), _step13; !(_iteratorNormalCompletion13 = (_step13 = _iterator13.next()).done); _iteratorNormalCompletion13 = true) {
+                            var _depC = _step13.value;
 
                             addLink(cn, child.__mrr.id, _depC, child.__mrr.id);
                         }
                     } catch (err) {
-                        _didIteratorError10 = true;
-                        _iteratorError10 = err;
+                        _didIteratorError13 = true;
+                        _iteratorError13 = err;
                     } finally {
                         try {
-                            if (!_iteratorNormalCompletion10 && _iterator10.return) {
-                                _iterator10.return();
+                            if (!_iteratorNormalCompletion13 && _iterator13.return) {
+                                _iterator13.return();
                             }
                         } finally {
-                            if (_didIteratorError10) {
-                                throw _iteratorError10;
+                            if (_didIteratorError13) {
+                                throw _iteratorError13;
                             }
                         }
                     }
                 }
                 for (var type in child.__mrr.linksNeeded) {
                     for (var masterCell in child.__mrr.linksNeeded[type]) {
-                        var _iteratorNormalCompletion11 = true;
-                        var _didIteratorError11 = false;
-                        var _iteratorError11 = undefined;
+                        var _iteratorNormalCompletion14 = true;
+                        var _didIteratorError14 = false;
+                        var _iteratorError14 = undefined;
 
                         try {
-                            for (var _iterator11 = child.__mrr.linksNeeded[type][masterCell][Symbol.iterator](), _step11; !(_iteratorNormalCompletion11 = (_step11 = _iterator11.next()).done); _iteratorNormalCompletion11 = true) {
-                                var childCell = _step11.value;
+                            for (var _iterator14 = child.__mrr.linksNeeded[type][masterCell][Symbol.iterator](), _step14; !(_iteratorNormalCompletion14 = (_step14 = _iterator14.next()).done); _iteratorNormalCompletion14 = true) {
+                                var childCell = _step14.value;
 
                                 if (type === '*') {
                                     for (var ch in child.__mrr.children) {
@@ -1027,16 +1144,16 @@ var Mrr = function () {
                                 }
                             }
                         } catch (err) {
-                            _didIteratorError11 = true;
-                            _iteratorError11 = err;
+                            _didIteratorError14 = true;
+                            _iteratorError14 = err;
                         } finally {
                             try {
-                                if (!_iteratorNormalCompletion11 && _iterator11.return) {
-                                    _iterator11.return();
+                                if (!_iteratorNormalCompletion14 && _iterator14.return) {
+                                    _iterator14.return();
                                 }
                             } finally {
-                                if (_didIteratorError11) {
-                                    throw _iteratorError11;
+                                if (_didIteratorError14) {
+                                    throw _iteratorError14;
                                 }
                             }
                         }
@@ -1125,10 +1242,18 @@ var Mrr = function () {
             if (types.indexOf('nested') !== -1) {
                 updateNested = runGridMethodIfExists.bind(null, 'updateNested', this.__mrr.id, cell, parent_cell, parent_stack, level);
             }
+            var found = {};
 
             if (fexpr[0] instanceof Function) {
                 func = this.__mrr.realComputed[cell][0];
-                args = this.__getCellArgs(cell, parent_cell, parent_stack, level);
+
+                var _getCellArgs = this.__getCellArgs(cell, parent_cell, parent_stack, level);
+
+                var _getCellArgs2 = _slicedToArray(_getCellArgs, 2);
+
+                args = _getCellArgs2[0];
+                found = _getCellArgs2[1];
+
                 try {
                     val = func.apply(null, args);
                 } catch (e) {
@@ -1139,7 +1264,12 @@ var Mrr = function () {
                 if (types.indexOf('funnel') !== -1) {
                     args = [parent_cell, this.mrrState[parent_cell], this.mrrState[cell]];
                 } else {
-                    args = this.__getCellArgs(cell, parent_cell, parent_stack, level);
+                    var _getCellArgs3 = this.__getCellArgs(cell, parent_cell, parent_stack, level);
+
+                    var _getCellArgs4 = _slicedToArray(_getCellArgs3, 2);
+
+                    args = _getCellArgs4[0];
+                    found = _getCellArgs4[1];
                 }
                 if (types.indexOf('nested') !== -1) {
                     args.unshift(updateNested);
@@ -1183,7 +1313,7 @@ var Mrr = function () {
                 }
                 return;
             }
-            if (types && types.indexOf('async') !== -1) {
+            if (types && types.indexOf('async') !== -1 || found.$async) {
                 // do nothing!
                 return;
             }
@@ -1214,28 +1344,28 @@ var Mrr = function () {
             var level = arguments[4];
 
             if (this.mrrDepMap[parent_cell]) {
-                var _iteratorNormalCompletion12 = true;
-                var _didIteratorError12 = false;
-                var _iteratorError12 = undefined;
+                var _iteratorNormalCompletion15 = true;
+                var _didIteratorError15 = false;
+                var _iteratorError15 = undefined;
 
                 try {
-                    for (var _iterator12 = this.mrrDepMap[parent_cell][Symbol.iterator](), _step12; !(_iteratorNormalCompletion12 = (_step12 = _iterator12.next()).done); _iteratorNormalCompletion12 = true) {
-                        var _cell2 = _step12.value;
+                    for (var _iterator15 = this.mrrDepMap[parent_cell][Symbol.iterator](), _step15; !(_iteratorNormalCompletion15 = (_step15 = _iterator15.next()).done); _iteratorNormalCompletion15 = true) {
+                        var _cell4 = _step15.value;
 
                         var next_parent_stack = this.__mrr.realComputed.$log ? [].concat(_toConsumableArray(parent_stack), [[parent_cell, val]]) : parent_stack;
-                        this.__mrrUpdateCell(_cell2, parent_cell, update, next_parent_stack, level + 1);
+                        this.__mrrUpdateCell(_cell4, parent_cell, update, next_parent_stack, level + 1);
                     }
                 } catch (err) {
-                    _didIteratorError12 = true;
-                    _iteratorError12 = err;
+                    _didIteratorError15 = true;
+                    _iteratorError15 = err;
                 } finally {
                     try {
-                        if (!_iteratorNormalCompletion12 && _iterator12.return) {
-                            _iterator12.return();
+                        if (!_iteratorNormalCompletion15 && _iterator15.return) {
+                            _iterator15.return();
                         }
                     } finally {
-                        if (_didIteratorError12) {
-                            throw _iteratorError12;
+                        if (_didIteratorError15) {
+                            throw _iteratorError15;
                         }
                     }
                 }
@@ -1269,29 +1399,29 @@ var Mrr = function () {
 
             if (this.isGG) {
                 if (this.__mrr.subscribers) {
-                    var _iteratorNormalCompletion13 = true;
-                    var _didIteratorError13 = false;
-                    var _iteratorError13 = undefined;
+                    var _iteratorNormalCompletion16 = true;
+                    var _didIteratorError16 = false;
+                    var _iteratorError16 = undefined;
 
                     try {
-                        for (var _iterator13 = this.__mrr.subscribers[Symbol.iterator](), _step13; !(_iteratorNormalCompletion13 = (_step13 = _iterator13.next()).done); _iteratorNormalCompletion13 = true) {
-                            var sub = _step13.value;
+                        for (var _iterator16 = this.__mrr.subscribers[Symbol.iterator](), _step16; !(_iteratorNormalCompletion16 = (_step16 = _iterator16.next()).done); _iteratorNormalCompletion16 = true) {
+                            var sub = _step16.value;
 
                             if (sub && sub.__mrr.linksNeeded['^'][key]) {
                                 updateOtherGrid(sub, '^', key, this.mrrState[key], level + 1);
                             }
                         }
                     } catch (err) {
-                        _didIteratorError13 = true;
-                        _iteratorError13 = err;
+                        _didIteratorError16 = true;
+                        _iteratorError16 = err;
                     } finally {
                         try {
-                            if (!_iteratorNormalCompletion13 && _iterator13.return) {
-                                _iterator13.return();
+                            if (!_iteratorNormalCompletion16 && _iterator16.return) {
+                                _iterator16.return();
                             }
                         } finally {
-                            if (_didIteratorError13) {
-                                throw _iteratorError13;
+                            if (_didIteratorError16) {
+                                throw _iteratorError16;
                             }
                         }
                     }
@@ -1305,6 +1435,32 @@ var Mrr = function () {
                 var as = this.__mrrLinkedAs;
                 if (this.__mrrParent && this.__mrrParent.__mrr.linksNeeded[as] && this.__mrrParent.__mrr.linksNeeded[as][key] && val === this.mrrState[key]) {
                     updateOtherGrid(this.__mrrParent, as, key, this.mrrState[key], level + 1);
+                }
+                if (this.__mrrParent && this.upstream && this.upstream[key] && val === this.mrrState[key]) {
+                    var _iteratorNormalCompletion17 = true;
+                    var _didIteratorError17 = false;
+                    var _iteratorError17 = undefined;
+
+                    try {
+                        for (var _iterator17 = this.upstream[key][Symbol.iterator](), _step17; !(_iteratorNormalCompletion17 = (_step17 = _iterator17.next()).done); _iteratorNormalCompletion17 = true) {
+                            var parentCell = _step17.value;
+
+                            this.__mrrParent.setState(_defineProperty({}, parentCell, val), level + 1);
+                        }
+                    } catch (err) {
+                        _didIteratorError17 = true;
+                        _iteratorError17 = err;
+                    } finally {
+                        try {
+                            if (!_iteratorNormalCompletion17 && _iterator17.return) {
+                                _iterator17.return();
+                            }
+                        } finally {
+                            if (_didIteratorError17) {
+                                throw _iteratorError17;
+                            }
+                        }
+                    }
                 }
                 if (this.__mrrParent && this.__mrrParent.__mrr.linksNeeded['*'] && this.__mrrParent.__mrr.linksNeeded['*'][key] && val === this.mrrState[key]) {
                     updateOtherGrid(this.__mrrParent, '*', key, this.mrrState[key], level + 1);
@@ -1329,8 +1485,8 @@ var Mrr = function () {
             if (!level && this.__mrr.realComputed.$log && this.__mrr.realComputed.$log.showTree) {
                 currentChange = [];
             }
-            for (var _cell3 in update) {
-                this.__mrrSetState(_cell3, update[_cell3], null, [], level);
+            for (var _cell5 in update) {
+                this.__mrrSetState(_cell5, update[_cell5], null, [], level);
             }
             for (var parent_cell in update) {
                 this.checkMrrCellUpdate(parent_cell, update, [], null, level);
@@ -1355,8 +1511,8 @@ var Mrr = function () {
                 return this.setOuterState(real_update, true);
                 //return (mrrParentClass.prototype.setState || (() => {})).call(this, real_update, cb, true);
             } else {
-                for (var _cell4 in update) {
-                    this.initialState[_cell4] = update[_cell4];
+                for (var _cell6 in update) {
+                    this.initialState[_cell6] = update[_cell6];
                 }
             }
         }

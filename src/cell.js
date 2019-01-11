@@ -27,11 +27,45 @@ const unique = (f) => {
 
 const getUniqueChecker = unique.bind(null, a => a);
 
+const [
+    $start$,
+    $end$,
+    $state$,
+    $globalState$,
+    $props$,
+    $name$,
+    $async$,
+    $nested$,
+    $changedCellName$
+] = [
+    '$start',
+    '$end',
+    '$state',
+    '^/$state', 
+    '$props', 
+    '$name', 
+    '$async', 
+    '$nested', 
+    '$changedCellName'
+]
+
+const prev = '^';
+
 export {
    cell,
+   prev,
    children,
    parent,
    unique,
    getUniqueChecker,
-   passive
+   passive,
+    $start$,
+    $end$,
+    $state$,
+    $globalState$,
+    $props$,
+    $name$,
+    $async$,
+    $nested$,
+    $changedCellName$
 }
