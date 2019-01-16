@@ -66,6 +66,7 @@ const isMatchingType = (master_type, slave_type, types, actions) => {
 }
 
 let currentChange;
+let currentChangeCells;
 let ids = 0;
 const type_delimiter = ': ';
 
@@ -410,6 +411,7 @@ class Mrr {
         for(let key in mrr){
             let fexpr = mrr[key];
             if(key === '$log') continue;
+            if(key === '$debug') continue;
             if(fexpr === skip) continue;
             if(key === '$meta') continue;
             if(systemCells.indexOf(key) !== -1){
@@ -418,6 +420,9 @@ class Mrr {
             if(key === '$init'){
                 if(mrr.$log && mrr.$log.showTree){
                     currentChange = [];
+                }
+                if(mrr.$debug){
+                    currentChangeCells = {};
                 }
                 let init_vals = mrr[key] instanceof Function ? mrr[key](this.props) : mrr[key];
                 for(let cell in init_vals){
@@ -774,6 +779,10 @@ class Mrr {
       }
       if(this.__mrr.realComputed.$log && this.__mrr.realComputed.$log.showTree){
           currentChange = [];
+          currentChangeCells = {};
+      }
+      if(this.__mrr.realComputed.$debug){
+          currentChangeCells = {};
       }
       this.__mrrSetState(cell, val, parent_cell, parent_stack, 0);
       const update = {};
@@ -794,6 +803,9 @@ class Mrr {
       }
       if(this.__mrr.realComputed.$log && this.__mrr.realComputed.$log.showTree){
           currentChange = [];
+      }
+      if(this.__mrr.realComputed.$debug){
+          currentChangeCells = {};
       }
       const subcellname = cell + '.' + subcell;
       const stateSetter = this.setOuterState;
@@ -915,6 +927,14 @@ class Mrr {
     }
     __mrrSetState(key, val, parent_cell, parent_stack, level){
         //@ todo: omit @@anon cells
+        if(this.__mrr.realComputed.$debug){
+            if(currentChangeCells[key]){
+                throw new Error('Infinite loop for cell: ' + key + '; update path: ' + parent_stack.map(a => a[0]).join(' > '));
+            } else {
+                currentChangeCells[key] = true;
+            }
+        }
+        
         if(this.__mrr.realComputed.$log 
             && (key[0] !== '@')
         ) {
@@ -1015,6 +1035,9 @@ class Mrr {
       const update = Object.assign({}, ns);
       if(!level && this.__mrr.realComputed.$log && this.__mrr.realComputed.$log.showTree){
           currentChange = [];
+      }
+      if(!level && this.__mrr.realComputed.$debug){
+          currentChangeCells = {};
       }
       for(let cell in update){
           this.__mrrSetState(cell, update[cell], null, [], level);

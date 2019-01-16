@@ -136,6 +136,7 @@ var isMatchingType = function isMatchingType(master_type, slave_type, types, act
 };
 
 var currentChange = void 0;
+var currentChangeCells = void 0;
 var ids = 0;
 var type_delimiter = ': ';
 
@@ -602,6 +603,7 @@ var Mrr = function () {
             for (var key in mrr) {
                 var fexpr = mrr[key];
                 if (key === '$log') continue;
+                if (key === '$debug') continue;
                 if (fexpr === skip) continue;
                 if (key === '$meta') continue;
                 if (systemCells.indexOf(key) !== -1) {
@@ -610,6 +612,9 @@ var Mrr = function () {
                 if (key === '$init') {
                     if (mrr.$log && mrr.$log.showTree) {
                         currentChange = [];
+                    }
+                    if (mrr.$debug) {
+                        currentChangeCells = {};
                     }
                     var init_vals = mrr[key] instanceof Function ? mrr[key](this.props) : mrr[key];
                     for (var cell in init_vals) {
@@ -1178,6 +1183,10 @@ var Mrr = function () {
             }
             if (this.__mrr.realComputed.$log && this.__mrr.realComputed.$log.showTree) {
                 currentChange = [];
+                currentChangeCells = {};
+            }
+            if (this.__mrr.realComputed.$debug) {
+                currentChangeCells = {};
             }
             this.__mrrSetState(cell, val, parent_cell, parent_stack, 0);
             var update = {};
@@ -1209,6 +1218,9 @@ var Mrr = function () {
             }
             if (this.__mrr.realComputed.$log && this.__mrr.realComputed.$log.showTree) {
                 currentChange = [];
+            }
+            if (this.__mrr.realComputed.$debug) {
+                currentChangeCells = {};
             }
             var subcellname = cell + '.' + subcell;
             var stateSetter = this.setOuterState;
@@ -1375,6 +1387,16 @@ var Mrr = function () {
         key: '__mrrSetState',
         value: function __mrrSetState(key, val, parent_cell, parent_stack, level) {
             //@ todo: omit @@anon cells
+            if (this.__mrr.realComputed.$debug) {
+                if (currentChangeCells[key]) {
+                    throw new Error('Infinite loop for cell: ' + key + '; update path: ' + parent_stack.map(function (a) {
+                        return a[0];
+                    }).join(' > '));
+                } else {
+                    currentChangeCells[key] = true;
+                }
+            }
+
             if (this.__mrr.realComputed.$log && key[0] !== '@') {
                 if (this.__mrr.realComputed.$log === true || this.__mrr.realComputed.$log instanceof Array && this.__mrr.realComputed.$log.indexOf(key) !== -1 || this.__mrr.realComputed.$log.cells && (this.__mrr.realComputed.$log.cells === true || this.__mrr.realComputed.$log.cells.indexOf(key) !== -1)) {
                     if (this.__mrr.realComputed.$log === 'no-colour') {
@@ -1484,6 +1506,9 @@ var Mrr = function () {
             var update = Object.assign({}, ns);
             if (!level && this.__mrr.realComputed.$log && this.__mrr.realComputed.$log.showTree) {
                 currentChange = [];
+            }
+            if (!level && this.__mrr.realComputed.$debug) {
+                currentChangeCells = {};
             }
             for (var _cell5 in update) {
                 this.__mrrSetState(_cell5, update[_cell5], null, [], level);

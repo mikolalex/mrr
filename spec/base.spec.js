@@ -5,7 +5,7 @@ import { describe, it } from 'mocha';
 //import parallel from 'mocha.parallel';
 import Adapter from 'enzyme-adapter-react-16';
 
-import { withMrr, skip, Grid, Mrr } from '../src';
+import { withMrr, skip, Grid, Mrr, simpleWrapper } from '../src';
 
 import a from './setup';
 
@@ -334,6 +334,46 @@ describe('Testing $props cell', () => {
     done();
   });
 });
+
+describe('Testing "skip"', () => {
+    it('should not do update if skip returned', () => {
+        const fetch = (_, page) => new Promise(res => res({
+            json: () => ({total: 1, data: []})
+        }));
+
+        const GoodsStruct = {
+            $init: {
+                goods: [],
+                page: 1,
+            },
+            goods: [res => res.data, 'requestGoods.success'],
+            requestGoods: ['nested', (cb, page, category) => {
+                fetch('https://reqres.in/api/products?page=', page).then(r => r.json())
+                .then(res => cb('success', res))
+                .catch(e => cb('error', e))
+            }, 'page', 'category', '$start'],
+            page: ['merge', 'goToPage', [(a, prev) => a < prev ? a : skip, 'totalPages', '-page']],
+            totalPages: [res => res.total, 'requestGoods.success'],
+            category: 'selectCategory',
+            errorShown: ['toggle', 'requestGoods.error', [cb => new Promise(res => setTimeout(res, 1000)), 'requestGoods.error']],
+        }
+        const a = simpleWrapper(GoodsStruct);
+        let pageChanged = 0;
+        
+        a.onChange('page', () => ++pageChanged);
+        a.set('page', 10);
+        assert.equal(a.get('page'), 10);
+        assert.equal(pageChanged, 1);
+
+        a.set('requestGoods.success', {data: [], total: 5});
+        assert.equal(a.get('page'), 5);
+        assert.equal(pageChanged, 2);
+
+        a.set('requestGoods.success', {data: [], total: 10});
+        assert.equal(a.get('page'), 5);
+        assert.equal(pageChanged, 2);
+    })
+})
 
 
 /*

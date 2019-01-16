@@ -1,4 +1,4 @@
-const cell = a => {
+const cell = (a, type) => {
     if(a[0] === '-' || a[0] === '$'){
         throw new Error('Cellname cannot start with ' + a[0] + ": " + a);
     }
@@ -8,7 +8,7 @@ const cell = a => {
     if(a[a.length - 1] === '$'){
         throw new Error('Cellname cannot end with "$": ' + a);
     }
-    return a;
+    return a + (type ? ': ' + type : '');
 };
 const passive = c => '-' + cell(c);
 const children = c => '*/' + cell(c);

@@ -3,7 +3,7 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.isOfType = exports.withMrr = exports.skip = exports.createMrrApp = exports.Grid = exports.gridMacros = exports.Mrr = undefined;
+exports.simpleWrapper = exports.isOfType = exports.withMrr = exports.skip = exports.createMrrApp = exports.Grid = exports.gridMacros = exports.Mrr = undefined;
 
 var _mrrReact = require('./mrr-react');
 
@@ -29,6 +29,15 @@ Object.defineProperty(exports, 'isOfType', {
   enumerable: true,
   get: function get() {
     return _mrrReact.isOfType;
+  }
+});
+
+var _simpleWrapper = require('./simpleWrapper');
+
+Object.defineProperty(exports, 'simpleWrapper', {
+  enumerable: true,
+  get: function get() {
+    return _simpleWrapper.simpleWrapper;
   }
 });
 

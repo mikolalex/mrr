@@ -9,6 +9,15 @@ var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = [
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
+var _dataTypes = require('./dataTypes');
+
+Object.defineProperty(exports, 'isOfType', {
+    enumerable: true,
+    get: function get() {
+        return _dataTypes.isOfType;
+    }
+});
+
 var _react = require('react');
 
 var _react2 = _interopRequireDefault(_react);
@@ -32,61 +41,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
 
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-var isOfType = exports.isOfType = function isOfType(val, type, dataTypes) {
-    return dataTypes[type] ? dataTypes[type](val) : false;
-};
-
-var defDataTypes = {
-    'array': {
-        check: function check(a) {
-            return a instanceof Array;
-        }
-    },
-    'object': {
-        check: function check(a) {
-            return a instanceof Object;
-        }
-    },
-    'func': {
-        check: function check(a) {
-            return a instanceof Function;
-        }
-    },
-    'int': {
-        check: function check(a) {
-            return typeof a === 'number';
-        }
-    },
-    'string': {
-        check: function check(a) {
-            return typeof a === 'string';
-        }
-    },
-    'pair': {
-        check: function check(a) {
-            return a instanceof Array && a.length === 2;
-        },
-        extends: ['array']
-    },
-    'coll_update': {
-        check: function check(a, types) {
-            return a instanceof Array && a.length === 2 && isOfType(a[0], 'object', types) && isOfType(a[1], 'object_or_int', types);
-        }
-    },
-    'array_or_object': {
-        check: function check(a) {
-            return a instanceof Object;
-        },
-        extends: ['array', 'object']
-    },
-    'object_or_int': {
-        check: function check(a) {
-            return a instanceof Object || typeof a === 'number';
-        },
-        extends: ['int', 'object']
-    }
-};
 
 var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
     return function (mrrStructure) {
@@ -212,7 +166,7 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
     };
 };
 
-var withMrr = exports.withMrr = getWithMrr(null, _operators2.default, defDataTypes);
+var withMrr = exports.withMrr = getWithMrr(null, _operators2.default, _dataTypes.defDataTypes);
 
 var def = withMrr({}, null, _react2.default.Component);
 def.skip = _mrr.skip;
@@ -228,7 +182,7 @@ var initGlobalGrid = function initGlobalGrid(struct, availableMacros, availableD
 
 var createMrrApp = exports.createMrrApp = function createMrrApp(conf) {
     var availableMacros = Object.assign({}, _operators2.default, conf.macros || {});
-    var availableDataTypes = Object.assign({}, defDataTypes, conf.dataTypes || {});
+    var availableDataTypes = Object.assign({}, _dataTypes.defDataTypes, conf.dataTypes || {});
     var GG = conf.globalGrid ? initGlobalGrid(conf.globalGrid, availableMacros, availableDataTypes) : null;
     var withMrr = getWithMrr(GG, availableMacros, availableDataTypes);
     return {

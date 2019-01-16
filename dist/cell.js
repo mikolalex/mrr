@@ -3,7 +3,7 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var cell = function cell(a) {
+var cell = function cell(a, type) {
     if (a[0] === '-' || a[0] === '$') {
         throw new Error('Cellname cannot start with ' + a[0] + ": " + a);
     }
@@ -13,7 +13,7 @@ var cell = function cell(a) {
     if (a[a.length - 1] === '$') {
         throw new Error('Cellname cannot end with "$": ' + a);
     }
-    return a;
+    return a + (type ? ': ' + type : '');
 };
 var passive = function passive(c) {
     return '-' + cell(c);
