@@ -48,15 +48,16 @@ var html_aspects = {
             return e;
         }];
     }
-};
 
-var isMatchingType = function isMatchingType(master_type, slave_type, types, actions) {
+    //  ERR_COUNTER = 1
+
+};var isMatchingType = function isMatchingType(master_type, slave_type, types, actions) {
     if (master_type === slave_type) {
         actions.matches ? actions.matches() : null;
         return;
     }
     if (!types[slave_type]) {
-        debugger;
+        throw new Error('MRERR_102: cannot find type: ' + slave_type);
     }
     var _matches = false;
     if (types[master_type].extends) {
@@ -427,14 +428,14 @@ var Mrr = function () {
         key: 'setCellDataType',
         value: function setCellDataType(cell, type) {
             if (!this.dataTypes[type]) {
-                throw new Error('Undeclared type: ' + type);
+                throw new Error('MRERR_106: Undeclared type: ' + type);
             }
             cell = cell[0] === '-' ? cell.slice(1) : cell;
             if (!this.__mrr.dataTypes[cell]) {
                 this.__mrr.dataTypes[cell] = type;
             } else {
                 if (this.__mrr.dataTypes[cell] !== type) {
-                    throw new Error("Different type annotation for the same cell found: " + this.__mrr.dataTypes[cell] + ', ' + type + ' for cell "' + cell + '"');
+                    throw new Error("MRERR_107: Different type annotation for the same cell found: " + this.__mrr.dataTypes[cell] + ', ' + type + ' for cell "' + cell + '"');
                 }
             }
         }
@@ -452,7 +453,7 @@ var Mrr = function () {
                     if (!(cell instanceof Function) && (!cell.indexOf || cell.indexOf('.') === -1 && cell_types.indexOf(cell) === -1)) {
                         // it's macro
                         if (!this.__mrrMacros[cell]) {
-                            throw new Error('Macros ' + cell + ' not found!');
+                            throw new Error('MRERR_108: Macros "' + cell + '" not found!');
                         }
                         var new_row = this.__mrrMacros[cell](row.slice(1));
                         this.__mrr.realComputed[key] = new_row;
@@ -607,7 +608,7 @@ var Mrr = function () {
                 if (fexpr === skip) continue;
                 if (key === '$meta') continue;
                 if (systemCells.indexOf(key) !== -1) {
-                    throw new Error('Cannot redefine system cell: ' + key);
+                    throw new Error('MRERR_109: Cannot redefine system cell: ' + key);
                 }
                 if (key === '$init') {
                     if (mrr.$log && mrr.$log.showTree) {
@@ -734,8 +735,7 @@ var Mrr = function () {
                         this.__mrr.realComputed[key] = fexpr;
                     } else {
                         // dunno
-                        console.warn('Strange F-expr:', fexpr);
-                        continue;
+                        throw new Error('MRERR_114: wrong F-expression: ' + fexpr + '. Only strings and arrays are allowed as F-expressions');
                     }
                 }
                 this.parseRow(fexpr, key, depMap);
@@ -745,7 +745,7 @@ var Mrr = function () {
             if (this.__mrr.readFromDOM) {
                 for (var cn in this.mentionedCells) {
                     if (!this.__mrr.realComputed[cn] && !this.__mrr.readFromDOM[cn] && (!this.__mrr.toBeLinked || !this.__mrr.toBeLinked[cn]) && cn.indexOf('.') === -1 && systemCells.indexOf(cn) === -1) {
-                        throw new Error('Linking to undescribed cell: ' + cn);
+                        throw new Error('MRERR_110: Linking to undescribed cell: ' + cn);
                     }
                 }
             }
@@ -788,7 +788,7 @@ var Mrr = function () {
 
                         if (a.__mrr.dataTypes[cell] && b.__mrr.dataTypes[v] && isMatchingType(b.__mrr.dataTypes[v], a.__mrr.dataTypes[cell], _this2.dataTypes, {
                             not: function not() {
-                                throw new Error('Types mismatch! ' + a.__mrr.dataTypes[cell] + ' vs. ' + b.__mrr.dataTypes[v] + ' in ' + cell);
+                                throw new Error('MRERR_111: Types mismatch! ' + a.__mrr.dataTypes[cell] + ' vs. ' + b.__mrr.dataTypes[v] + ' in ' + cell);
                             },
                             maybe: function maybe() {
                                 console.warn('Not fully compliant types: expecting ' + a.__mrr.dataTypes[cell] + ', got ' + b.__mrr.dataTypes[v]);
@@ -959,6 +959,9 @@ var Mrr = function () {
         value: function toState(key, val, notHandleFunctions) {
             var _this4 = this;
 
+            if (!key) {
+                throw new Error('MRERR_112: please specify cell name to write in');
+            }
             if (this.__mrr.readFromDOM && !this.__mrr.readFromDOM[key]) {
                 throw new Error('MRERR_101: trying to create undescribed stream: ' + key, this.__mrr.readFromDOM);
             }
@@ -1300,7 +1303,7 @@ var Mrr = function () {
                     func = this.__mrr.realComputed[cell][1];
                 }
                 if (!func || !func.apply) {
-                    throw new Error('MRR_ERROR_101: closure type should provide function');
+                    throw new Error('MRERR_103: closure type should provide function');
                 }
                 try {
                     val = func.apply(null, args);
@@ -1311,10 +1314,10 @@ var Mrr = function () {
             }
             if (this.__mrr.dataTypes[cell] && val !== skip) {
                 if (!this.dataTypes[this.__mrr.dataTypes[cell]]) {
-                    throw new Error('Undeclared type: ' + this.__mrr.dataTypes[cell] + " for cell " + cell);
+                    throw new Error('MRERR_104: Undeclared type: ' + this.__mrr.dataTypes[cell] + " for cell " + cell);
                 }
                 if (!this.dataTypes[this.__mrr.dataTypes[cell]].check(val, this.dataTypes)) {
-                    throw new Error('Wrong data type for cell ' + cell + ': ' + val + ', expecting ' + this.__mrr.dataTypes[cell]);
+                    throw new Error('MRERR_105: Wrong data type for cell ' + cell + ': ' + val + ', expecting ' + this.__mrr.dataTypes[cell]);
                 }
             }
             if (types && types.indexOf('nested') !== -1) {
@@ -1389,7 +1392,7 @@ var Mrr = function () {
             //@ todo: omit @@anon cells
             if (this.__mrr.realComputed.$debug) {
                 if (currentChangeCells[key]) {
-                    throw new Error('Infinite loop for cell: ' + key + '; update path: ' + parent_stack.map(function (a) {
+                    throw new Error('MRERR_105: Infinite loop for cell: ' + key + '; update path: ' + parent_stack.map(function (a) {
                         return a[0];
                     }).join(' > '));
                 } else {

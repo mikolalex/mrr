@@ -38,6 +38,41 @@ var unique = function unique(f) {
     };
 };
 
+var nested = function nested(cell, subcells) {
+
+    var res = {
+        toString: function toString() {
+            return cell;
+        }
+    };
+    var _iteratorNormalCompletion = true;
+    var _didIteratorError = false;
+    var _iteratorError = undefined;
+
+    try {
+        for (var _iterator = subcells[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+            var subc = _step.value;
+
+            res[subc] = cell + '.' + subc;
+        }
+    } catch (err) {
+        _didIteratorError = true;
+        _iteratorError = err;
+    } finally {
+        try {
+            if (!_iteratorNormalCompletion && _iterator.return) {
+                _iterator.return();
+            }
+        } finally {
+            if (_didIteratorError) {
+                throw _iteratorError;
+            }
+        }
+    }
+
+    return res;
+};
+
 var getUniqueChecker = unique.bind(null, function (a) {
     return a;
 });
@@ -56,6 +91,7 @@ var $start$ = '$start',
 var prev = '^';
 
 exports.cell = cell;
+exports.nested = nested;
 exports.prev = prev;
 exports.children = children;
 exports.parent = parent;
