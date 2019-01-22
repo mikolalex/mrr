@@ -25,6 +25,17 @@ const unique = (f) => {
     }
 }
 
+const nested = (cell, subcells) => {
+	
+	const res = {
+		toString: () => cell,
+	}
+	for(let subc of subcells){
+		res[subc] = cell + '.' + subc;
+	}
+	return res;	
+}
+
 const getUniqueChecker = unique.bind(null, a => a);
 
 const [
@@ -53,6 +64,7 @@ const prev = '^';
 
 export {
    cell,
+   nested,
    prev,
    children,
    parent,
