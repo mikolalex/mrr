@@ -398,7 +398,7 @@ var defMacros = {
                 }
 
                 ++load_count;
-                cb('status', 'pending');
+                cb('status', 'pendingzzzz');
                 var res = func.apply(null, args);
                 if (!isPromise(res)) {
                     // some error
