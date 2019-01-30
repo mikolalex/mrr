@@ -182,7 +182,6 @@ const cellMacros = {
                         } else {
                             cb('data', data);
                             cb('success', data);
-                            cb('error', null);
                         }
                     }).bind(null, c)).catch((function(i, e){
                         if(!(--load_count)){
@@ -191,7 +190,6 @@ const cellMacros = {
                         if(i !== latest_num){
                             return;
                         } else {
-                            cb('success', null);
                             cb('data', null);
                             cb('error', e);
                         }
