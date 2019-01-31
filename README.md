@@ -228,7 +228,7 @@ This pattern is very common, and mrr has syntactic sugar for this called "merge"
   	'cancel': confirm('Do you really want to close?'),
   }]
 ```
-Actually, "merge" is not another mrr cell type, it's a macros. See "Creating macros" section for more info.
+Actually, "merge" is not another mrr cell type, it's an operator. See "Creating operators" section for more info.
 
 ### Closure type
 
@@ -337,11 +337,25 @@ To fix this, we can use passive listening approach.
 We added a "-" before the name of "text" argument. It means that our cell will not be recalculated when the "text" changes. Still it remains accessible in the list of our arguments.
 Passive listening allows flexible control over the properties calculation.
 
-### Macros
+### "skip" value
 
-Macros are functions which transform arbitrary expression to valid mrr expression(one of 5 types).
-Using macros can make your code more expressive and robust.
-E.g., "merge" macros transforms given object to funnel type.
+Each time a cell is updated, mrr recalculates it's dependent cells. However, in many cases we need a way to cancel further updates.
+To do this, you should return special "skip" value from your formula.
+```js
+import { withMrr, skip } from 'mrr';
+
+{
+    odd: [a => a % 2 ? a : skip, 'numbers'],
+    odd_numbers: ['accum', 'odd'],
+}
+```
+This value is helpful for all kinds of filtering. It's internally used in such operators as "skipSame", "trigger", "transist" etc.
+
+### Operators
+
+Operators(also referred as macros) are functions which transform arbitrary expression into valid mrr expression(one of 5 types).
+Using operator can make your code more expressive and robust.
+E.g., "merge" operator transforms given object to funnel type.
 ```js
   popup_shown: ['merge', {
   	'open_popup': true,
@@ -349,7 +363,7 @@ E.g., "merge" macros transforms given object to funnel type.
   	'cancel': false,
   }]
 ```
-is transformed by macros in compile time to something like this:
+is transformed by operator in compile time to something like this:
 ```js
   popup_shown: ['funnel', (cell, val) => {
     if(...){
@@ -360,9 +374,9 @@ is transformed by macros in compile time to something like this:
     }
   }, 'open_popup', 'close_popup', 'cancel'],
 ```
-There are a number of built-in macros, like "merge", "split", "trigger", "skipN" etc.
-Each macros should have unique name and should be a function, which takes some expression and returns valid mrr expression.
-You can also add your custom macros by defining \__mrrCustomMacros property of your component.
+There are a number of built-in operator, like "merge", "split", "trigger", "skipN" etc.
+Each operator should have unique name and should be a function, which takes some expression and returns valid mrr expression.
+You can also add your custom operator by defining \__mrrCustomMacros property of your component.
 ```js
 import { registerMacros } from 'mrr';
 
@@ -388,6 +402,124 @@ slightly more beautiful
     'selectedCategory', '$start'],
 
 ```
+
+## Linking
+Linking streams between components is a crucial part of mrr. You can listen to streams from other components: children or parent. There are number of ways to do it.
+```js
+
+// component A
+
+{
+    foo: [() => { ... }, 'my_child/bar'],
+}, () => {
+    <div>
+        <B {...connectAs('my_child')} />
+    </div>
+}
+
+// component B
+{
+    bar: [() => { ... }, '$start'],
+}
+
+```
+When you connect any child component, you should point it's name. Than you can refer to it's streams as "%child_component_name%/%child_component_stream%". There is also an option for listening for all children:
+```js
+
+// component A
+
+{
+    foo: [() => { ... }, '*/bar'],
+}, () => {
+    <div>
+        <B {...connectAs('my_child1')} />
+        <B {...connectAs('my_child2')} />
+        <B {...connectAs('my_child3')} />
+    </div>
+}
+
+// component B
+{
+    bar: [() => { ... }, '$start'],
+}
+```
+from parent using "../":
+```js
+
+// component A
+
+{
+    foo: [() => { ... }, '$start'],
+}, () => {
+    <div>
+        <A {...connectAs('my_child')} />
+    </div>
+}
+
+// component B
+{
+    bar: [() => { ... }, '../foo'],
+}
+```
+You cannot use more than one slash in name, i.e. "foo/bar/baz" or "../a/b" are invalid names.
+
+Another way is to link with "connectAs()" function.
+```js
+
+// component A
+
+{
+    foo: [() => { ... }, 'bar'],
+}, () => {
+    <div>
+        <B {...connectAs('my_child', ['bar'])} />
+    </div>
+}
+
+// component B
+{
+    bar: [() => { ... }, '$start'],
+}
+```
+We pass an array to "connectAs" function, which describes the matching between parent and child streams. We also may use object, if the names are different:
+```js
+
+// component A
+
+{
+    foo: [() => { ... }, 'baz'],
+}, () => {
+    <div>
+        <B {...connectAs('my_child', { baz: 'bar'})} />
+    </div>
+}
+
+// component B
+{
+    bar: [() => { ... }, '$start'],
+}
+```
+We also may link streams in the opposite direction: from parent to child, passing the third argument to "connectAs":
+```js
+
+// component A
+
+{
+    foo: [() => { ... }, 'baz'],
+    a: [() => { ... }, '$start'],
+}, () => {
+    <div>
+        <B {...connectAs('my_child', { baz: 'bar'}, ['a'])} />
+    </div>
+}
+
+// component B
+{
+    bar: [() => { ... }, '$start'],
+    b: [() => { ... }, 'a']
+}
+```
+
 
 ## Error handling
 
@@ -601,7 +733,7 @@ timer: ['async.closure.funnel', () => {
 The only two types you cannot combine together are "async" and "nested", as the second includes the first by design.
 Combination is possible for these basic types, macros(operators) cannot be combined.
 
-## Built-in macros
+## Built-in operators
 
 #### merge
 Joins the streams
@@ -732,6 +864,47 @@ foo: ['remember', 'bar', 100/* time in ms*/, 'N/A'/* default value */],
 bar: =1==================3=====4==========================5=====
 foo: =1==========N/A=====3=====4==========N/A=============5=====
 ```
+
+## Moving away from strings
+
+Using string constants is a good idea to make your coding proccess more relaxed.
+```js
+{
+    a: [() => 42, '$start'],
+    b: [a => a + 10, 'a'],
+    c: ['promise', () => new Promise(res => setTimeout(res, 1000)), 'a'],
+    d: ['merge', 'c', 'b', '-a'],
+    foo: [a => a + 1, '*/bar'],
+}
+```
+is transformed into
+```js
+import { withMrr } from 'mrr';
+import { cell, $start$, passive } from 'mrr/cell';
+import { promise, merge } from 'mrr/operators';
+
+const a$ = cell('a');
+const b$ = cell('b');
+const c$ = cell('c');
+const d$ = cell('d');
+const foo$ = cell('foo');
+
+const bar$ = cell('bar');
+
+{
+    [a$]: [() => 42, $start$],
+    [b$]: [a => a + 10, a$],
+    [c$]: promise(() => new Promise(res => setTimeout(res, 1000)), a$),
+    [d$]: merge(c$, b$, passive(a$)),
+    [foo$]: [a => a + 1, children(bar$)],
+}
+```
+You should create a cell name constant with cell() function.
+Each operator has it's functional match, imported from 'mrr/operators'.
+System cells, such as "$start", "$end", "$changedCellName" are imported from 'mrr/cell'.
+The same goes for passive listening.
+
+
 
 
 ## Author
