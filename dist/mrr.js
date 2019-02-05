@@ -1195,7 +1195,7 @@ var Mrr = function () {
             var update = {};
             update[cell] = val;
             this.checkMrrCellUpdate(cell, update, parent_stack, val, 0);
-            this.setOuterState(update, null, true);
+            this.setOuterState(update, null, true, this.mrrState);
             if (this.__mrr.realComputed.$log && this.__mrr.realComputed.$log.showTree) {
                 this.logChange();
             }
@@ -1231,10 +1231,10 @@ var Mrr = function () {
             var update = {};
             update[subcellname] = val;
             this.checkMrrCellUpdate(subcellname, update, parent_stack, val, level);
-            stateSetter.call(this, update, null, true);
+            stateSetter.call(this, update, null, true, this.mrrState);
             var nested_update = _defineProperty({}, cell, this.mrrState[cell] instanceof Object ? this.mrrState[cell] : {});
             nested_update[cell][subcell] = val;
-            stateSetter.call(this, nested_update, null, true);
+            stateSetter.call(this, nested_update, null, true, this.mrrState);
             if (this.__mrr.realComputed.$log && this.__mrr.realComputed.$log.showTree) {
                 this.logChange();
             }
@@ -1536,7 +1536,7 @@ var Mrr = function () {
                 } else {
                     real_update = update;
                 }
-                return this.setOuterState(real_update, true);
+                return this.setOuterState(real_update, true, null, this.mrrState);
                 //return (mrrParentClass.prototype.setState || (() => {})).call(this, real_update, cb, true);
             } else {
                 for (var _cell6 in update) {

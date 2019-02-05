@@ -54,6 +54,7 @@ var simpleWrapper = function simpleWrapper(struct) {
             }
         }
     }, availableMacros, availableDataTypes);
+    obj.onMount();
     return {
         set: function set(cell, val) {
             obj.toState(cell, val)();

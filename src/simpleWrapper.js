@@ -16,19 +16,20 @@ const simpleWrapper = (struct, macros = {}, dataTypes = {}) => {
             }
         }
     }, availableMacros, availableDataTypes);
+    obj.onMount();
     return {
         set: (cell, val) => {
             obj.toState(cell, val)();
         },
         get: (cell) => {
             return obj.mrrState[cell];
-        },  
+        },
         onChange: (cell, func) => {
             if(!handlers[cell]){
                 handlers[cell] = [];
             }
             handlers[cell].push(func);
-        }   
+        }
     }
 }
 

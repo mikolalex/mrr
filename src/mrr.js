@@ -157,7 +157,7 @@ const recur = (obj, key, func) => {
             val = val[field];
             if(!val) break;
         }
-        
+
     } else {
         val = val[key];
     }
@@ -194,7 +194,7 @@ class Mrr {
             alreadyInitedLinkedCells: {},
         };
         allGrids[this.__mrr.id] = this;
-        
+
         if(props && props.extractDebugMethodsTo){
             props.extractDebugMethodsTo.getState = () => {
                 return this.mrrState;
@@ -246,7 +246,7 @@ class Mrr {
             $start: true,
         });
     }
-    
+
     onUnmount(){
         this.setState({$end: true});
         if(this.__mrrParent){
@@ -264,11 +264,11 @@ class Mrr {
     get __mrrPath(){
         return this.__mrrParent ? this.__mrrParent.__mrrPath + '/' + this.$name : (this.isGG ? 'GG' : 'root');
     }
-    
+
     get innerState(){
         return Object.assign({}, this.mrrState);
     }
-    
+
     setCellDataType(cell, type){
         if(!this.dataTypes[type]){
             throw new Error('MRERR_106: Undeclared type: ' + type);
@@ -486,8 +486,8 @@ class Mrr {
         if(this.__mrr.readFromDOM){
             for(let cn in this.mentionedCells){
                 if(
-                    !this.__mrr.realComputed[cn] 
-                    && !this.__mrr.readFromDOM[cn] 
+                    !this.__mrr.realComputed[cn]
+                    && !this.__mrr.readFromDOM[cn]
                     && (!this.__mrr.toBeLinked || !this.__mrr.toBeLinked[cn])
                     && (cn.indexOf('.') === -1)
                     && (systemCells.indexOf(cn) === -1)
@@ -547,7 +547,7 @@ class Mrr {
                     upstreamObj = r;
                 }
                 child.upstream = objFlipArr(upstreamObj);
-                
+
                 let downstreamObj = downstream;
                 if(downstreamObj instanceof Array){
                     let r = {};
@@ -568,7 +568,7 @@ class Mrr {
                         child.__mrr.linksNeeded['..'][parent_cell].push(k);
                     }
                 }
-                
+
                 child.$name = as;
                 this.__mrr.children[as] = child;
                 child.__mrrParent = self;
@@ -586,7 +586,7 @@ class Mrr {
                 this.checkLinkedCellsTypes(this, child, '*');
                 if(this.__mrr.realComputed.$log
                    && (
-                       (this.__mrr.realComputed.$log === true) 
+                       (this.__mrr.realComputed.$log === true)
                        ||
                        (this.__mrr.realComputed.$log.showMount)
                       )
@@ -596,7 +596,7 @@ class Mrr {
                     } else {
                       console.log('%c CONNECTED: ' + (this.$name || '') + '/' + as, log_styles_mount, child.__mrr.realComputed);
                     }
-                } 
+                }
             }
         }
     }
@@ -715,11 +715,11 @@ class Mrr {
             }
         }
     }
-    
+
     getGraph(){
         let c = 0;
         const cells = {
-            
+
         };
         const edges = [];
         const setCell = (cell, gridId) => {
@@ -775,8 +775,8 @@ class Mrr {
         }
         return [nodes, edges];
     }
-    
-    
+
+
     updateAsync(cell, parent_cell, parent_stack, val){
       if(val === skip) {
           return;
@@ -792,12 +792,12 @@ class Mrr {
       const update = {};
       update[cell] = val;
       this.checkMrrCellUpdate(cell, update, parent_stack, val, 0);
-      this.setOuterState(update, null, true);
+      this.setOuterState(update, null, true, this.mrrState);
       if(this.__mrr.realComputed.$log && this.__mrr.realComputed.$log.showTree){
           this.logChange();
       }
     }
-    
+
     updateNested(cell, parent_cell, parent_stack, level, subcell, val){
       if(subcell instanceof Object){
           for(let k in subcell){
@@ -817,20 +817,20 @@ class Mrr {
       const update = {};
       update[subcellname] = val;
       this.checkMrrCellUpdate(subcellname, update, parent_stack, val, level);
-      stateSetter.call(this, update, null, true);
+      stateSetter.call(this, update, null, true, this.mrrState);
       const nested_update = {
           [cell]: this.mrrState[cell] instanceof Object ? this.mrrState[cell] : {}
       }
       nested_update[cell][subcell] = val;
-      stateSetter.call(this, nested_update, null, true);
+      stateSetter.call(this, nested_update, null, true, this.mrrState);
       if(this.__mrr.realComputed.$log && this.__mrr.realComputed.$log.showTree){
           this.logChange();
       }
     }
-    
+
     __mrrUpdateCell(cell, parent_cell, update, parent_stack, level){
         var val, func, args, updateNested, updateFunc, types = [];
-        
+
         const fexpr = this.__mrr.realComputed[cell];
         if(typeof fexpr[0] === 'string'){
             types = fexpr[0].split('.');
@@ -938,8 +938,8 @@ class Mrr {
                 currentChangeCells[key] = true;
             }
         }
-        
-        if(this.__mrr.realComputed.$log 
+
+        if(this.__mrr.realComputed.$log
             && (key[0] !== '@')
         ) {
             if(
@@ -947,10 +947,10 @@ class Mrr {
                 ||
                 ((this.__mrr.realComputed.$log instanceof Array) && (this.__mrr.realComputed.$log.indexOf(key) !== -1))
                 ||
-                (this.__mrr.realComputed.$log.cells 
+                (this.__mrr.realComputed.$log.cells
                     && (
                         (this.__mrr.realComputed.$log.cells === true)
-                        || 
+                        ||
                         (this.__mrr.realComputed.$log.cells.indexOf(key) !== -1)
                     )
                 )
@@ -1066,7 +1066,7 @@ class Mrr {
           } else {
               real_update = update;
           }
-          return this.setOuterState(real_update, true);
+          return this.setOuterState(real_update, true, null, this.mrrState);
           //return (mrrParentClass.prototype.setState || (() => {})).call(this, real_update, cb, true);
       } else {
           for(let cell in update){
