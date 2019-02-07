@@ -33,7 +33,7 @@ var useMrr = function useMrr(props, mrrStructure, macros, dataTypes) {
 		var availableMacros = Object.assign({}, _operators2.default, macros);
 		var availableDataTypes = Object.assign({}, _dataTypes.defDataTypes, dataTypes);
 		mrrInstance.current = new _mrr2.default(mrrStructure, props, function (update, cb, flag, newState) {
-			setMrrState(newState);
+			setMrrState(Object.assign({}, newState));
 		}, availableMacros, availableDataTypes);
 		mrrInstance.current.reactWrapper = { props: props };
 		mrrInstance.current.onMount();

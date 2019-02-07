@@ -6,13 +6,13 @@ import cellMacros from './operators';
 import { defDataTypes } from './dataTypes';
 
 const useMrr = (props, mrrStructure, macros, dataTypes) => {
-	const [mrrState, setMrrState] = useState({});
+  const [mrrState, setMrrState] = useState({});
   const mrrInstance = useRef();
 	useEffect(() => {
 		const availableMacros = Object.assign({}, cellMacros, macros);
 		const availableDataTypes = Object.assign({}, defDataTypes, dataTypes);
 		mrrInstance.current = new Mrr(mrrStructure, props, (update, cb, flag, newState) => {
-				setMrrState(newState);
+            setMrrState(Object.assign({}, newState));
 		}, availableMacros, availableDataTypes);
 	  mrrInstance.current.reactWrapper = { props };
 		mrrInstance.current.onMount();
