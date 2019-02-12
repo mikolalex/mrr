@@ -7,7 +7,7 @@ import { defDataTypes } from './dataTypes';
 
 export { isOfType } from './dataTypes';
 
-const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, parentClass = null) => {
+const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, parentClass = null, config = null) => {
     let mrrParentClass = mrrStructure;
     const parent = parentClass || React.Component;
     render = render || parent.prototype.render || (() => null);
@@ -17,7 +17,13 @@ const getWithMrr = (GG, macros, dataTypes) => (mrrStructure, render = null, pare
             this.props = props;
             if(already_inited !== 'AI'){
                 const struct = this.getMrrStruct();
-                this.mrr = new MrrCore(struct, props, a => this.setState(a), macros, dataTypes, GG);
+                this.mrr = new MrrCore(struct, props, { 
+                    setOuterState: a => this.setState(a), 
+                    macros, 
+                    dataTypes, 
+                    GG,
+                    config,
+                });
                 this.mrr.reactWrapper = this;
                 this.state = this.mrr.initialState;
             }
@@ -77,7 +83,12 @@ def.skip = skip;
 export { skip };
 
 const initGlobalGrid = (struct, availableMacros, availableDataTypes) => {
-    const GG = new MrrCore(struct, {}, () => {}, availableMacros, availableDataTypes, true);
+    const GG = new MrrCore(struct, {}, {
+        setOuterState: () => {}, 
+        availableMacros, 
+        availableDataTypes, 
+        GG: true 
+    });
     GG.__mrr.subscribers = [];
     return GG;
 }

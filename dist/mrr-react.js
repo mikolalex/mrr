@@ -47,6 +47,7 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
         var _render = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
 
         var parentClass = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : null;
+        var config = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : null;
 
         var mrrParentClass = mrrStructure;
         var parent = parentClass || _react2.default.Component;
@@ -66,9 +67,15 @@ var getWithMrr = function getWithMrr(GG, macros, dataTypes) {
                 _this.props = props;
                 if (already_inited !== 'AI') {
                     var struct = _this.getMrrStruct();
-                    _this.mrr = new _mrr2.default(struct, props, function (a) {
-                        return _this.setState(a);
-                    }, macros, dataTypes, GG);
+                    _this.mrr = new _mrr2.default(struct, props, {
+                        setOuterState: function setOuterState(a) {
+                            return _this.setState(a);
+                        },
+                        macros: macros,
+                        dataTypes: dataTypes,
+                        GG: GG,
+                        config: config
+                    });
                     _this.mrr.reactWrapper = _this;
                     _this.state = _this.mrr.initialState;
                 }
@@ -175,7 +182,12 @@ exports.skip = _mrr.skip;
 
 
 var initGlobalGrid = function initGlobalGrid(struct, availableMacros, availableDataTypes) {
-    var GG = new _mrr2.default(struct, {}, function () {}, availableMacros, availableDataTypes, true);
+    var GG = new _mrr2.default(struct, {}, {
+        setOuterState: function setOuterState() {},
+        availableMacros: availableMacros,
+        availableDataTypes: availableDataTypes,
+        GG: true
+    });
     GG.__mrr.subscribers = [];
     return GG;
 };

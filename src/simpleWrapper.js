@@ -3,19 +3,24 @@ import Mrr from './mrr';
 import cellMacros from './operators';
 import { defDataTypes } from './dataTypes';
 
-const simpleWrapper = (struct, macros = {}, dataTypes = {}) => {
-    const availableMacros = Object.assign({}, cellMacros, macros);
-    const availableDataTypes = Object.assign({}, defDataTypes, dataTypes);
+const simpleWrapper = (struct, meta = {}) => {
+    const availableMacros = Object.assign({}, cellMacros, meta.macros);
+    const availableDataTypes = Object.assign({}, defDataTypes, meta.dataTypes);
     const handlers = {};
-    const obj = new Mrr(struct, {}, (update) => {
-        for(let cell in update){
-            if(handlers[cell]){
-                for(let f of handlers[cell]){
-                    f(update[cell]);
+    const obj = new Mrr(struct, {}, {
+        setOuterState: (update) => {
+            for(let cell in update){
+                if(handlers[cell]){
+                    for(let f of handlers[cell]){
+                        f(update[cell]);
+                    }
                 }
             }
-        }
-    }, availableMacros, availableDataTypes);
+        },
+        macros: availableMacros,
+        dataTypes: availableDataTypes,
+        strict: meta.strict,
+    });
     obj.onMount();
     return {
         set: (cell, val) => {

@@ -62,15 +62,24 @@ const [
 
 const prev = '^';
 
+const fromDOM = new function fromDOM(){};
+const fromParent = new function fromParent(){};
+const fromChildren = new function fromChildren(){};
+const fromOthers = new function fromOthers(){};
+
 export {
-   cell,
-   nested,
-   prev,
-   children,
-   parent,
-   unique,
-   getUniqueChecker,
-   passive,
+    fromDOM,
+    fromParent,
+    fromChildren,
+    fromOthers,
+    cell,
+    nested,
+    prev,
+    children,
+    parent,
+    unique,
+    getUniqueChecker,
+    passive,
     $start$,
     $end$,
     $state$,

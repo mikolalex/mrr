@@ -90,6 +90,15 @@ var $start$ = '$start',
 
 var prev = '^';
 
+var fromDOM = new function fromDOM() {}();
+var fromParent = new function fromParent() {}();
+var fromChildren = new function fromChildren() {}();
+var fromOthers = new function fromOthers() {}();
+
+exports.fromDOM = fromDOM;
+exports.fromParent = fromParent;
+exports.fromChildren = fromChildren;
+exports.fromOthers = fromOthers;
 exports.cell = cell;
 exports.nested = nested;
 exports.prev = prev;

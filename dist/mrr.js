@@ -17,6 +17,8 @@ var _operators = require('./operators');
 
 var _operators2 = _interopRequireDefault(_operators);
 
+var _cell7 = require('./cell');
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
@@ -292,23 +294,19 @@ var recur = function recur(obj, key, func) {
 };
 
 var Mrr = function () {
-    function Mrr(mrrStructure) {
-        var props = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-        var setOuterState = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : function () {};
-        var macros = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : _operators2.default;
-
+    function Mrr(mrrStructure) /* setOuterState = () => {}, *macros = CellMacros, dataTypes = {}, GG = false*/{
         var _this = this;
 
-        var dataTypes = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : {};
-        var GG = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : false;
+        var props = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+        var meta = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
 
         _classCallCheck(this, Mrr);
 
-        this.macros = macros;
-        this.GG = GG && GG !== true ? GG : null;
-        this.dataTypes = dataTypes;
-        this.setOuterState = setOuterState;
-        this.isGG = GG === true;
+        this.macros = meta.macros || _operators2.default;
+        this.GG = meta.GG && meta.GG !== true ? meta.GG : null;
+        this.dataTypes = meta.dataTypes || {};
+        this.setOuterState = meta.setOuterState || function () {};
+        this.isGG = meta.GG === true;
         this.props = props || {};
         this.__mrr = {
             id: ++ids,
@@ -602,11 +600,17 @@ var Mrr = function () {
             this.mrrState = Object.assign({}, this.state);
             var updateOnInit = {};
             for (var key in mrr) {
+                if (key === 'undefined') {
+                    throw new Error('MRERR_117: cellname cannot be undefined or "undefined"!');
+                }
                 var fexpr = mrr[key];
                 if (key === '$log') continue;
                 if (key === '$debug') continue;
                 if (fexpr === skip) continue;
-                if (key === '$meta') continue;
+                if (fexpr === _cell7.fromDOM) continue;
+                if (fexpr === _cell7.fromParent) continue;
+                if (fexpr === _cell7.fromChildren) continue;
+                if (fexpr === _cell7.fromOthers) continue;
                 if (systemCells.indexOf(key) !== -1) {
                     throw new Error('MRERR_109: Cannot redefine system cell: ' + key);
                 }
@@ -668,37 +672,41 @@ var Mrr = function () {
 
                     continue;
                 };
-                if (key === "$writeToDOM") {
-                    this.__mrr.writeToDOM = {};
-                    var _iteratorNormalCompletion7 = true;
-                    var _didIteratorError7 = false;
-                    var _iteratorError7 = undefined;
+                if (key === "$meta") {
+                    if (fexpr.strict) {
+                        this.__mrr.strict = true;
+                    }
+                    if (fexpr.writeToDOM) {
+                        this.__mrr.writeToDOM = {};
+                        var _iteratorNormalCompletion7 = true;
+                        var _didIteratorError7 = false;
+                        var _iteratorError7 = undefined;
 
-                    try {
-                        for (var _iterator7 = fexpr[Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
-                            var _item = _step7.value;
-
-                            this.__mrr.writeToDOM[_item] = true;
-                        }
-                    } catch (err) {
-                        _didIteratorError7 = true;
-                        _iteratorError7 = err;
-                    } finally {
                         try {
-                            if (!_iteratorNormalCompletion7 && _iterator7.return) {
-                                _iterator7.return();
+                            for (var _iterator7 = fexpr.writeToDOM[Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
+                                var _item = _step7.value;
+
+                                this.__mrr.writeToDOM[_item] = true;
                             }
+                        } catch (err) {
+                            _didIteratorError7 = true;
+                            _iteratorError7 = err;
                         } finally {
-                            if (_didIteratorError7) {
-                                throw _iteratorError7;
+                            try {
+                                if (!_iteratorNormalCompletion7 && _iterator7.return) {
+                                    _iterator7.return();
+                                }
+                            } finally {
+                                if (_didIteratorError7) {
+                                    throw _iteratorError7;
+                                }
                             }
                         }
                     }
-
                     continue;
                 };
-                if (key === "$toBeLinked") {
-                    this.__mrr.toBeLinked = {};
+                if (key === "$writeToDOM") {
+                    this.__mrr.writeToDOM = {};
                     var _iteratorNormalCompletion8 = true;
                     var _didIteratorError8 = false;
                     var _iteratorError8 = undefined;
@@ -707,7 +715,7 @@ var Mrr = function () {
                         for (var _iterator8 = fexpr[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
                             var _item2 = _step8.value;
 
-                            this.__mrr.toBeLinked[_item2] = true;
+                            this.__mrr.writeToDOM[_item2] = true;
                         }
                     } catch (err) {
                         _didIteratorError8 = true;
@@ -720,6 +728,35 @@ var Mrr = function () {
                         } finally {
                             if (_didIteratorError8) {
                                 throw _iteratorError8;
+                            }
+                        }
+                    }
+
+                    continue;
+                };
+                if (key === "$toBeLinked") {
+                    this.__mrr.toBeLinked = {};
+                    var _iteratorNormalCompletion9 = true;
+                    var _didIteratorError9 = false;
+                    var _iteratorError9 = undefined;
+
+                    try {
+                        for (var _iterator9 = fexpr[Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
+                            var _item3 = _step9.value;
+
+                            this.__mrr.toBeLinked[_item3] = true;
+                        }
+                    } catch (err) {
+                        _didIteratorError9 = true;
+                        _iteratorError9 = err;
+                    } finally {
+                        try {
+                            if (!_iteratorNormalCompletion9 && _iterator9.return) {
+                                _iterator9.return();
+                            }
+                        } finally {
+                            if (_didIteratorError9) {
+                                throw _iteratorError9;
                             }
                         }
                     }
@@ -778,13 +815,13 @@ var Mrr = function () {
 
             var _loop = function _loop(v) {
                 var needed_cells = a.__mrr.linksNeeded[linked_as][v];
-                var _iteratorNormalCompletion9 = true;
-                var _didIteratorError9 = false;
-                var _iteratorError9 = undefined;
+                var _iteratorNormalCompletion10 = true;
+                var _didIteratorError10 = false;
+                var _iteratorError10 = undefined;
 
                 try {
                     var _loop2 = function _loop2() {
-                        var cell = _step9.value;
+                        var cell = _step10.value;
 
                         if (a.__mrr.dataTypes[cell] && b.__mrr.dataTypes[v] && isMatchingType(b.__mrr.dataTypes[v], a.__mrr.dataTypes[cell], _this2.dataTypes, {
                             not: function not() {
@@ -796,20 +833,20 @@ var Mrr = function () {
                         })) {}
                     };
 
-                    for (var _iterator9 = needed_cells[Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
+                    for (var _iterator10 = needed_cells[Symbol.iterator](), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
                         _loop2();
                     }
                 } catch (err) {
-                    _didIteratorError9 = true;
-                    _iteratorError9 = err;
+                    _didIteratorError10 = true;
+                    _iteratorError10 = err;
                 } finally {
                     try {
-                        if (!_iteratorNormalCompletion9 && _iterator9.return) {
-                            _iterator9.return();
+                        if (!_iteratorNormalCompletion10 && _iterator10.return) {
+                            _iterator10.return();
                         }
                     } finally {
-                        if (_didIteratorError9) {
-                            throw _iteratorError9;
+                        if (_didIteratorError10) {
+                            throw _iteratorError10;
                         }
                     }
                 }
@@ -836,47 +873,15 @@ var Mrr = function () {
                     var upstreamObj = upstream;
                     if (upstreamObj instanceof Array) {
                         var r = {};
-                        var _iteratorNormalCompletion10 = true;
-                        var _didIteratorError10 = false;
-                        var _iteratorError10 = undefined;
-
-                        try {
-                            for (var _iterator10 = upstreamObj[Symbol.iterator](), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
-                                var _cell = _step10.value;
-
-                                r[_cell] = _cell;
-                            }
-                        } catch (err) {
-                            _didIteratorError10 = true;
-                            _iteratorError10 = err;
-                        } finally {
-                            try {
-                                if (!_iteratorNormalCompletion10 && _iterator10.return) {
-                                    _iterator10.return();
-                                }
-                            } finally {
-                                if (_didIteratorError10) {
-                                    throw _iteratorError10;
-                                }
-                            }
-                        }
-
-                        upstreamObj = r;
-                    }
-                    child.upstream = objFlipArr(upstreamObj);
-
-                    var downstreamObj = downstream;
-                    if (downstreamObj instanceof Array) {
-                        var _r = {};
                         var _iteratorNormalCompletion11 = true;
                         var _didIteratorError11 = false;
                         var _iteratorError11 = undefined;
 
                         try {
-                            for (var _iterator11 = downstreamObj[Symbol.iterator](), _step11; !(_iteratorNormalCompletion11 = (_step11 = _iterator11.next()).done); _iteratorNormalCompletion11 = true) {
-                                var _cell2 = _step11.value;
+                            for (var _iterator11 = upstreamObj[Symbol.iterator](), _step11; !(_iteratorNormalCompletion11 = (_step11 = _iterator11.next()).done); _iteratorNormalCompletion11 = true) {
+                                var _cell = _step11.value;
 
-                                _r[_cell2] = _cell2;
+                                r[_cell] = _cell;
                             }
                         } catch (err) {
                             _didIteratorError11 = true;
@@ -893,6 +898,70 @@ var Mrr = function () {
                             }
                         }
 
+                        upstreamObj = r;
+                    }
+                    child.upstream = objFlipArr(upstreamObj);
+                    if (_this3.__mrr.strict) {
+                        for (var w in child.upstream) {
+                            var deps = child.upstream[w];
+                            var _iteratorNormalCompletion12 = true;
+                            var _didIteratorError12 = false;
+                            var _iteratorError12 = undefined;
+
+                            try {
+                                for (var _iterator12 = deps[Symbol.iterator](), _step12; !(_iteratorNormalCompletion12 = (_step12 = _iterator12.next()).done); _iteratorNormalCompletion12 = true) {
+                                    var dep = _step12.value;
+
+                                    var type = _this3.__mrr.realComputed[dep];
+                                    if (type !== _cell7.fromChildren && type !== _cell7.fromOthers) {
+                                        console.error('MRERR_115: cannot link to undescribed cell in strict mode! Trying to link to ' + dep + ' from child');
+                                    }
+                                }
+                            } catch (err) {
+                                _didIteratorError12 = true;
+                                _iteratorError12 = err;
+                            } finally {
+                                try {
+                                    if (!_iteratorNormalCompletion12 && _iterator12.return) {
+                                        _iterator12.return();
+                                    }
+                                } finally {
+                                    if (_didIteratorError12) {
+                                        throw _iteratorError12;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    var downstreamObj = downstream;
+                    if (downstreamObj instanceof Array) {
+                        var _r = {};
+                        var _iteratorNormalCompletion13 = true;
+                        var _didIteratorError13 = false;
+                        var _iteratorError13 = undefined;
+
+                        try {
+                            for (var _iterator13 = downstreamObj[Symbol.iterator](), _step13; !(_iteratorNormalCompletion13 = (_step13 = _iterator13.next()).done); _iteratorNormalCompletion13 = true) {
+                                var _cell2 = _step13.value;
+
+                                _r[_cell2] = _cell2;
+                            }
+                        } catch (err) {
+                            _didIteratorError13 = true;
+                            _iteratorError13 = err;
+                        } finally {
+                            try {
+                                if (!_iteratorNormalCompletion13 && _iterator13.return) {
+                                    _iterator13.return();
+                                }
+                            } finally {
+                                if (_didIteratorError13) {
+                                    throw _iteratorError13;
+                                }
+                            }
+                        }
+
                         downstreamObj = _r;
                     }
                     for (var k in downstreamObj) {
@@ -905,6 +974,12 @@ var Mrr = function () {
                         }
                         if (child.__mrr.linksNeeded['..'][parent_cell].indexOf(k) === -1) {
                             child.__mrr.linksNeeded['..'][parent_cell].push(k);
+                            if (child.__mrr.strict) {
+                                var ctype = child.__mrr.realComputed[k];
+                                if (ctype !== _cell7.fromParent && ctype !== _cell7.fromOthers) {
+                                    console.error('MRERR_116: cannot link to undescribed cell in strict mode! Trying to link to ' + k + ' from parent', child.__mrr.realComputed);
+                                }
+                            }
                         }
                     }
 
@@ -915,28 +990,28 @@ var Mrr = function () {
                     for (var a in child.__mrr.linksNeeded['..']) {
                         var child_cells = child.__mrr.linksNeeded['..'][a];
                         var val = self.mrrState[a];
-                        var _iteratorNormalCompletion12 = true;
-                        var _didIteratorError12 = false;
-                        var _iteratorError12 = undefined;
+                        var _iteratorNormalCompletion14 = true;
+                        var _didIteratorError14 = false;
+                        var _iteratorError14 = undefined;
 
                         try {
-                            for (var _iterator12 = child_cells[Symbol.iterator](), _step12; !(_iteratorNormalCompletion12 = (_step12 = _iterator12.next()).done); _iteratorNormalCompletion12 = true) {
-                                var _cell3 = _step12.value;
+                            for (var _iterator14 = child_cells[Symbol.iterator](), _step14; !(_iteratorNormalCompletion14 = (_step14 = _iterator14.next()).done); _iteratorNormalCompletion14 = true) {
+                                var _cell3 = _step14.value;
 
                                 child.mrrState[_cell3] = val;
                                 child.initialState[_cell3] = val;
                             }
                         } catch (err) {
-                            _didIteratorError12 = true;
-                            _iteratorError12 = err;
+                            _didIteratorError14 = true;
+                            _iteratorError14 = err;
                         } finally {
                             try {
-                                if (!_iteratorNormalCompletion12 && _iterator12.return) {
-                                    _iterator12.return();
+                                if (!_iteratorNormalCompletion14 && _iterator14.return) {
+                                    _iterator14.return();
                                 }
                             } finally {
-                                if (_didIteratorError12) {
-                                    throw _iteratorError12;
+                                if (_didIteratorError14) {
+                                    throw _iteratorError14;
                                 }
                             }
                         }
@@ -964,6 +1039,12 @@ var Mrr = function () {
             }
             if (this.__mrr.readFromDOM && !this.__mrr.readFromDOM[key]) {
                 throw new Error('MRERR_101: trying to create undescribed stream: ' + key, this.__mrr.readFromDOM);
+            }
+            if (this.__mrr.strict && !this.__mrr.readFromDOM) {
+                var type = this.__mrr.realComputed[key];
+                if (type !== _cell7.fromDOM) {
+                    console.error('MRERR_118: cannot write to cell from DOM if it\'s not described as writeable from DOM in strict mode! Cell: ' + key);
+                }
             }
             if (val === undefined && this.__mrr.thunks[key]) {
                 //console.log('=== skip');
@@ -1109,40 +1190,40 @@ var Mrr = function () {
             };
             recur(this, ['__mrr', 'children'], function (child) {
                 for (var cn in child.mrrDepMap) {
-                    var _iteratorNormalCompletion13 = true;
-                    var _didIteratorError13 = false;
-                    var _iteratorError13 = undefined;
+                    var _iteratorNormalCompletion15 = true;
+                    var _didIteratorError15 = false;
+                    var _iteratorError15 = undefined;
 
                     try {
-                        for (var _iterator13 = child.mrrDepMap[cn][Symbol.iterator](), _step13; !(_iteratorNormalCompletion13 = (_step13 = _iterator13.next()).done); _iteratorNormalCompletion13 = true) {
-                            var _depC = _step13.value;
+                        for (var _iterator15 = child.mrrDepMap[cn][Symbol.iterator](), _step15; !(_iteratorNormalCompletion15 = (_step15 = _iterator15.next()).done); _iteratorNormalCompletion15 = true) {
+                            var _depC = _step15.value;
 
                             addLink(cn, child.__mrr.id, _depC, child.__mrr.id);
                         }
                     } catch (err) {
-                        _didIteratorError13 = true;
-                        _iteratorError13 = err;
+                        _didIteratorError15 = true;
+                        _iteratorError15 = err;
                     } finally {
                         try {
-                            if (!_iteratorNormalCompletion13 && _iterator13.return) {
-                                _iterator13.return();
+                            if (!_iteratorNormalCompletion15 && _iterator15.return) {
+                                _iterator15.return();
                             }
                         } finally {
-                            if (_didIteratorError13) {
-                                throw _iteratorError13;
+                            if (_didIteratorError15) {
+                                throw _iteratorError15;
                             }
                         }
                     }
                 }
                 for (var type in child.__mrr.linksNeeded) {
                     for (var masterCell in child.__mrr.linksNeeded[type]) {
-                        var _iteratorNormalCompletion14 = true;
-                        var _didIteratorError14 = false;
-                        var _iteratorError14 = undefined;
+                        var _iteratorNormalCompletion16 = true;
+                        var _didIteratorError16 = false;
+                        var _iteratorError16 = undefined;
 
                         try {
-                            for (var _iterator14 = child.__mrr.linksNeeded[type][masterCell][Symbol.iterator](), _step14; !(_iteratorNormalCompletion14 = (_step14 = _iterator14.next()).done); _iteratorNormalCompletion14 = true) {
-                                var childCell = _step14.value;
+                            for (var _iterator16 = child.__mrr.linksNeeded[type][masterCell][Symbol.iterator](), _step16; !(_iteratorNormalCompletion16 = (_step16 = _iterator16.next()).done); _iteratorNormalCompletion16 = true) {
+                                var childCell = _step16.value;
 
                                 if (type === '*') {
                                     for (var ch in child.__mrr.children) {
@@ -1152,16 +1233,16 @@ var Mrr = function () {
                                 }
                             }
                         } catch (err) {
-                            _didIteratorError14 = true;
-                            _iteratorError14 = err;
+                            _didIteratorError16 = true;
+                            _iteratorError16 = err;
                         } finally {
                             try {
-                                if (!_iteratorNormalCompletion14 && _iterator14.return) {
-                                    _iterator14.return();
+                                if (!_iteratorNormalCompletion16 && _iterator16.return) {
+                                    _iterator16.return();
                                 }
                             } finally {
-                                if (_didIteratorError14) {
-                                    throw _iteratorError14;
+                                if (_didIteratorError16) {
+                                    throw _iteratorError16;
                                 }
                             }
                         }
@@ -1359,28 +1440,28 @@ var Mrr = function () {
             var level = arguments[4];
 
             if (this.mrrDepMap[parent_cell]) {
-                var _iteratorNormalCompletion15 = true;
-                var _didIteratorError15 = false;
-                var _iteratorError15 = undefined;
+                var _iteratorNormalCompletion17 = true;
+                var _didIteratorError17 = false;
+                var _iteratorError17 = undefined;
 
                 try {
-                    for (var _iterator15 = this.mrrDepMap[parent_cell][Symbol.iterator](), _step15; !(_iteratorNormalCompletion15 = (_step15 = _iterator15.next()).done); _iteratorNormalCompletion15 = true) {
-                        var _cell4 = _step15.value;
+                    for (var _iterator17 = this.mrrDepMap[parent_cell][Symbol.iterator](), _step17; !(_iteratorNormalCompletion17 = (_step17 = _iterator17.next()).done); _iteratorNormalCompletion17 = true) {
+                        var _cell4 = _step17.value;
 
                         var next_parent_stack = this.__mrr.realComputed.$log ? [].concat(_toConsumableArray(parent_stack), [[parent_cell, val]]) : parent_stack;
                         this.__mrrUpdateCell(_cell4, parent_cell, update, next_parent_stack, level + 1);
                     }
                 } catch (err) {
-                    _didIteratorError15 = true;
-                    _iteratorError15 = err;
+                    _didIteratorError17 = true;
+                    _iteratorError17 = err;
                 } finally {
                     try {
-                        if (!_iteratorNormalCompletion15 && _iterator15.return) {
-                            _iterator15.return();
+                        if (!_iteratorNormalCompletion17 && _iterator17.return) {
+                            _iterator17.return();
                         }
                     } finally {
-                        if (_didIteratorError15) {
-                            throw _iteratorError15;
+                        if (_didIteratorError17) {
+                            throw _iteratorError17;
                         }
                     }
                 }
@@ -1424,29 +1505,29 @@ var Mrr = function () {
 
             if (this.isGG) {
                 if (this.__mrr.subscribers) {
-                    var _iteratorNormalCompletion16 = true;
-                    var _didIteratorError16 = false;
-                    var _iteratorError16 = undefined;
+                    var _iteratorNormalCompletion18 = true;
+                    var _didIteratorError18 = false;
+                    var _iteratorError18 = undefined;
 
                     try {
-                        for (var _iterator16 = this.__mrr.subscribers[Symbol.iterator](), _step16; !(_iteratorNormalCompletion16 = (_step16 = _iterator16.next()).done); _iteratorNormalCompletion16 = true) {
-                            var sub = _step16.value;
+                        for (var _iterator18 = this.__mrr.subscribers[Symbol.iterator](), _step18; !(_iteratorNormalCompletion18 = (_step18 = _iterator18.next()).done); _iteratorNormalCompletion18 = true) {
+                            var sub = _step18.value;
 
                             if (sub && sub.__mrr.linksNeeded['^'][key]) {
                                 updateOtherGrid(sub, '^', key, this.mrrState[key], level + 1);
                             }
                         }
                     } catch (err) {
-                        _didIteratorError16 = true;
-                        _iteratorError16 = err;
+                        _didIteratorError18 = true;
+                        _iteratorError18 = err;
                     } finally {
                         try {
-                            if (!_iteratorNormalCompletion16 && _iterator16.return) {
-                                _iterator16.return();
+                            if (!_iteratorNormalCompletion18 && _iterator18.return) {
+                                _iterator18.return();
                             }
                         } finally {
-                            if (_didIteratorError16) {
-                                throw _iteratorError16;
+                            if (_didIteratorError18) {
+                                throw _iteratorError18;
                             }
                         }
                     }
@@ -1462,27 +1543,27 @@ var Mrr = function () {
                     updateOtherGrid(this.__mrrParent, as, key, this.mrrState[key], level + 1);
                 }
                 if (this.__mrrParent && this.upstream && this.upstream[key] && val === this.mrrState[key]) {
-                    var _iteratorNormalCompletion17 = true;
-                    var _didIteratorError17 = false;
-                    var _iteratorError17 = undefined;
+                    var _iteratorNormalCompletion19 = true;
+                    var _didIteratorError19 = false;
+                    var _iteratorError19 = undefined;
 
                     try {
-                        for (var _iterator17 = this.upstream[key][Symbol.iterator](), _step17; !(_iteratorNormalCompletion17 = (_step17 = _iterator17.next()).done); _iteratorNormalCompletion17 = true) {
-                            var parentCell = _step17.value;
+                        for (var _iterator19 = this.upstream[key][Symbol.iterator](), _step19; !(_iteratorNormalCompletion19 = (_step19 = _iterator19.next()).done); _iteratorNormalCompletion19 = true) {
+                            var parentCell = _step19.value;
 
                             this.__mrrParent.setState(_defineProperty({}, parentCell, val), level + 1);
                         }
                     } catch (err) {
-                        _didIteratorError17 = true;
-                        _iteratorError17 = err;
+                        _didIteratorError19 = true;
+                        _iteratorError19 = err;
                     } finally {
                         try {
-                            if (!_iteratorNormalCompletion17 && _iterator17.return) {
-                                _iterator17.return();
+                            if (!_iteratorNormalCompletion19 && _iterator19.return) {
+                                _iterator19.return();
                             }
                         } finally {
-                            if (_didIteratorError17) {
-                                throw _iteratorError17;
+                            if (_didIteratorError19) {
+                                throw _iteratorError19;
                             }
                         }
                     }

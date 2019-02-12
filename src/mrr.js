@@ -1,5 +1,6 @@
 import GridMacros from './gridMacros';
 import CellMacros from './operators';
+import { fromDOM, fromParent, fromChildren, fromOthers } from './cell';
 
 export const skip = new function MrrSkip(){};
 
@@ -169,12 +170,12 @@ const recur = (obj, key, func) => {
 }
 
 class Mrr {
-    constructor(mrrStructure, props = {}, setOuterState = () => {}, macros = CellMacros, dataTypes = {}, GG = false) {
-        this.macros = macros;
-        this.GG = (GG && (GG !== true)) ? GG : null;
-        this.dataTypes = dataTypes;
-        this.setOuterState = setOuterState;
-        this.isGG = GG === true;
+    constructor(mrrStructure, props = {}, meta = {}/* setOuterState = () => {}, *macros = CellMacros, dataTypes = {}, GG = false*/) {
+        this.macros = meta.macros || CellMacros;
+        this.GG = (meta.GG && (meta.GG !== true)) ? meta.GG : null;
+        this.dataTypes = meta.dataTypes || {};
+        this.setOuterState = meta.setOuterState || (() => {});
+        this.isGG = meta.GG === true;
         this.props = props || {};
         this.__mrr = {
             id: ++ids,
@@ -411,11 +412,17 @@ class Mrr {
         this.mrrState = Object.assign({}, this.state);
         const updateOnInit = {};
         for(let key in mrr){
+            if(key === 'undefined'){
+              throw new Error('MRERR_117: cellname cannot be undefined or "undefined"!');
+            }
             let fexpr = mrr[key];
             if(key === '$log') continue;
             if(key === '$debug') continue;
             if(fexpr === skip) continue;
-            if(key === '$meta') continue;
+            if(fexpr === fromDOM) continue;
+            if(fexpr === fromParent) continue;
+            if(fexpr === fromChildren) continue;
+            if(fexpr === fromOthers) continue;
             if(systemCells.indexOf(key) !== -1){
               throw new Error('MRERR_109: Cannot redefine system cell: ' + key);
             }
@@ -452,6 +459,18 @@ class Mrr {
                 this.__mrr.readFromDOM = {};
                 for(let item of fexpr){
                     this.__mrr.readFromDOM[item] = true;
+                }
+                continue;
+            };
+            if(key === "$meta") {
+                if(fexpr.strict){
+                    this.__mrr.strict = true;
+                }
+                if(fexpr.writeToDOM){
+                    this.__mrr.writeToDOM = {};
+                    for(let item of fexpr.writeToDOM){
+                        this.__mrr.writeToDOM[item] = true;
+                    }
                 }
                 continue;
             };
@@ -547,6 +566,17 @@ class Mrr {
                     upstreamObj = r;
                 }
                 child.upstream = objFlipArr(upstreamObj);
+                if(this.__mrr.strict){
+                    for(let w in child.upstream){
+                        const deps = child.upstream[w];
+                        for(let dep of deps){
+                            const type = this.__mrr.realComputed[dep];
+                            if((type !== fromChildren) && (type !== fromOthers)){
+                                console.error('MRERR_115: cannot link to undescribed cell in strict mode! Trying to link to ' + dep + ' from child');
+                            }
+                        }
+                    }
+                }
 
                 let downstreamObj = downstream;
                 if(downstreamObj instanceof Array){
@@ -566,6 +596,12 @@ class Mrr {
                     }
                     if(child.__mrr.linksNeeded['..'][parent_cell].indexOf(k) === -1){
                         child.__mrr.linksNeeded['..'][parent_cell].push(k);
+                        if(child.__mrr.strict){
+                            const ctype = child.__mrr.realComputed[k];
+                            if((ctype !== fromParent) && (ctype !== fromOthers)){
+                                console.error('MRERR_116: cannot link to undescribed cell in strict mode! Trying to link to ' + k + ' from parent', child.__mrr.realComputed);
+                            }
+                        }
                     }
                 }
 
@@ -606,6 +642,12 @@ class Mrr {
         }
         if(this.__mrr.readFromDOM && !this.__mrr.readFromDOM[key]){
             throw new Error('MRERR_101: trying to create undescribed stream: ' + key, this.__mrr.readFromDOM);
+        }
+        if(this.__mrr.strict && !this.__mrr.readFromDOM){
+            const type = this.__mrr.realComputed[key];
+            if(type !== fromDOM){
+                console.error('MRERR_118: cannot write to cell from DOM if it\'s not described as writeable from DOM in strict mode! Cell: ' + key);
+            }
         }
         if(val === undefined && this.__mrr.thunks[key]){
             //console.log('=== skip');
