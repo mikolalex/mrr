@@ -42,7 +42,7 @@ const wwait = ms => () => {
 
 const incr = new Function('a', 'return a + 1');
 incr.toString = function(){ return '[INCREMENT]'; };
-
+/*
 describe('Grid inheritance', () => {
   it('Should proper inherit grids', () => {
     const a = new Grid({
@@ -165,7 +165,7 @@ describe('Testing readFromDOM', () => {
     }).to.throw(Error);
   });
 });
-
+*/
 
 describe('Testing system cells', () => {
   it('Should throw an exception when trying to assign system cell', () => {
@@ -188,9 +188,34 @@ describe('Testing system cells', () => {
       
       assert.strictEqual(grid.innerState.c, 3);
   })
+  
+  it('Should return undefined for $name in root component', () => {
+      const grid = new Mrr({
+        $init: {
+            a: true
+        },
+        a: [a => a, '$name', 'b'],
+      });
+      grid.toState('b')(1);
+      
+      assert.strictEqual(grid.innerState.a, undefined);
+  })
+  
+  it('Should return name for $name in connected component', () => {
+      const grid = simpleWrapper({});
+      const child = grid.connect({
+        $init: {
+          a: true
+        },
+        a: [a => a, '$name', 'b'],
+      }, 'child1');
+      child.set('b', 1);
+      
+      assert.strictEqual(child.get('a'), 'child1');
+  })
 });
 
-
+/*
 describe('Testing special error cells', () => {
   it('Should emit error to special $err.%cellname% cell', () => {
     const comp = mrrMount(Error1);

@@ -7,7 +7,7 @@ const simpleWrapper = (struct, meta = {}) => {
     const availableMacros = Object.assign({}, cellMacros, meta.macros);
     const availableDataTypes = Object.assign({}, defDataTypes, meta.dataTypes);
     const handlers = {};
-    const obj = new Mrr(struct, {}, {
+    const obj = new Mrr(struct, meta.props || {}, {
         setOuterState: (update) => {
             for(let cell in update){
                 if(handlers[cell]){
@@ -34,7 +34,11 @@ const simpleWrapper = (struct, meta = {}) => {
                 handlers[cell] = [];
             }
             handlers[cell].push(func);
-        }
+        },        
+		connect: (child_struct, as, up, down) => {
+            const props = { mrrConnect: obj.mrrConnect(as, up, down) };
+            return simpleWrapper(child_struct, { props }); 
+		}
     }
 }
 

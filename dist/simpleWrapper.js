@@ -23,7 +23,7 @@ var simpleWrapper = function simpleWrapper(struct) {
     var availableMacros = Object.assign({}, _operators2.default, meta.macros);
     var availableDataTypes = Object.assign({}, _dataTypes.defDataTypes, meta.dataTypes);
     var handlers = {};
-    var obj = new _mrr2.default(struct, {}, {
+    var obj = new _mrr2.default(struct, meta.props || {}, {
         setOuterState: function setOuterState(update) {
             for (var cell in update) {
                 if (handlers[cell]) {
@@ -71,6 +71,10 @@ var simpleWrapper = function simpleWrapper(struct) {
                 handlers[cell] = [];
             }
             handlers[cell].push(func);
+        },
+        connect: function connect(child_struct, as, up, down) {
+            var props = { mrrConnect: obj.mrrConnect(as, up, down) };
+            return simpleWrapper(child_struct, { props: props });
         }
     };
 };

@@ -45,6 +45,41 @@ c: [(n, m) => {
 Here "c" is computable property - a "cell", "a" and "b" are "arguments" - parent properties, which are passes as arguments to the "formula" - function (n, m) => ... .
 You may add any number of dependent(computable) properties, each dependent cell may have any number of arguments(more than 0).
 
+
+### Using hooks
+
+The same can be done using hooks:
+
+```js
+import React from 'react';
+import userMrr from 'mrr/hooks';
+
+const myComponent = () => {
+
+    const [state, $] = useMrr({
+        $init: {
+              a: '',
+              b: '',
+        },
+        c: [(n, m) => {
+              const num = Number(n) + Number(m);
+              return isNaN(num) ? '' : num;
+        }, 'a',  'b']
+    });
+
+    return <div>
+        <input value={ state.a } onChange={ $('a') } />
+        +
+        <input value={ state.b } onChange={ $('b') } />
+        =
+        <input value={ state.c } disabled/>
+    </div>;
+
+};
+
+```
+
+
 ### Asynchronous computing
 
 In most cases, you should use pure functions for calculating computable properties' values and avoid side-effect. But sometimes you may need to make something asynchronous, e.g. ajax request. For this case, use "async" type.
@@ -126,6 +161,10 @@ In this case we can use "$start" cell.
 ```
 Now our 'all_goods' cell will be computed when the "selectedCategory" cell changes and when the component is created.
 (as the very value of "$start" cell is useless for us, we don't mention it in our arguments' list)
+
+#### $end
+
+Opposite to $start. Runs on componentWillUnmount.
 
 #### $props
 
@@ -732,6 +771,190 @@ timer: ['async.closure.funnel', () => {
 ```
 The only two types you cannot combine together are "async" and "nested", as the second includes the first by design.
 Combination is possible for these basic types, macros(operators) cannot be combined.
+
+## Simple mrr wrapper
+
+allows to use mrr grids outside react: e.g. in vanilla JS projects or for testing.
+
+```
+import { simpleWrapper } from 'mrr';
+
+const grid = simpleWrapper({
+  $init: {
+  	a: '',
+  	b: '',
+  },
+  d: [(n, m, k) => {
+  	const num = Number(n) + Number(m) + (k || 0);
+  	return isNaN(num) ? '' : num;
+  }, 'a',  'b', 'c']
+});
+
+// put some value to a cell
+grid.set('a', 10);
+
+// get cell value
+grid.get('d'); // ''
+
+grid.set('b', 20);
+grid.get('d'); // 30
+
+// listen to cell changes
+grid.onChange('d', (val) => console.log('Now d = ' + val));
+
+grid.set('b', 32); // 'Now d = 42'
+
+// and even connect other children!
+
+const child = grid.connect({
+    val: [() => 58, '$start'],
+}, 'foo', { c: val });
+
+// 'Now d = 100'
+
+```
+
+## Advanced system cells
+
+#### $state 
+
+Return the current mrr state - i.e. the object containing all cells values.
+```js
+import React from 'react';
+import userMrr from 'mrr/hooks';
+
+const myComponent = () => {
+
+    const [state, $] = useMrr({
+        $init: {
+              a: '',
+              b: '',
+        },
+        c: [(n, m) => {
+              const num = Number(n) + Number(m);
+              return isNaN(num) ? '' : num;
+        }, 'a',  'b'],
+        foo: [({a, b, c}) => {
+            console.log('Current state: b =', b, ', c =', c);
+        }, '$state', 'c'], 
+    });
+
+    return <div>
+        <input value={ state.a } onChange={ $('a') } />
+        +
+        <input value={ state.b } onChange={ $('b') } />
+        =
+        <input value={ state.c } disabled/>
+    </div>;
+
+};
+
+```
+$state is passive by default(see "passive listening" section). It means, you need to subscribe to at least one more cell along with "$state".
+
+#### $name
+
+Return the name of the grid if it's connected as a child to another grid, otherwise(for root grids) returns undefined.
+Passive.
+
+```js
+const Foo = () => {
+    const [state, $] = useMrr({
+        gridName: [a => a, '$name', '$start'],
+    });
+    return <div>
+        My name is { state.gridName }
+    </div>;
+};
+
+//
+
+<Foo {...connectAs('child1') />
+
+// outputs "My name is child1"
+
+```
+
+#### $async
+
+Adds callback for returning a value, as if "async" type is used.
+```js
+  goods: ['async', (cb, category) => {
+  	fetch('/goods?category=' + category)
+  	.then(resp => resp.toJSON())
+  	.then(data => cb(data))
+  }, 'selectedCategory']
+```
+is equal to
+```js
+  goods: [(cb, category) => {
+  	fetch('/goods?category=' + category)
+  	.then(resp => resp.toJSON())
+  	.then(data => cb(data))
+  }, '$async', 'selectedCategory']
+
+```
+It can be placed in any order:
+```js
+  // the same
+  goods: [(category, cb) => {
+  	fetch('/goods?category=' + category)
+  	.then(resp => resp.toJSON())
+  	.then(data => cb(data))
+  }, 'selectedCategory', '$async']
+
+```
+
+#### $nested
+
+Adds callback for returning a value to a subcell, as if "nested" type is used.
+
+```js
+  all_goods: ['nested', (cb, category) => {
+    cb('loading', true);
+    fetch('/goods?category=' + category)
+    .then(resp => resp.toJSON())
+    .then(data => {
+        cb('loading', false);
+        cb('data', data);
+    })
+  }, 'selectedCategory'],
+
+```
+is equal to
+```js
+  all_goods: [(cb, category) => {
+    cb('loading', true);
+    fetch('/goods?category=' + category)
+    .then(resp => resp.toJSON())
+    .then(data => {
+        cb('loading', false);
+        cb('data', data);
+    })
+  }, '$nested', 'selectedCategory'],
+```
+
+#### $changedCellName
+
+Returns the name of the exact parent cell, which caused the recalculation.
+(Similar to "funnel" type).
+```js
+
+import { simpleWrapper } from 'mrr';
+
+const foo = simpleWrapper({
+    popup_state: [(cell) => {
+        return cell === 'open_popup';        
+    }, '$changedCellName', 'open_popup', 'close_popup'],
+});
+
+foo.set('open_popup', true);
+foo.get('popup_state'); // true
+
+foo.set('close_popup', true);
+foo.get('popup_state'); // false
+
+```
 
 ## Built-in operators
 
