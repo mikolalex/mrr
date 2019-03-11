@@ -28,33 +28,37 @@ var useMrr = function useMrr(props, mrrStructure, macros, dataTypes) {
 	    mrrState = _useState2[0],
 	    setMrrState = _useState2[1];
 
-	var mrrInstance = (0, _react.useRef)();
+	var _useState3 = (0, _react.useState)(),
+	    _useState4 = _slicedToArray(_useState3, 2),
+	    mrrInstance = _useState4[0],
+	    setMrrInstance = _useState4[1];
+
 	(0, _react.useEffect)(function () {
 		var availableMacros = Object.assign({}, _operators2.default, macros);
 		var availableDataTypes = Object.assign({}, _dataTypes.defDataTypes, dataTypes);
-		mrrInstance.current = new _mrr2.default(mrrStructure, props, function (update, cb, flag, newState) {
-			setMrrState(Object.assign({}, newState));
-		}, availableMacros, availableDataTypes);
-		mrrInstance.current.reactWrapper = { props: props };
-		mrrInstance.current.onMount();
+		var mrrInstance = new _mrr2.default(mrrStructure, props, {
+			setOuterState: function setOuterState(update, cb, flag, newState) {
+				setMrrState(Object.assign({}, newState));
+			},
+			macros: availableMacros,
+			dataTypes: availableDataTypes
+		});
+		setMrrInstance(mrrInstance);
+		mrrInstance.reactWrapper = { props: props };
+		mrrInstance.onMount();
 		return function () {
-			mrrInstance.current.onUnmount();
+			mrrInstance.onUnmount();
 		};
 	}, []);
-	(0, _react.useEffect)(function () {
-		if (mrrInstance.current) {
-			mrrInstance.current.reactWrapper = { props: props };
-		}
-	});
 	return [mrrState, function (cell, val) {
-		if (mrrInstance.current) {
-			return mrrInstance.current.toState(cell, val);
+		if (mrrInstance) {
+			return mrrInstance.toState(cell, val);
 		} else {
 			return function () {};
 		}
 	}, function (as, up, down) {
-		if (mrrInstance.current) {
-			return { mrrConnect: mrrInstance.current.mrrConnect(as, up, down) };
+		if (mrrInstance) {
+			return { mrrConnect: mrrInstance.mrrConnect(as, up, down) };
 		} else {
 			return {};
 		}

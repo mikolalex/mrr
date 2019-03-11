@@ -1,42 +1,41 @@
-import React, { Component } from 'react';
-import { useState, useEffect, useRef } from 'react';
+import React, { Component, useState, useEffect } from 'react';
 import Mrr from './mrr';
 
 import cellMacros from './operators';
 import { defDataTypes } from './dataTypes';
 
 const useMrr = (props, mrrStructure, macros, dataTypes) => {
-  const [mrrState, setMrrState] = useState({});
-  const mrrInstance = useRef();
+	const [mrrState, setMrrState] = useState({});
+	const [mrrInstance, setMrrInstance] = useState();
 	useEffect(() => {
 		const availableMacros = Object.assign({}, cellMacros, macros);
 		const availableDataTypes = Object.assign({}, defDataTypes, dataTypes);
-		mrrInstance.current = new Mrr(mrrStructure, props, (update, cb, flag, newState) => {
-            setMrrState(Object.assign({}, newState));
-		}, availableMacros, availableDataTypes);
-	  mrrInstance.current.reactWrapper = { props };
-		mrrInstance.current.onMount();
+        const mrrInstance = new Mrr(mrrStructure, props, { 
+            setOuterState: (update, cb, flag, newState) => {
+                setMrrState(Object.assign({}, newState));
+            },
+            macros: availableMacros, 
+            dataTypes: availableDataTypes
+        });
+        setMrrInstance(mrrInstance);
+		mrrInstance.reactWrapper = { props };
+		mrrInstance.onMount();
 		return () => {
-			mrrInstance.current.onUnmount();
+			mrrInstance.onUnmount();
 		}
 	}, []);
-	useEffect(() => {
-		if(mrrInstance.current){
-			mrrInstance.current.reactWrapper = { props };
-		}
-	})
 	return [
 		mrrState,
 		(cell, val) => {
-			if(mrrInstance.current) {
-				return mrrInstance.current.toState(cell, val);
+			if(mrrInstance) {
+				return mrrInstance.toState(cell, val);
 			} else {
 				return () => {};
 			}
 		},
 		(as, up, down) => {
-			if(mrrInstance.current) {
-				return { mrrConnect: mrrInstance.current.mrrConnect(as, up, down) };
+			if(mrrInstance) {
+				return { mrrConnect: mrrInstance.mrrConnect(as, up, down) };
 			} else {
 				return {};
 			}

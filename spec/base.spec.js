@@ -42,7 +42,7 @@ const wwait = ms => () => {
 
 const incr = new Function('a', 'return a + 1');
 incr.toString = function(){ return '[INCREMENT]'; };
-/*
+
 describe('Grid inheritance', () => {
   it('Should proper inherit grids', () => {
     const a = new Grid({
@@ -165,7 +165,7 @@ describe('Testing readFromDOM', () => {
     }).to.throw(Error);
   });
 });
-*/
+
 
 describe('Testing system cells', () => {
   it('Should throw an exception when trying to assign system cell', () => {
@@ -215,7 +215,7 @@ describe('Testing system cells', () => {
   })
 });
 
-/*
+
 describe('Testing special error cells', () => {
   it('Should emit error to special $err.%cellname% cell', () => {
     const comp = mrrMount(Error1);
