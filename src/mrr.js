@@ -315,7 +315,9 @@ class Mrr {
                 this.parseRow(cell, anonName, depMap);
                 cell = anonName;
             }
-			if(!cell) debugger;
+			if(!cell) {
+                throw new Error('No cell!');
+            }
             if(cell.indexOf(type_delimiter) !== -1){
                 let type;
                 [cell, type] = cell.split(type_delimiter);

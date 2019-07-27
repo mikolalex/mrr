@@ -54,9 +54,9 @@ The same can be done using hooks:
 import React from 'react';
 import userMrr from 'mrr/hooks';
 
-const myComponent = () => {
+const myComponent = props => {
 
-    const [state, $] = useMrr({
+    const [state, $] = useMrr(props, {
         $init: {
               a: '',
               b: '',

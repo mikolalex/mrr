@@ -5,7 +5,8 @@ import cellMacros from './operators';
 import { defDataTypes } from './dataTypes';
 
 const useMrr = (props, mrrStructure, macros, dataTypes) => {
-	const [mrrState, setMrrState] = useState({});
+    const initialState = mrrStructure.$init instanceof Function ? mrrStructure.$init(props) : mrrStructure.$init;
+	const [mrrState, setMrrState] = useState(initialState);
 	const [mrrInstance, setMrrInstance] = useState();
 	useEffect(() => {
 		const availableMacros = Object.assign({}, cellMacros, macros);

@@ -471,7 +471,9 @@ var Mrr = function () {
                     this.parseRow(cell, anonName, depMap);
                     cell = anonName;
                 }
-                if (!cell) debugger;
+                if (!cell) {
+                    throw new Error('No cell!');
+                }
                 if (cell.indexOf(type_delimiter) !== -1) {
                     var type = void 0;
 

@@ -23,7 +23,9 @@ var _dataTypes = require('./dataTypes');
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 var useMrr = function useMrr(props, mrrStructure, macros, dataTypes) {
-	var _useState = (0, _react.useState)({}),
+	var initialState = mrrStructure.$init instanceof Function ? mrrStructure.$init(props) : mrrStructure.$init;
+
+	var _useState = (0, _react.useState)(initialState),
 	    _useState2 = _slicedToArray(_useState, 2),
 	    mrrState = _useState2[0],
 	    setMrrState = _useState2[1];
