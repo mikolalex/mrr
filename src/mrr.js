@@ -343,6 +343,13 @@ class Mrr {
 
             if(cell.indexOf('/') !== -1){
                 let [from, parent_cell] = cell.split('/');
+                if(parent_cell.indexOf('~') === 0){
+                    parent_cell = parent_cell.substr(1);
+                    if(!this.__mrr.immediatelyUpdatedLinks){
+                        this.__mrr.immediatelyUpdatedLinks = {};
+                    }
+                    this.__mrr.immediatelyUpdatedLinks[parent_cell] = true;
+                }
                 if(from[0] === '~'){
                     from = from.slice(1);
                 }
@@ -617,6 +624,10 @@ class Mrr {
                     for(let cell of child_cells){
                         child.mrrState[cell] = val;
                         child.initialState[cell] = val;
+                        if(child.__mrr.immediatelyUpdatedLinks && child.__mrr.immediatelyUpdatedLinks[a]){
+                            updateOtherGrid(child, '..', a, this.mrrState[a]);
+                            console.log('UOG', cell);
+                        }
                     }
                 }
                 this.checkLinkedCellsTypes(child, this, '..');

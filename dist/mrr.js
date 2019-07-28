@@ -519,6 +519,13 @@ var Mrr = function () {
                         from = _cell$split4[0],
                         parent_cell = _cell$split4[1];
 
+                    if (parent_cell.indexOf('~') === 0) {
+                        parent_cell = parent_cell.substr(1);
+                        if (!this.__mrr.immediatelyUpdatedLinks) {
+                            this.__mrr.immediatelyUpdatedLinks = {};
+                        }
+                        this.__mrr.immediatelyUpdatedLinks[parent_cell] = true;
+                    }
                     if (from[0] === '~') {
                         from = from.slice(1);
                     }
@@ -1002,6 +1009,10 @@ var Mrr = function () {
 
                                 child.mrrState[_cell3] = val;
                                 child.initialState[_cell3] = val;
+                                if (child.__mrr.immediatelyUpdatedLinks && child.__mrr.immediatelyUpdatedLinks[a]) {
+                                    updateOtherGrid(child, '..', a, _this3.mrrState[a]);
+                                    console.log('UOG', _cell3);
+                                }
                             }
                         } catch (err) {
                             _didIteratorError14 = true;
