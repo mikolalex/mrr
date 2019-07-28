@@ -879,6 +879,7 @@ var Mrr = function () {
             }
             return {
                 subscribe: function subscribe(child) {
+                    child.subscribed = true;
                     var upstreamObj = upstream;
                     if (upstreamObj instanceof Array) {
                         var r = {};

@@ -566,6 +566,7 @@ class Mrr {
         }
         return {
             subscribe: (child) => {
+                child.subscribed = true;
                 let upstreamObj = upstream;
                 if(upstreamObj instanceof Array){
                     let r = {};
