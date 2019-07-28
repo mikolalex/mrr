@@ -9,6 +9,11 @@ const useMrr = (props, mrrStructure, macros, dataTypes) => {
 	const [mrrState, setMrrState] = useState(initialState);
 	const [mrrInstance, setMrrInstance] = useState();
 	useEffect(() => {
+		if(props.mrrConnect && mrrInstance && !mrrInstance.subscribed){
+			props.mrrConnect.subscribe(mrrInstance);
+		}
+	}, [props.mrrConnect])
+	useEffect(() => {
 		const availableMacros = Object.assign({}, cellMacros, macros);
 		const availableDataTypes = Object.assign({}, defDataTypes, dataTypes);
         const mrrInstance = new Mrr(mrrStructure, props, { 

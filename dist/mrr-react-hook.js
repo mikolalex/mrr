@@ -36,6 +36,11 @@ var useMrr = function useMrr(props, mrrStructure, macros, dataTypes) {
 	    setMrrInstance = _useState4[1];
 
 	(0, _react.useEffect)(function () {
+		if (props.mrrConnect && mrrInstance && !mrrInstance.subscribed) {
+			props.mrrConnect.subscribe(mrrInstance);
+		}
+	}, [props.mrrConnect]);
+	(0, _react.useEffect)(function () {
 		var availableMacros = Object.assign({}, _operators2.default, macros);
 		var availableDataTypes = Object.assign({}, _dataTypes.defDataTypes, dataTypes);
 		var mrrInstance = new _mrr2.default(mrrStructure, props, {
